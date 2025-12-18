@@ -8,6 +8,7 @@ class DeskApplicationTests {
 
 	@Test
 	void contextLoads() {
+                System.out.println();
 	}
 
 }
