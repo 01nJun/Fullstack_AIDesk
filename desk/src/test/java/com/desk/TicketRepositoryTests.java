@@ -1,19 +1,19 @@
 package com.desk;
 
-import java.time.LocalDateTime;
-
+import com.desk.domain.Ticket;
+import com.desk.domain.TicketGrade;
+import com.desk.domain.TicketPersonal;
+import com.desk.domain.TicketState;
+import com.desk.repository.TicketPersonalRepository;
 import com.desk.repository.TicketRepository;
+import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 
-import com.desk.domain.Ticket;
-
-import lombok.extern.log4j.Log4j2;
+import java.time.LocalDateTime;
+import java.util.Optional;
 
 @SpringBootTest
 @Log4j2
@@ -22,91 +22,152 @@ public class TicketRepositoryTests {
     @Autowired
     private TicketRepository ticketRepository;
 
+    @Autowired
+    private TicketPersonalRepository ticketPersonalRepository;
+
     @Test
-    public void test1() {
+    public void test() {
         log.info("----------------------------");
         log.info(ticketRepository);
+        log.info(ticketPersonalRepository);
     }
 
-    // 1) 더미데이터 생성
     @Test
     public void testInsert() {
 
-        for (int i = 1; i <= 100; i++) {
+        for (int i = 1; i <= 30; i++) {
+
+            TicketGrade grade = switch (i % 4) {
+                case 0 -> TicketGrade.LOW;
+                case 1 -> TicketGrade.MIDDLE;
+                case 2 -> TicketGrade.HIGH;
+                default -> TicketGrade.URGENT;
+            };
 
             Ticket ticket = Ticket.builder()
-                    .tTitle("티켓 제목..." + i)
-                    .tContent("요청 요약(한 문장)..." + i)
-                    .tPurpose("요청 배경/목적..." + i)
-                    .tRequirement("- 요구사항1..." + i + "\n- 요구사항2..." + i)
-                    .tGrade(i % 3 == 0 ? "P1" : (i % 3 == 1 ? "P2" : "P3"))
-                    .tDeadline(LocalDateTime.now().plusDays(i % 10)) // 마감일 임의 분산
-                    .tWriter("user00")
-                    // tBirth는 @PrePersist로 자동 세팅(엔티티에 설정해둔 경우)
+                    .tTitle("Ticket Title..." + i)
+                    .tContent("Ticket Content..." + i)
+                    .tPurpose("Purpose..." + (i % 5))
+                    .tRequirement("Requirement..." + i)
+                    .tGrade(grade)
+                    .tDeadline(LocalDateTime.now().plusDays(i % 10).withSecond(0).withNano(0))
+                    .tWriter("user" + String.format("%02d", (i % 3) + 1))
                     .build();
+
+            // 수신자 1~3명
+            int receiverCount = (i % 3) + 1;
+            for (int r = 1; r <= receiverCount; r++) {
+
+                boolean read = (r % 2 == 0);
+                TicketState state = switch ((i + r) % 4) {
+                    case 0 -> TicketState.NEW;
+                    case 1 -> TicketState.IN_PROGRESS;
+                    case 2 -> TicketState.NEED_INFO;
+                    default -> TicketState.DONE;
+                };
+
+                TicketPersonal personal = TicketPersonal.builder()
+                        .tpReceiver("receiver" + ((i + r) % 5 + 1)) // receiver1~5
+                        .tpRead(read)
+                        .tpState(state)
+                        .build();
+
+                ticket.addPersonal(personal); // setTicket(this) + 리스트 추가
+            }
 
             ticketRepository.save(ticket);
         }
+
+        log.info("Inserted 30 tickets.");
     }
 
-    // 2) 단건 조회
     @Test
     public void testRead() {
 
-        Long tno = 33L;
+        Long tno = 1L;
 
-        java.util.Optional<Ticket> result = ticketRepository.findById(tno);
-
-        Ticket ticket = result.orElseThrow();
-
+        Ticket ticket = ticketRepository.findById(tno).orElseThrow();
         log.info(ticket);
+
+        Pageable pageable = PageRequest.of(0, 20, Sort.by("tpno").ascending());
+        Page<TicketPersonal> personals =
+                ticketPersonalRepository.findByTpReceiver("receiver2", pageable);
+
+        log.info("personal count: " + personals.getTotalElements());
+        personals.forEach(p -> log.info("personal: " + p));
     }
 
-    // 3) 수정
     @Test
     public void testModify() {
 
-        Long tno = 50L;
+        Long tno = 1L;
 
-        java.util.Optional<Ticket> result = ticketRepository.findById(tno);
-
+        Optional<Ticket> result = ticketRepository.findById(tno);
         Ticket ticket = result.orElseThrow();
 
-        // Todo처럼 change 메서드가 있으면 그걸 쓰고,
-        // 없으면 updateFromDto(...) 같은 한 방 메서드를 호출하면 됨.
-
-        ticket.changeTitle("수정된 제목 50...");
-        ticket.changeContent("수정된 요약 50...");
-        ticket.changePurpose("수정된 목적 50...");
-        ticket.changeRequirement("- 요구사항 수정1\n- 요구사항 수정2");
-        ticket.changeGrade("P1");
-        ticket.changeDeadline(LocalDateTime.now().plusDays(7));
+        ticket.changeTitle("Modified Title...");
+        ticket.changeContent("Modified Content...");
+        ticket.changePurpose("Modified Purpose...");
+        ticket.changeRequirement("Modified Requirement...");
+        ticket.changeGrade(TicketGrade.URGENT);
+        ticket.changeDeadline(LocalDateTime.now().plusDays(30).withSecond(0).withNano(0));
 
         ticketRepository.save(ticket);
 
-        log.info("MODIFIED: " + ticket);
+        log.info("Modified ticket: " + ticket.getTno());
     }
 
-    // 4) 삭제
     @Test
     public void testDelete() {
 
-        Long tno = 1L;
+        Long tno = 30L;
 
         ticketRepository.deleteById(tno);
 
-        log.info("DELETED tno=" + tno);
+        log.info("Deleted ticket: " + tno);
     }
 
-    // 5) 페이징 조회
     @Test
     public void testPaging() {
 
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("tno").descending());
+        Pageable pageable = PageRequest.of(
+                0,
+                10,
+                Sort.by("tno").descending()
+        );
 
         Page<Ticket> result = ticketRepository.findAll(pageable);
 
-        log.info("TOTAL: " + result.getTotalElements());
+        log.info("total elements: " + result.getTotalElements());
+        log.info("total pages   : " + result.getTotalPages());
+        log.info("page number   : " + result.getNumber());
+        log.info("page size     : " + result.getSize());
+
         result.getContent().forEach(ticket -> log.info(ticket));
+    }
+
+    @Test
+    public void testInboxPagingByReceiver() {
+
+        String receiver = "receiver1";
+
+        Pageable pageable = PageRequest.of(
+                0,
+                10,
+                Sort.by("tpno").descending()
+        );
+
+        Page<com.desk.domain.TicketPersonal> result =
+                ticketPersonalRepository.findByTpReceiver(receiver, pageable);
+
+        log.info("receiver: " + receiver);
+        log.info("total elements: " + result.getTotalElements());
+
+        result.getContent().forEach(tp -> {
+            log.info("tpno=" + tp.getTpno()
+                    + ", read=" + tp.isTpRead()
+                    + ", state=" + tp.getTpState()
+                    + ", ticket.tno=" + (tp.getTicket() != null ? tp.getTicket().getTno() : null));
+        });
     }
 }
