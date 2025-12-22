@@ -33,10 +33,10 @@ public class Member {
 
     @ElementCollection(fetch = FetchType.LAZY)
     @Builder.Default
-    private List<MemberRole> memberRoleList = new ArrayList<>();
+    private List<MemberRole> roleList = new ArrayList<>();
 
     public void addRole(MemberRole memberRole){
-        memberRoleList.add(memberRole);
+        roleList.add(memberRole);
     }
 
     public void changePw(String pw) { this.pw = pw; }

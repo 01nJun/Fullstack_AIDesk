@@ -80,7 +80,7 @@ public class MemberRepositoryTests {
 
             log.info("-------------------------------------------");
             log.info("회원 " + email + "에게 ADMIN 권한이 부여되었습니다.");
-            log.info("현재 권한 목록: " + member.getMemberRoleList());
+            log.info("현재 권한 목록: " + member.getRoleList());
         } else {
             log.error("해당 이메일을 가진 회원을 찾을 수 없습니다: " + email);
         }
@@ -92,6 +92,6 @@ public class MemberRepositoryTests {
         Member member = memberRepository.getWithRoles(email);
         log.info("-----------------------");
         log.info(member);
-        log.info(member.getMemberRoleList());
+        log.info(member.getRoleList());
     }
 }

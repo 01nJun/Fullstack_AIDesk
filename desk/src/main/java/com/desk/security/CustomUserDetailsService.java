@@ -50,7 +50,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 member.isSocial(),
                 member.getDepartment() != null ? member.getDepartment().name() : "", // Enum -> String
                 member.isApproved(),
-                member.getMemberRoleList().stream().map(Enum::name).collect(Collectors.toList()));
+                member.getRoleList().stream().map(Enum::name).collect(Collectors.toList()));
 
         // DTO에도 부서 정보 등을 담고 싶다면 MemberDTO 필드 추가 필요
         return memberDTO;

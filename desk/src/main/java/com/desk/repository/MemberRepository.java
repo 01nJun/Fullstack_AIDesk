@@ -12,15 +12,15 @@ import java.util.List;
 
 public interface MemberRepository extends JpaRepository<Member, String> {
     
-    @EntityGraph(attributePaths = {"memberRoleList"})
+    @EntityGraph(attributePaths = {"roleList"})
     @Query("select m from Member m where m.email = :email")
     Member getWithRoles(@Param("email") String email);
 
     // 승인 대기 인원 조회 (삭제 안 된 사람 중)
-    @EntityGraph(attributePaths = {"memberRoleList"})
+    @EntityGraph(attributePaths = {"roleList"})
     List<Member> findByIsApprovedFalseAndIsDeletedFalse();
 
     // 전체 직원 조회 (승인 완료 + 삭제 안 된 사람), 페이징
-    @EntityGraph(attributePaths = {"memberRoleList"})
+    @EntityGraph(attributePaths = {"roleList"})
     Page<Member> findByIsApprovedTrueAndIsDeletedFalse(Pageable pageable);
 }

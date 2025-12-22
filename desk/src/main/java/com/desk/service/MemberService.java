@@ -27,7 +27,7 @@ public interface MemberService {
              member.isSocial(), 
              member.getDepartment() != null ? member.getDepartment().name() : null,
              member.isApproved(),
-             member.getMemberRoleList().stream().map(memberRole -> memberRole.name()).collect(Collectors.toList()));
+             member.getRoleList().stream().map(memberRole -> memberRole.name()).collect(Collectors.toList()));
         return dto;
     }
 }
