@@ -2,7 +2,9 @@ package com.desk.dto;
 
 import com.desk.domain.TicketGrade;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,4 +32,15 @@ public class TicketCreateDTO {
     // 수신인들
     @Builder.Default
     private List<String> receivers = new ArrayList<>();
+
+    // 건영 S
+    private Long tno;
+    private String writer;
+    @JsonIgnore
+    @Builder.Default
+    private List<MultipartFile> files = new ArrayList<>();
+
+    @Builder.Default
+    private List<String> uploadFileNames = new ArrayList<>();
+    // 건영 E
 }

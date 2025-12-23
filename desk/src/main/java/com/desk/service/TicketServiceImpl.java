@@ -11,6 +11,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,7 +48,13 @@ public class TicketServiceImpl implements TicketService {
                     .build();
             ticket.addPersonal(tp); // setTicket(this)까지 같이 처리
         }
-
+        // 건영 S
+        // 2) 업로드 파일명 연결 (ElementCollection documentList)
+        List<String> uploadFileNames = req.getUploadFileNames();
+        if (uploadFileNames != null && !uploadFileNames.isEmpty()) {
+            uploadFileNames.forEach(ticket::addDocumentString); // ord 자동 세팅됨
+        }
+        // 건영 E
         Ticket saved = ticketRepository.save(ticket);
         return toSentDetailDTO(saved);
     }

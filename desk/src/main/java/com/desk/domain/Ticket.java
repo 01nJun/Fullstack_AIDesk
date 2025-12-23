@@ -51,6 +51,30 @@ public class Ticket {
         }
     }
 
+    // 건영 S
+
+    @ElementCollection
+    @Builder.Default
+    private List<UploadTicketFile> documentList = new ArrayList<>();
+
+    public void addDocument(UploadTicketFile files) {
+
+        files.setOrd(this.documentList.size());
+        documentList.add(files);
+    }
+    public void addDocumentString(String fileName){
+
+        UploadTicketFile uploadTicketFile = UploadTicketFile.builder()
+                .fileName(fileName)
+                .build();
+        addDocument(uploadTicketFile);
+
+    }
+    public void clearList() {
+        this.documentList.clear();
+    }
+// 건영 E
+
     // 수정용 메서드
     public void changeTitle(String title) { this.title = title; }
     public void changeContent(String content) { this.content = content; }
