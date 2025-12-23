@@ -1,14 +1,16 @@
 package com.desk.repository;
 
 import com.desk.domain.Ticket;
-import com.desk.domain.TicketGrade;
+import com.desk.dto.TicketFilterDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TicketRepository extends JpaRepository<Ticket, Long> {
-    Page<Ticket> findBytWriter(String tWriter, Pageable pageable);
+import java.util.Optional;
 
-    // 필터링용 임시: 보낸 사람 + 등급
-    Page<Ticket> findBytWriterAndTGrade(String tWriter, TicketGrade tGrade, Pageable pageable);
+public interface TicketRepository extends JpaRepository<Ticket, Long> {
+    
+    // QueryDSL 동적 쿼리 메서드
+    Page<Ticket> findAllWithPersonalList(String writer, TicketFilterDTO filter, Pageable pageable);
+    Optional<Ticket> findWithPersonalListById(Long tno);
 }

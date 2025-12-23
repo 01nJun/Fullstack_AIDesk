@@ -14,29 +14,29 @@ public class TicketPersonal {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long tpno;
+    private Long pno;
 
     @ManyToOne(fetch = FetchType.LAZY) // 필요할 때만 내용 조회
     @JoinColumn(name = "tp_tno") // 외래키 매핑
     private Ticket ticket;
 
-    private String tpReceiver; // 받는이 -> 추후 member 연결
+    private String receiver; // 받는이 -> 추후 member 연결
 
     @Builder.Default
-    private boolean tpRead = false;
+    private boolean isread = false;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default
-    private TicketState tpState = TicketState.NEW;
+    private TicketState state = TicketState.NEW;
 
     // 읽음확인
     public void changeRead(boolean read) {
-        this.tpRead = read;
+        this.isread = read;
     }
 
     // 상태 변경
     public void changeState(TicketState state) {
-        this.tpState = state;
+        this.state = state;
     }
 
     public void setTicket(Ticket ticket) {

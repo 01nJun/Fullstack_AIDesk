@@ -1,26 +1,20 @@
 package com.desk.service;
 
-import com.desk.domain.TicketState;
-import com.desk.dto.PersonalTicketDTO;
-import com.desk.dto.TicketDTO;
+import com.desk.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface TicketService {
 
-    // 내가 보낸 티켓 목록
-    Page<TicketDTO> listSendTicket(String tWriter, Pageable pageable);
+    // Ticket + TicketPersonal N개 생성
+    TicketSentListDTO create(TicketCreateDTO req, String writer);
 
-    // 내가 보낸 티켓 하나 조회
-    TicketDTO readSendTicket(Long tno, String tWriter);
+    // 보낸 티켓 목록(페이징 + 필터)
+    Page<TicketSentListDTO> listSent(String writer, TicketFilterDTO filter, Pageable pageable);
 
-    // 내가 보낸 티켓 수정
-    TicketDTO modifySendTicket(Long tno, String tWriter, TicketDTO dto);
+    // 보낸 티켓 단일 상세
+    TicketSentListDTO readSent(Long tno, String writer);
 
-    // 전체 티켓 조회(관리자용)
-    Page<TicketDTO> listAllTicket(Pageable pageable);
-
-    // 등록/삭제
-    TicketDTO registerNewTicket(TicketDTO dto);
-    void removeTicket(Long tno);
+    // 삭제
+    void deleteSent(Long tno, String writer);
 }
