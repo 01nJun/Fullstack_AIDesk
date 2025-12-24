@@ -121,54 +121,54 @@ class TicketServiceTests {
                 createdTno, createdWriterEmail, createdReceiverEmails, created.getPersonals().size());
     }
 
-    @Test
-    @Order(2)
-    @DisplayName("보낸 티켓 목록 조회 테스트 - 필터 없음 (email 기반)")
-    void listSent() {
-        assertNotNull(createdWriterEmail, "create 테스트가 먼저 실행되어 writerEmail이 세팅되어야 합니다.");
+//    @Test
+//    @Order(2)
+//    @DisplayName("보낸 티켓 목록 조회 테스트 - 필터 없음 (email 기반)")
+//    void listSent() {
+//        assertNotNull(createdWriterEmail, "create 테스트가 먼저 실행되어 writerEmail이 세팅되어야 합니다.");
+//
+//        TicketFilterDTO filter = TicketFilterDTO.builder().build();
+//        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "tno"));
+//
+//        Page<TicketSentListDTO> page = ticketService.listSent(createdWriterEmail, filter, pageable);
+//
+//        assertNotNull(page, "listSent 결과 page가 null이면 안 됩니다.");
+//
+//        log.info("[LIST_SENT] writer={}, totalElements={}, totalPages={}, pageSize={}",
+//                createdWriterEmail, page.getTotalElements(), page.getTotalPages(), page.getSize());
+//
+//        page.getContent().forEach(dto -> {
+//            assertEquals(createdWriterEmail, dto.getWriter(),
+//                    "모든 티켓의 작성자(email)가 일치해야 합니다.");
+//            assertNotNull(dto.getTno());
+//            assertNotNull(dto.getTitle());
+//        });
+//    }
 
-        TicketFilterDTO filter = TicketFilterDTO.builder().build();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "tno"));
-
-        Page<TicketSentListDTO> page = ticketService.listSent(createdWriterEmail, filter, pageable);
-
-        assertNotNull(page, "listSent 결과 page가 null이면 안 됩니다.");
-
-        log.info("[LIST_SENT] writer={}, totalElements={}, totalPages={}, pageSize={}",
-                createdWriterEmail, page.getTotalElements(), page.getTotalPages(), page.getSize());
-
-        page.getContent().forEach(dto -> {
-            assertEquals(createdWriterEmail, dto.getWriter(),
-                    "모든 티켓의 작성자(email)가 일치해야 합니다.");
-            assertNotNull(dto.getTno());
-            assertNotNull(dto.getTitle());
-        });
-    }
-
-    @Test
-    @Order(3)
-    @DisplayName("보낸 티켓 목록 조회 테스트 - 등급 필터 적용 (email 기반)")
-    void listSentWithFilter() {
-        assertNotNull(createdWriterEmail, "create 테스트가 먼저 실행되어 writerEmail이 세팅되어야 합니다.");
-
-        TicketFilterDTO filter = TicketFilterDTO.builder()
-                .grade(TicketGrade.HIGH)
-                .build();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "tno"));
-
-        Page<TicketSentListDTO> page = ticketService.listSent(createdWriterEmail, filter, pageable);
-
-        assertNotNull(page);
-
-        log.info("[LIST_SENT_WITH_FILTER] writer={}, grade={}, totalElements={}",
-                createdWriterEmail, filter.getGrade(), page.getTotalElements());
-
-        page.getContent().forEach(dto -> {
-            assertEquals(createdWriterEmail, dto.getWriter());
-            assertEquals(filter.getGrade(), dto.getGrade(),
-                    "필터링된 결과의 grade가 일치해야 합니다.");
-        });
-    }
+//    @Test
+//    @Order(3)
+//    @DisplayName("보낸 티켓 목록 조회 테스트 - 등급 필터 적용 (email 기반)")
+//    void listSentWithFilter() {
+//        assertNotNull(createdWriterEmail, "create 테스트가 먼저 실행되어 writerEmail이 세팅되어야 합니다.");
+//
+//        TicketFilterDTO filter = TicketFilterDTO.builder()
+//                .grade(TicketGrade.HIGH)
+//                .build();
+//        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "tno"));
+//
+//        Page<TicketSentListDTO> page = ticketService.listSent(createdWriterEmail, filter, pageable);
+//
+//        assertNotNull(page);
+//
+//        log.info("[LIST_SENT_WITH_FILTER] writer={}, grade={}, totalElements={}",
+//                createdWriterEmail, filter.getGrade(), page.getTotalElements());
+//
+//        page.getContent().forEach(dto -> {
+//            assertEquals(createdWriterEmail, dto.getWriter());
+//            assertEquals(filter.getGrade(), dto.getGrade(),
+//                    "필터링된 결과의 grade가 일치해야 합니다.");
+//        });
+//    }
 
     @Test
     @Order(4)

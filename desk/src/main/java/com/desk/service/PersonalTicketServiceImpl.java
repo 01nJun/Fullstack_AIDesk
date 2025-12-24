@@ -3,6 +3,8 @@ package com.desk.service;
 import com.desk.domain.Ticket;
 import com.desk.domain.TicketPersonal;
 import com.desk.domain.TicketState;
+import com.desk.dto.PageRequestDTO;
+import com.desk.dto.PageResponseDTO;
 import com.desk.dto.TicketFilterDTO;
 import com.desk.dto.TicketReceivedListDTO;
 import com.desk.repository.TicketPersonalRepository;
@@ -10,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,12 +33,20 @@ public class PersonalTicketServiceImpl implements PersonalTicketService {
     // 받은 목록 조회
     @Override
     @Transactional(readOnly = true)
-    public Page<TicketReceivedListDTO> listRecieveTicket(String receiver, TicketFilterDTO filter, Pageable pageable) {
-        // QueryDSL로 동적 필터링 + fetch join (N+1 방지)
-        Page<TicketPersonal> page = ticketPersonalRepository.findAllWithTicket(receiver, filter, pageable);
+    public PageResponseDTO<TicketReceivedListDTO> listRecieveTicket(String receiver, TicketFilterDTO filter, PageRequestDTO pageRequestDTO) {
+        // 기본 정렬을 pno,desc로 설정
+        Pageable pageable = pageRequestDTO.getPageable("pno");
+        Page<TicketPersonal> result = ticketPersonalRepository.findAllWithTicket(receiver, filter, pageable);
 
-        // Page<TicketPersonal> 엔티티를 RecieveTicketDTO로 변환(요소 하나씩 map으로), Page<TicketReceivedListDTO>로 변환
-        return page.map(this::toRecieveTicketDTO);
+        List<TicketReceivedListDTO> dtoList = result.getContent().stream()
+                .map(this::toRecieveTicketDTO)
+                .collect(Collectors.toList());
+
+        return PageResponseDTO.<TicketReceivedListDTO>withAll()
+                .dtoList(dtoList)
+                .pageRequestDTO(pageRequestDTO)
+                .totalCount(result.getTotalElements())
+                .build();
     }
 
     // 단건 조회, 읽음처리, 권한체크(receiver로)

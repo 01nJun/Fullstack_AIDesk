@@ -1,13 +1,13 @@
 package com.desk.controller;
 
 import com.desk.dto.*;
+import com.desk.service.PersonalTicketService;
 import com.desk.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequiredArgsConstructor
@@ -16,6 +16,7 @@ import org.springframework.data.web.PageableDefault;
 public class TicketController {
     // 생성자주입
     private final TicketService ticketService;
+    private final PersonalTicketService personalTicketService;
 
     // ---> /api/tickets 경로로 Post 요청하면 이리로...
     // 티켓 생성 ---> writer + 수신인 리스트로 Ticket 1건과 TicketPersonal N건 생성
@@ -37,38 +38,6 @@ public class TicketController {
         // HTTP 200 OK (이거도 나중에 수정해야 할 수도 있을 것 같아요 굳이 여기서 ok하지말고 exception으로 빼도될듯)
         // created 는 DTO입니다
         return ResponseEntity.ok(created);
-    }
-
-    // 보낸함 페이지 조회 --- writer 기준 + filter + 페이징/정렬
-    @GetMapping("/sent")
-    public ResponseEntity<Page<TicketSentListDTO>> listSent(
-            @RequestParam String writer,
-            // 쿼리스트링 파라미터들을 DTO 필드에 묶어서 넣음
-            @ModelAttribute TicketFilterDTO filter,
-            // default Pageable 설정 정하는거라는데 이거 수정해야할듯싶네요
-            @PageableDefault(size = 10, sort = "tno", direction = Sort.Direction.DESC) Pageable pageable
-    ) {
-        String sort = pageable.getSort().isSorted() ? pageable.getSort().toString() : "없음";
-
-        log.info("[Ticket] 보낸함 목록 요청 | 작성자={} | page={} | size={} | sort={} | filter={}",
-                writer,
-                pageable.getPageNumber(),
-                pageable.getPageSize(),
-                sort,
-                filter
-        );
-
-        Page<TicketSentListDTO> page = ticketService.listSent(writer, filter, pageable);    // 리스트 조회니까 Page로
-
-        log.info("[Ticket] 보낸함 목록 응답 | 작성자={} | page={} | size={} | 반환건수={} | 전체건수={}",
-                writer,
-                page.getNumber(),
-                page.getSize(),
-                page.getNumberOfElements(),
-                page.getTotalElements()
-        );
-
-        return ResponseEntity.ok(page);
     }
 
     // 보낸 티켓 단일 조회 --- tno + writer로 권한 확인 후 반환
@@ -97,5 +66,27 @@ public class TicketController {
 
         log.info("[Ticket] 보낸티켓 삭제 완료 | 작성자={} | 티켓번호={}", writer, tno);
         return ResponseEntity.noContent().build();
+    }
+    // 보낸함 페이지 조회 --- writer 기준 + filter + 페이징/정렬
+    @GetMapping("/sent")
+    public ResponseEntity<PageResponseDTO<TicketSentListDTO>> listSent(
+            @RequestParam String writer,
+            @ModelAttribute TicketFilterDTO filter,
+            @ModelAttribute PageRequestDTO pageRequestDTO
+    ) {
+        log.info("[Ticket] 보낸티켓 목록 조회 | 수신자={} | PageRequest={}", writer, pageRequestDTO);
+        PageResponseDTO<TicketSentListDTO> response = ticketService.listSent(writer, filter, pageRequestDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<PageResponseDTO<TicketSentListDTO>> listAll(
+            @RequestParam String email,
+            @ModelAttribute TicketFilterDTO filter,
+            @ModelAttribute PageRequestDTO pageRequestDTO
+    ) {
+        log.info("[Ticket] 전체 티켓 목록 조회 | 수신자={} | PageRequest={}", email, pageRequestDTO);
+        PageResponseDTO<TicketSentListDTO> response = ticketService.listAll(email, filter, pageRequestDTO);
+        return ResponseEntity.ok(response);
     }
 }

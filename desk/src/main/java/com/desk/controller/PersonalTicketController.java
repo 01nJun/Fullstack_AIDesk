@@ -1,13 +1,14 @@
 package com.desk.controller;
 
 import com.desk.domain.TicketState;
+import com.desk.dto.PageRequestDTO;
+import com.desk.dto.PageResponseDTO;
 import com.desk.dto.TicketFilterDTO;
 import com.desk.dto.TicketReceivedListDTO;
 import com.desk.service.PersonalTicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.*;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,22 +22,17 @@ public class PersonalTicketController {
 
     // 받은함 페이지 조회 --- receiver 기준 + 필터 + 페이징
     @GetMapping
-    public ResponseEntity<Page<TicketReceivedListDTO>> listInbox(
+    public ResponseEntity<PageResponseDTO<TicketReceivedListDTO>> listInbox(
             @RequestParam String receiver,
             @ModelAttribute TicketFilterDTO filter,
-            @PageableDefault(size = 10, sort = "pno", direction = Sort.Direction.DESC) Pageable pageable
+            @ModelAttribute PageRequestDTO pageRequestDTO
     ) {
-        String sort = pageable.getSort().isSorted() ? pageable.getSort().toString() : "없음";
-        log.info("[Inbox] 목록 요청 | 수신자={} | page={} | size={} | sort={} | filter={}",
-                receiver, pageable.getPageNumber(), pageable.getPageSize(), sort, filter);
+        log.info("[Inbox] 목록 요청 | 수신자={} | PageRequest={}", receiver, pageRequestDTO);
 
-        Page<TicketReceivedListDTO> page =
-                personalTicketService.listRecieveTicket(receiver, filter, pageable);
+        PageResponseDTO<TicketReceivedListDTO> response =
+                personalTicketService.listRecieveTicket(receiver, filter, pageRequestDTO);
 
-        log.info("[Inbox] 목록 응답 | 수신자={} | page={} | size={} | 반환건수={} | 전체건수={}",
-                receiver, page.getNumber(), page.getSize(), page.getNumberOfElements(), page.getTotalElements());
-
-        return ResponseEntity.ok(page);
+        return ResponseEntity.ok(response);
     }
 
     // 받은 티켓 단일 조회 (pno 기준) --- receiver 소유 검증 + markAsRead 옵션

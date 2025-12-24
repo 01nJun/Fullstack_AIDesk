@@ -11,6 +11,7 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,10 +55,37 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<TicketSentListDTO> listSent(String writer, TicketFilterDTO filter, Pageable pageable) {
-        // QueryDSL로 동적 필터링 + fetch join (N+1 방지)
-        Page<Ticket> page = ticketRepository.findAllWithPersonalList(writer, filter, pageable);
-        return page.map(this::toSentDetailDTO);
+    public PageResponseDTO<TicketSentListDTO> listSent(String writer, TicketFilterDTO filter, PageRequestDTO pageRequestDTO) {
+        // 기본 정렬을 tno,desc로 하되, DTO에 sort값이 있으면 그걸 우선 사용함
+        Pageable pageable = pageRequestDTO.getPageable("tno");
+        Page<Ticket> result = ticketRepository.findAllWithPersonalList(writer, filter, pageable);
+
+        List<TicketSentListDTO> dtoList = result.getContent().stream()
+                .map(this::toSentDetailDTO)
+                .collect(Collectors.toList());
+
+        return PageResponseDTO.<TicketSentListDTO>withAll()
+                .dtoList(dtoList)
+                .pageRequestDTO(pageRequestDTO)
+                .totalCount(result.getTotalElements())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponseDTO<TicketSentListDTO> listAll(String email, TicketFilterDTO filter, PageRequestDTO pageRequestDTO) {
+        Pageable pageable = pageRequestDTO.getPageable("tno");
+        Page<Ticket> result = ticketRepository.findAllAll(email, filter, pageable);
+
+        List<TicketSentListDTO> dtoList = result.getContent().stream()
+                .map(this::toSentDetailDTO)
+                .collect(Collectors.toList());
+
+        return PageResponseDTO.<TicketSentListDTO>withAll()
+                .dtoList(dtoList)
+                .pageRequestDTO(pageRequestDTO)
+                .totalCount(result.getTotalElements())
+                .build();
     }
 
     @Override

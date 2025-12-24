@@ -1,8 +1,6 @@
 package com.desk.service;
 
 import com.desk.dto.*;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface TicketService {
 
@@ -10,7 +8,10 @@ public interface TicketService {
     TicketSentListDTO create(TicketCreateDTO req, String writer);
 
     // 보낸 티켓 목록(페이징 + 필터)
-    Page<TicketSentListDTO> listSent(String writer, TicketFilterDTO filter, Pageable pageable);
+    PageResponseDTO<TicketSentListDTO> listSent(String writer, TicketFilterDTO filter, PageRequestDTO pageRequestDTO);
+
+    // 전체 티켓 목록(페이징 + 필터)
+    PageResponseDTO<TicketSentListDTO> listAll(String email, TicketFilterDTO filter, PageRequestDTO pageRequestDTO);
 
     // 보낸 티켓 단일 상세
     TicketSentListDTO readSent(Long tno, String writer);

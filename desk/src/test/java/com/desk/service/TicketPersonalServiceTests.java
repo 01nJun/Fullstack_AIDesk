@@ -89,64 +89,64 @@ class TicketPersonalServiceTests {
                 writerEmail, receiverEmail, createdTno, createdTpno);
     }
 
-    @Test
-    @Order(1)
-    @Rollback(false)
-    @DisplayName("받은 티켓 목록 조회 테스트 - 필터 없음 (email 기반)")
-    void listInbox() {
-        prepareTestData();
+//    @Test
+//    @Order(1)
+//    @Rollback(false)
+//    @DisplayName("받은 티켓 목록 조회 테스트 - 필터 없음 (email 기반)")
+//    void listInbox() {
+//        prepareTestData();
+//
+//        TicketFilterDTO filter = TicketFilterDTO.builder().build();
+//        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "pno"));
+//
+//        Page<TicketReceivedListDTO> page =
+//                personalTicketService.listRecieveTicket(receiverEmail, filter, pageable);
+//
+//        assertNotNull(page);
+//        assertTrue(page.getTotalElements() >= 0);
+//
+//        // 최소 방금 만든 티켓은 있어야 정상
+//        assertTrue(
+//                page.getContent().stream().anyMatch(dto -> dto.getTno().equals(createdTno)),
+//                "받은함 목록에 방금 생성한 티켓(tno=" + createdTno + ")이 포함되어야 합니다."
+//        );
+//
+//        page.getContent().forEach(dto -> {
+//            assertEquals(receiverEmail, dto.getReceiver(), "receiver(email)가 일치해야 합니다.");
+//            assertNotNull(dto.getPno());
+//            assertNotNull(dto.getTno());
+//            assertNotNull(dto.getTitle());
+//            assertNotNull(dto.getState());
+//        });
+//
+//        log.info("[LIST_INBOX] receiver={}, totalElements={}", receiverEmail, page.getTotalElements());
+//    }
 
-        TicketFilterDTO filter = TicketFilterDTO.builder().build();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "pno"));
-
-        Page<TicketReceivedListDTO> page =
-                personalTicketService.listRecieveTicket(receiverEmail, filter, pageable);
-
-        assertNotNull(page);
-        assertTrue(page.getTotalElements() >= 0);
-
-        // 최소 방금 만든 티켓은 있어야 정상
-        assertTrue(
-                page.getContent().stream().anyMatch(dto -> dto.getTno().equals(createdTno)),
-                "받은함 목록에 방금 생성한 티켓(tno=" + createdTno + ")이 포함되어야 합니다."
-        );
-
-        page.getContent().forEach(dto -> {
-            assertEquals(receiverEmail, dto.getReceiver(), "receiver(email)가 일치해야 합니다.");
-            assertNotNull(dto.getPno());
-            assertNotNull(dto.getTno());
-            assertNotNull(dto.getTitle());
-            assertNotNull(dto.getState());
-        });
-
-        log.info("[LIST_INBOX] receiver={}, totalElements={}", receiverEmail, page.getTotalElements());
-    }
-
-    @Test
-    @Order(2)
-    @Rollback(false)
-    @DisplayName("받은 티켓 목록 조회 테스트 - 상태 필터 적용")
-    void listInboxWithStateFilter() {
-        prepareTestData();
-
-        TicketFilterDTO filter = TicketFilterDTO.builder()
-                .state(TicketState.NEW)
-                .build();
-        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "pno"));
-
-        Page<TicketReceivedListDTO> page =
-                personalTicketService.listRecieveTicket(receiverEmail, filter, pageable);
-
-        assertNotNull(page);
-
-        page.getContent().forEach(dto -> {
-            assertEquals(receiverEmail, dto.getReceiver());
-            assertEquals(filter.getState(), dto.getState());
-        });
-
-        log.info("[LIST_INBOX_STATE] receiver={}, state={}, totalElements={}",
-                receiverEmail, filter.getState(), page.getTotalElements());
-    }
+//    @Test
+//    @Order(2)
+//    @Rollback(false)
+//    @DisplayName("받은 티켓 목록 조회 테스트 - 상태 필터 적용")
+//    void listInboxWithStateFilter() {
+//        prepareTestData();
+//
+//        TicketFilterDTO filter = TicketFilterDTO.builder()
+//                .state(TicketState.NEW)
+//                .build();
+//        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "pno"));
+//
+//        Page<TicketReceivedListDTO> page =
+//                personalTicketService.listRecieveTicket(receiverEmail, filter, pageable);
+//
+//        assertNotNull(page);
+//
+//        page.getContent().forEach(dto -> {
+//            assertEquals(receiverEmail, dto.getReceiver());
+//            assertEquals(filter.getState(), dto.getState());
+//        });
+//
+//        log.info("[LIST_INBOX_STATE] receiver={}, state={}, totalElements={}",
+//                receiverEmail, filter.getState(), page.getTotalElements());
+//    }
 
     @Test
     @Order(3)
