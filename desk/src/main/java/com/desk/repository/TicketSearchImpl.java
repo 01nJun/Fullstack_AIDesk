@@ -32,6 +32,7 @@ public class TicketSearchImpl implements TicketSearch{
         Ticket result = queryFactory
                 .selectFrom(ticket)
                 .leftJoin(ticket.personalList).fetchJoin()
+                .leftJoin(ticket.writer).fetchJoin()
                 .where(ticket.tno.eq(tno))
                 .fetchOne();
 
@@ -100,4 +101,3 @@ public class TicketSearchImpl implements TicketSearch{
         return ticket.tno.desc(); // 최종 기본값: 최신순
     }
 }
-

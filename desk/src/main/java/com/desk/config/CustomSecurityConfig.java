@@ -88,7 +88,7 @@ public class CustomSecurityConfig {
         // 모든 도메인 허용
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         // REST API 전용
-        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"));
         // JWT 전달을 위한 Authorization 헤더 허용
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
         // 쿠키/인증 정보 허용

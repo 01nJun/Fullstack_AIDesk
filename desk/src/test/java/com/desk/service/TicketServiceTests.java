@@ -80,10 +80,10 @@ class TicketServiceTests {
         prepareTestMembers();
 
         TicketCreateDTO req = TicketCreateDTO.builder()
-                .title("업무 요청: API 연동 확인")
-                .content("외부 API 연동/응답 스펙 확인 부탁드립니다.")
-                .purpose("연동 점검")
-                .requirement("응답 예시 + 에러 케이스 정리")
+                .title("확인용 타이틀")
+                .content("크리스마스를 즐겁게 보내세요")
+                .purpose("잘 나왔으면 좋겠네")
+                .requirement("1번입니다.<br>2번입니다?")
                 .grade(TicketGrade.MIDDLE)
                 .deadline(LocalDateTime.now().plusDays(3))
                 .receivers(createdReceiverEmails)   // ★ 이메일 리스트

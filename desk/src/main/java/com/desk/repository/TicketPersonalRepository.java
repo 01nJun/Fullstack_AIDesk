@@ -15,5 +15,4 @@ public interface TicketPersonalRepository extends JpaRepository<TicketPersonal, 
     
     // 삭제 검증용 (테스트)
     long countByTicket_Tno(Long tno);
-
 }

@@ -46,11 +46,7 @@ public class TicketController {
             @PathVariable Long tno,
             @RequestParam String writer
     ) {
-        log.info("[Ticket] 보낸티켓 단건 조회 요청 | 작성자={} | 티켓번호={}", writer, tno);
-
         TicketSentListDTO dto = ticketService.readSent(tno, writer);
-
-        log.info("[Ticket] 보낸티켓 단건 조회 완료 | 작성자={} | 티켓번호={}", writer, tno);
         return ResponseEntity.ok(dto);
     }
 

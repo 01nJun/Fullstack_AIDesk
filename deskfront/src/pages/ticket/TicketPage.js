@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import TicketComponent from '../../components/ticket/TicketComponent';
+import TicketDetailModal from "../../components/ticket/TicketDetailModal";
 import { getSentTickets, getReceivedTickets, getAllTickets } from '../../api/ticketApi';
 import BasicMenu from "../../components/menu/BasicMenu";
 
@@ -9,6 +10,25 @@ const TicketPage = () => {
     const currentUserEmail = loginState.email;
 
     const [tab, setTab] = useState('ALL');
+
+    const [selectedTno, setSelectedTno] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // TicketComponent 클릭시 호출할 핸들러
+    const openTicketModal = (tno) => {
+      if (!tno) return;
+      setSelectedTno(tno);
+      setIsModalOpen(true);
+    };
+
+    const closeTicketModal = () => {
+      setIsModalOpen(false);
+      setSelectedTno(null);
+    };
+
+    const handleDeleted = () => {
+      fetchData();
+    };
 
     // PageResponseDTO 구조에 맞게 초기 상태 수정
     const [data, setData] = useState({
@@ -137,7 +157,16 @@ const fetchData = useCallback(async () => {
                 ticketList={data.dtoList}
                 serverData={data}
                 movePage={movePageHandler}
+                onRowClick={openTicketModal}
             />
+
+            {isModalOpen && selectedTno && (
+              <TicketDetailModal
+                tno={selectedTno}
+                onClose={closeTicketModal}
+                onDelete={handleDeleted}
+              />
+            )}
         </div>
     );
 };

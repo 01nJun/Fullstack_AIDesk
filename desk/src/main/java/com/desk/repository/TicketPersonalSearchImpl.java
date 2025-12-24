@@ -76,8 +76,7 @@ public class TicketPersonalSearchImpl implements TicketPersonalSearch{ // 구현
                 .join(tp.ticket, ticket).fetchJoin()
                 .where(tp.pno.eq(pno))
                 .fetchOne();
-        
+
         return Optional.ofNullable(result);
     }
 }
-

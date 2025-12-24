@@ -1,7 +1,7 @@
 import React from 'react';
 import PageComponent from '../common/PageComponent';
 
-const TicketComponent = ({ ticketList, serverData, movePage }) => {
+const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
 
     const getStateBadge = (state) => {
         const styles = {
@@ -46,7 +46,11 @@ const TicketComponent = ({ ticketList, serverData, movePage }) => {
                             : ticket.state || 'NEW';
 
                         return (
-                            <tr key={ticket.tno || ticket.pno} className="hover:bg-gray-50 transition-colors">
+                            <tr
+                                key={ticket.tno || ticket.pno}
+                                className="hover:bg-gray-50 transition-colors"
+                                onClick={() => onRowClick?.(ticket.tno)}
+                            >
                                 <td className="p-4">{getGradeText(ticket.grade)}</td>
                                 <td className="p-4 font-bold text-gray-800">{ticket.title}</td>
                                 <td className="p-4 text-gray-500">{ticket.writer}</td>
