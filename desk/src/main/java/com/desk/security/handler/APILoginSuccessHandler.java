@@ -16,10 +16,10 @@ import java.util.Map;
 
 @Log4j2
 public class APILoginSuccessHandler implements AuthenticationSuccessHandler{
-    
+
     @Override // authentication → 로그인 성공 후 Spring Security 인증 객체
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
-    throws IOException, ServletException{
+            throws IOException, ServletException{
         log.info("-------------------------------");
         log.info(authentication);
         log.info("-------------------------------");

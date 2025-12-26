@@ -14,24 +14,24 @@ import java.util.Map;
 
 public class CustomAccessDeniedHandler implements AccessDeniedHandler{
 
-  @Override
-  public void handle(HttpServletRequest request, HttpServletResponse response,
-      AccessDeniedException accessDeniedException) throws IOException, ServletException {
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response,
+                       AccessDeniedException accessDeniedException) throws IOException, ServletException {
 
-    Gson gson = new Gson();
-    
-    // Gson 라이브러리를 사용해 Map → JSON 변환
-    String jsonStr = gson.toJson(Map.of("error", "ERROR_ACCESSDENIED"));
+        Gson gson = new Gson();
 
-    // Content-Type → JSON
-    response.setContentType("application/json");
-    // HTTP 상태 코드 → 403 (권한 없음)
-    response.setStatus(HttpStatus.FORBIDDEN.value());
-    // JSON 문자열을 클라이언트에 전달
-    PrintWriter printWriter = response.getWriter();
-    printWriter.println(jsonStr);
-    printWriter.close();        
+        // Gson 라이브러리를 사용해 Map → JSON 변환
+        String jsonStr = gson.toJson(Map.of("error", "ERROR_ACCESSDENIED"));
 
-  }
-  
+        // Content-Type → JSON
+        response.setContentType("application/json");
+        // HTTP 상태 코드 → 403 (권한 없음)
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        // JSON 문자열을 클라이언트에 전달
+        PrintWriter printWriter = response.getWriter();
+        printWriter.println(jsonStr);
+        printWriter.close();
+
+    }
+
 }

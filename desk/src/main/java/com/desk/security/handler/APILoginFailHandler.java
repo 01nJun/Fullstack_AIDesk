@@ -15,10 +15,10 @@ import java.util.Map;
 
 @Log4j2 // AuthenticationFailureHandler 구현 → Spring Security에서 로그인 실패 시 호출
 public class APILoginFailHandler implements AuthenticationFailureHandler{
-    
+
     @Override
-    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) 
-    throws IOException, ServletException{
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
+            throws IOException, ServletException{
         log.info("Login fail...."+ exception);
 
         String errorMessage = "ERROR_LOGIN";
@@ -29,7 +29,7 @@ public class APILoginFailHandler implements AuthenticationFailureHandler{
         } else if (exception.getMessage().equals("DELETED_ACCOUNT")) {
             errorMessage = "DELETED_ACCOUNT";
         } else if (exception instanceof BadCredentialsException) {
-             errorMessage = "BAD_CREDENTIALS"; // 비번 틀림
+            errorMessage = "BAD_CREDENTIALS"; // 비번 틀림
         }
 
         Gson gson = new Gson();

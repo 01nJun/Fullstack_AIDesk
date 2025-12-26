@@ -15,17 +15,21 @@ import org.springframework.data.domain.Sort;
 @NoArgsConstructor
 public class PageRequestDTO {
 
-  @Builder.Default
-  private int page = 1;
+    @Builder.Default
+    private int page = 1;
 
-  @Builder.Default
-  private int size = 10;
+    @Builder.Default
+    private int size = 10;
 
-  //  프론트에서 "deadline,asc" 형태로 넘어오는 정렬 문자열
-  private String sort;
+    private String type;
+    private String keyword;  // 검색어
+    private String category; // 카테고리
 
-  // PageRequestDTO.java
-  public Pageable getPageable(String defaultProperty) { // 매개변수로 tno 또는 pno를 받음
+    //  프론트에서 "deadline,asc" 형태로 넘어오는 정렬 문자열
+    private String sort;
+
+    // PageRequestDTO.java
+    public Pageable getPageable(String defaultProperty) { // 매개변수로 tno 또는 pno를 받음
         Sort finalSort; // finalSort: 프론트 정렬 문자열("deadline,asc")을 파싱해 엔티티 필드 기준의 ASC/DESC 정렬 규칙을 담은 Sort 객체
 
         if (this.sort != null && !this.sort.isEmpty()) {

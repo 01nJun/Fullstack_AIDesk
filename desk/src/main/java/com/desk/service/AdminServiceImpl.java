@@ -61,13 +61,13 @@ public class AdminServiceImpl implements AdminService {
     // 엔티티 -> DTO 변환 (안전하게 처리)
     private MemberDTO entityToDTO(Member member) {
         return new MemberDTO(
-            member.getEmail(),
-            member.getPw() != null ? member.getPw() : "", 
-            member.getNickname(),
-            member.isSocial(),
-            member.getDepartment() != null ? member.getDepartment().name() : null,
-            member.isApproved(),
-            member.getRoleList().stream().map(Enum::name).collect(Collectors.toList())
+                member.getEmail(),
+                member.getPw() != null ? member.getPw() : "",
+                member.getNickname(),
+                member.isSocial(),
+                member.getDepartment() != null ? member.getDepartment().name() : null,
+                member.isApproved(),
+                member.getRoleList().stream().map(Enum::name).collect(Collectors.toList())
         );
     }
 }

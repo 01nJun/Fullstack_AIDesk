@@ -3,6 +3,8 @@ import { useSelector } from 'react-redux';
 import { getSentTickets, getReceivedTickets, getAllTickets } from '../../api/ticketApi';
 import PageComponent from '../common/PageComponent';
 import useCustomPin from '../../hooks/useCustomPin';
+import { getGradeBadge, getStateLabel, formatDate } from '../../util/ticketUtils';
+import TicketDetailModal from './TicketDetailModal';
 
 const TicketComponent = () => {
   const loginState = useSelector((state) => state.loginSlice);
@@ -17,6 +19,9 @@ const TicketComponent = () => {
   const [inputGrade, setInputGrade] = useState("");
   const [inputSort, setInputSort] = useState("tno,desc");
   const [activeFilter, setActiveFilter] = useState({ keyword: "", grade: "", sort: "tno,desc" });
+
+  const [selectedTno, setSelectedTno] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { togglePin, isPinned } = useCustomPin();
 
@@ -55,20 +60,23 @@ const TicketComponent = () => {
     setActiveFilter({ keyword: "", grade: "", sort: "tno,desc" });
   };
 
-  const getStateBadge = (state) => {
-    const styles = {
-      NEW: 'bg-green-100 text-green-700',
-      IN_PROGRESS: 'bg-blue-100 text-blue-700',
-      NEED_INFO: 'bg-yellow-100 text-yellow-700',
-      DONE: 'bg-gray-100 text-gray-700'
+    // 모달 열기
+    const openTicketModal = (tno) => {
+    if (!tno) return;
+    setSelectedTno(tno);
+    setIsModalOpen(true);
     };
-    return <span className={`px-3 py-1 rounded-xl text-[11px] font-black ${styles[state] || 'bg-gray-100'}`}>{state}</span>;
-  };
 
-  const getGradeText = (grade) => {
-    const colors = { HIGH: 'text-red-500', MIDDLE: 'text-blue-500', LOW: 'text-gray-400', URGENT: 'text-purple-600 font-black' };
-    return <span className={`font-black ${colors[grade]}`}>{grade === 'URGENT' ? '🚨 긴급' : grade}</span>;
-  };
+    // 모달 닫기
+    const closeTicketModal = () => {
+    setIsModalOpen(false);
+    setSelectedTno(null);
+    };
+
+    // 티켓 삭제 후
+    const handleDeleted = () => {
+    fetchData(); // 데이터 새로고침
+    };
 
   return (
     <div className="w-full">
@@ -163,20 +171,24 @@ const TicketComponent = () => {
                   const receiverInfo = ticket.personals?.length > 0 ? ticket.personals[0].receiver : ticket.receiver || '미지정';
                   const stateInfo = ticket.personals?.length > 0 ? ticket.personals[0].state : ticket.state || 'NEW';
                   return (
-                    <tr key={ticket.tno || ticket.pno} className="hover:bg-blue-50/30 transition-all h-[65px]">
-                      <td className="p-4 text-center">
+                    <tr 
+                      key={ticket.tno || ticket.pno} 
+                      className="hover:bg-blue-50/30 transition-all h-[65px] cursor-pointer"
+                      onClick={() => openTicketModal(ticket.tno)}
+                    >
+                      <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => togglePin(ticket.tno)} className={`text-2xl transition-all hover:scale-125 ${isPinned(ticket.tno) ? 'text-yellow-500' : 'text-gray-200'}`}>
                           {isPinned(ticket.tno) ? '★' : '☆'}
                         </button>
                       </td>
-                      <td className="p-4 truncate">{getGradeText(ticket.grade)}</td>
+                      <td className="p-4 truncate">{getGradeBadge(ticket.grade)}</td>
                       <td className="p-4 font-bold text-gray-800 truncate">{ticket.title}</td>
                       <td className="p-4 text-gray-500 font-medium truncate">{ticket.writer}</td>
                       <td className="p-4 text-gray-500 font-medium truncate">{receiverInfo}</td>
                       <td className="p-4 text-center font-black text-red-500 tracking-tighter truncate">
-                        {ticket.deadline ? ticket.deadline.split(' ')[0] : '-'}
+                        {ticket.deadline ? formatDate(ticket.deadline) : '-'}
                       </td>
-                      <td className="p-4 text-center">{getStateBadge(stateInfo)}</td>
+                      <td className="p-4 text-center">{getStateLabel(stateInfo)}</td>
                     </tr>
                   );
                 })
@@ -191,6 +203,15 @@ const TicketComponent = () => {
           {serverData?.dtoList?.length > 0 && <PageComponent serverData={serverData} movePage={(p) => setPage(p.page)} />}
         </div>
       </div>
+
+        {/* 티켓 상세 모달 */}
+            {isModalOpen && selectedTno && (
+            <TicketDetailModal
+                tno={selectedTno}
+                onClose={closeTicketModal}
+                onDelete={handleDeleted}
+            />
+        )}
     </div>
   );
 };

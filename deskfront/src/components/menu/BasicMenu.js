@@ -53,7 +53,6 @@ const BasicMenu = () => {
       <header className="w-full bg-white border-b border-gray-100 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 
-          {/* --- 왼쪽 영역: 로고 및 팀 정보 --- */}
           <div className="flex items-center space-x-6">
             <Link to="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
@@ -76,7 +75,7 @@ const BasicMenu = () => {
             {loginState.email && (
               <>
                 <Link to="/tickets/" className={getMenuClass("/tickets/")}>티켓</Link>
-                <Link to="/about" className={getMenuClass("/about")}>공지사항</Link>
+                <Link to="/board" className={getMenuClass("/board")}>공지사항</Link>
                 <Link to="/todo/" className={getMenuClass("/todo/")}>할일목록</Link>
                 {isAdmin && (
                   <Link to="/admin" className={getMenuClass("/admin")}>

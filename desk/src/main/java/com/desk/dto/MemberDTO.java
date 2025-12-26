@@ -19,39 +19,39 @@ import java.util.stream.Collectors;
 // MemberDTO → DB 회원 정보 + Security 인증 정보 + JWT claims를 한 번에 담는 DTO
 public class MemberDTO extends User {
 
-  private String email;
-  private String pw;
-  private String nickname;
-  private boolean social;
-  private String department; // 부서 정보 (String으로 처리)
-  private boolean approved;
-  private List<String> roleNames = new ArrayList<>();
+    private String email;
+    private String pw;
+    private String nickname;
+    private boolean social;
+    private String department; // 부서 정보 (String으로 처리)
+    private boolean approved;
+    private List<String> roleNames = new ArrayList<>();
 
-  public MemberDTO(String email, String pw, String nickname, boolean social, String department, boolean approved, List<String> roleNames) {
-    super(
-      email,
-      pw, // 권한을 SimpleGrantedAuthority로 변환 (ROLE_ 접두사 붙임)
-      roleNames.stream().map(str -> new SimpleGrantedAuthority("ROLE_"+str)).collect(Collectors.toList()));
-    
-    this.email = email;
-    this.pw = pw;
-    this.nickname = nickname;
-    this.social = social;
-    this.department = department; 
-     this.approved = approved;
-    this.roleNames = roleNames;
-  }
+    public MemberDTO(String email, String pw, String nickname, boolean social, String department, boolean approved, List<String> roleNames) {
+        super(
+                email,
+                pw, // 권한을 SimpleGrantedAuthority로 변환 (ROLE_ 접두사 붙임)
+                roleNames.stream().map(str -> new SimpleGrantedAuthority("ROLE_"+str)).collect(Collectors.toList()));
 
-  // JWT에 들어갈 정보 (Claims)
-  public Map<String, Object> getClaims() {
-    Map<String, Object> dataMap = new HashMap<>();
-    dataMap.put("email", email);
+        this.email = email;
+        this.pw = pw;
+        this.nickname = nickname;
+        this.social = social;
+        this.department = department;
+        this.approved = approved;
+        this.roleNames = roleNames;
+    }
+
+    // JWT에 들어갈 정보 (Claims)
+    public Map<String, Object> getClaims() {
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("email", email);
 //    dataMap.put("pw", pw);
-    dataMap.put("nickname", nickname);
-    dataMap.put("social", social);
-    dataMap.put("department", department); // JWT에 포함
-    dataMap.put("approved", approved);
-    dataMap.put("roleNames", roleNames);
-    return dataMap;
-  }
+        dataMap.put("nickname", nickname);
+        dataMap.put("social", social);
+        dataMap.put("department", department); // JWT에 포함
+        dataMap.put("approved", approved);
+        dataMap.put("roleNames", roleNames);
+        return dataMap;
+    }
 }

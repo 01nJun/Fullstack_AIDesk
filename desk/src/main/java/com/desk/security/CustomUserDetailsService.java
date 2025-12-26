@@ -23,7 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     // Spring Security가 로그인 처리 시 자동 호출, username → 로그인 시 사용자가 입력한 email 혹은 아이디
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        
+
         log.info("----------------loadUserByUsername-----------------------------");
 
         Member member = memberRepository.getWithRoles(username);
@@ -31,7 +31,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (member == null) {
             throw new UsernameNotFoundException("Not Found");
         }
-        
+
         // 1. 삭제된 회원 체크
         if (member.isDeleted()) {
             throw new UsernameNotFoundException("DELETED_ACCOUNT");
