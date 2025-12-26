@@ -246,8 +246,8 @@ class TicketServiceTests {
                 .deadline(LocalDateTime.now().plusDays(1))
                 .receivers(createdReceiverEmails)
                 .build();
-
-        TicketSentListDTO created = ticketService.create(req, createdWriterEmail);
+        List<MultipartFile> files = List.of();
+        TicketSentListDTO created = ticketService.create(req, createdWriterEmail, files);
         Long tno = created.getTno();
 
         String unauthorizedEmail = "unauthorized-" + UUID.randomUUID() + "@test.com";
