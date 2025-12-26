@@ -1,26 +1,12 @@
 import React from 'react';
 import PageComponent from '../common/PageComponent';
 import useCustomPin from '../../hooks/useCustomPin'; // 커스텀 훅 임포트
+import { getGradeBadge, getStateLabel, formatDate } from "../../util/ticketUtils";
 
 const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
 
   // 찜 기능에 필요한 상태와 함수 가져오기
     const { togglePin, isPinned } = useCustomPin();
-
-    const getStateBadge = (state) => {
-        const styles = {
-            NEW: 'bg-green-100 text-green-700',
-            IN_PROGRESS: 'bg-blue-100 text-blue-700',
-            NEED_INFO: 'bg-yellow-100 text-yellow-700',
-            DONE: 'bg-gray-100 text-gray-700'
-        };
-        return <span className={`px-2 py-1 rounded text-[11px] font-bold ${styles[state] || 'bg-gray-100'}`}>{state}</span>;
-    };
-
-    const getGradeText = (grade) => {
-        const colors = { HIGH: 'text-red-500', MIDDLE: 'text-blue-500', LOW: 'text-gray-400', URGENT: 'text-purple-600 font-black' };
-        return <span className={`font-bold ${colors[grade]}`}>{grade === 'URGENT' ? '🚨 긴급' : grade}</span>;
-    };
 
     if (!ticketList || ticketList.length === 0) {
         return <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed text-gray-400">조회된 티켓 데이터가 없습니다.</div>;
@@ -71,14 +57,14 @@ const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
                                       {pinned ? '★' : '☆'}
                                     </button>
                                </td>
-                                <td className="p-4">{getGradeText(ticket.grade)}</td>
+                                <td className="p-4">{getGradeBadge(ticket.grade)}</td>
                                 <td className="p-4 font-bold text-gray-800">{ticket.title}</td>
                                 <td className="p-4 text-gray-500">{ticket.writer}</td>
                                 <td className="p-4 text-gray-500">{receiverInfo}</td>
                                 <td className="p-4 text-center font-mono text-red-500 font-semibold">
-                                    {ticket.deadline ? ticket.deadline.split(' ')[0] : '기한없음'}
+                                    {ticket.deadline ? formatDate(ticket.deadline): '기한없음'}
                                 </td>
-                                <td className="p-4 text-center">{getStateBadge(stateInfo)}</td>
+                                <td className="p-4 text-center">{getStateLabel(stateInfo)}</td>
                             </tr>
                         );
                     })}

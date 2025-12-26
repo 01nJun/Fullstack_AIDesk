@@ -3,12 +3,15 @@ import { useSelector } from "react-redux";
 import { getTicketDetailByTno } from "../../api/ticketApi";
 import { useTicketActions } from "../../hooks/useTicketActions";
 import { getGradeBadge, getStateLabel, formatDate } from "../../util/ticketUtils";
+import useCustomPin from "../../hooks/useCustomPin";
 
 // 티켓 상세 조회 모달
 const TicketDetailModal = ({ tno, onClose, onDelete }) => {
-  // Redux에서 현재 로그인 사용자 정보 가져오기 (TicketPage와 동일한 방식)
+  // Redux에서 현재 로그인 사용자 정보 가져오기
   const loginState = useSelector((state) => state.loginSlice);
   const currentEmail = loginState.email;
+
+  const {togglePin, isPinned} = useCustomPin();
 
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -118,6 +121,18 @@ const TicketDetailModal = ({ tno, onClose, onDelete }) => {
             {ticket.grade && (
               <div className="ml-3">{getGradeBadge(ticket.grade)}</div>
             )}
+            {/* 찜하기 버튼 */}
+            <button
+              onClick={() => togglePin(ticket.tno)}
+              className={`ml-4 text-2xl transition-all hover:scale-125 ${
+                isPinned(ticket.tno)
+                  ? "text-yellow-500"
+                  : "text-gray-300 hover:text-yellow-200"
+              }`}
+              aria-label={isPinned(ticket.tno) ? "찜 해제" : "찜하기"}
+            >
+              {isPinned(ticket.tno) ? "★" : "☆"}
+            </button>
           </div>
         </div>
 

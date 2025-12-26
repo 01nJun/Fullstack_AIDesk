@@ -4,7 +4,6 @@ import TicketComponent from '../../components/ticket/TicketComponent';
 import TicketDetailModal from "../../components/ticket/TicketDetailModal";
 import { getSentTickets, getReceivedTickets, getAllTickets } from '../../api/ticketApi';
 
-
 const TicketPage = () => {
     const loginState = useSelector((state) => state.loginSlice);
     const currentUserEmail = loginState.email;

@@ -1,13 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import useCustomPin from '../hooks/useCustomPin';
+import { getGradeBadge} from "../util/ticketUtils";
+import TicketDetailModal from './ticket/TicketDetailModal';
 
 const PinDrawer = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [selectedTno, setSelectedTno] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const { pinItems, refreshPins, togglePin } = useCustomPin();
 
     useEffect(() => {
         refreshPins();
     }, [refreshPins]);
+
+    // 아이템 클릭 시 모달 열기
+    const openTicketModal = (tno) => {
+        if (!tno) return;
+        setSelectedTno(tno);
+        setIsModalOpen(true);
+    };
+
+    // 모달 닫기
+    const closeTicketModal = () => {
+        setIsModalOpen(false);
+        setSelectedTno(null);
+    };
+
+    // 티켓 삭제 후 핸들러 (모달에서 삭제 시 호출)
+    const handleDeleted = () => {
+        refreshPins();
+    };
 
     return (
         <>
@@ -27,17 +49,40 @@ const PinDrawer = () => {
                 </div>
                 <div className="p-4 overflow-y-auto h-full">
                     {pinItems.map(item => (
-                        <div key={item.tno} className="mb-3 p-3 border rounded-lg flex justify-between items-center group">
+                        <div
+                            key={item.tno}
+                            className="mb-3 p-3 border rounded-lg flex justify-between items-center group cursor-pointer hover:bg-gray-50"
+                            onClick={() => openTicketModal(item.tno)}
+                        >
                             <div className="truncate w-40">
-                                <span className="text-[10px] text-blue-500 font-bold">{item.grade}</span>
+                                {getGradeBadge(item.grade)}
                                 <div className="text-sm font-medium truncate">{item.title}</div>
                             </div>
-                            <button onClick={() => togglePin(item.tno)} className="text-xs text-red-400 hover:underline">삭제</button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // 이벤트 버블링 방지
+                                    togglePin(item.tno);
+                                }}
+                                className="text-xs text-red-400 hover:underline"
+                            >
+                                삭제
+                            </button>
                         </div>
                     ))}
                 </div>
             </div>
             {isOpen && <div className="fixed inset-0 bg-black/20 z-[90]" onClick={() => setIsOpen(false)} />}
+
+            {/* 티켓 상세 모달 */}
+            {isModalOpen && selectedTno && (
+                <div className="fixed inset-0 z-[110]">
+                    <TicketDetailModal
+                        tno={selectedTno}
+                        onClose={closeTicketModal}
+                        onDelete={handleDeleted}
+                    />
+                </div>
+            )}
         </>
     );
 };
