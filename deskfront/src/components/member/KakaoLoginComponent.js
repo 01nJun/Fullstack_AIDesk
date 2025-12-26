@@ -5,16 +5,13 @@ const KakaoLoginComponent = () => {
   const link = getKakaoLoginLink();
 
   return (
-    <div className="flex flex-col">
-      <div className="text-center text-blue-500">
-        {/* 로그인시에 자동 가입처리 됩니다 */}
+    <Link to={link} className="block">
+      <div className="flex justify-center items-center bg-[#FEE500] hover:bg-[#FADA0A] p-4 rounded-2xl shadow-md transition-all hover:scale-[1.02] active:scale-95 group">
+        <span className="text-gray-900 font-black italic tracking-tighter text-lg uppercase flex items-center gap-3">
+          <span className="text-2xl">💬</span> KAKAO LOGIN
+        </span>
       </div>
-      <div className="flex justify-center  w-full">
-        <div className="text-3xl text-center m-6 text-white font-extrabold w-3/4 bg-yellow-500 shadow-sm rounded p-2">
-          <Link to={link}>KAKAO LOGIN</Link>
-        </div>
-      </div>
-    </div>
+    </Link>
   );
 };
 

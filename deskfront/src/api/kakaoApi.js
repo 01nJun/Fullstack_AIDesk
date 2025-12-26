@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API_SERVER_HOST } from "./memberApi";
 
-const rest_api_key = ``; // rest키값
+const rest_api_key = `c643d64af35fca03fb08baa838ac852d`; // rest키값
 const redirect_uri = `http://localhost:3000/member/kakao`;
 
 const auth_code_path = `https://kauth.kakao.com/oauth/authorize`;

@@ -3,10 +3,12 @@ import BasicMenu from "../../components/menu/BasicMenu";
 
 const JoinPage = () => {
   return (
-    <div className="fixed top-0 left-0 z-[1055] flex flex-col h-full w-full">
+    <div className="w-full bg-gray-100 min-h-screen">
       <BasicMenu />
-      <div className="w-full flex flex-wrap h-full justify-center items-center border-2">
-        <JoinComponent />
+      <div className="max-w-[1280px] mx-auto px-4 py-16 flex justify-center items-center">
+        <div className="w-full max-w-lg">
+          <JoinComponent />
+        </div>
       </div>
     </div>
   );

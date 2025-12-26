@@ -1,89 +1,198 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useSelector } from 'react-redux';
+import { getSentTickets, getReceivedTickets, getAllTickets } from '../../api/ticketApi';
 import PageComponent from '../common/PageComponent';
-import useCustomPin from '../../hooks/useCustomPin'; // 커스텀 훅 임포트
+import useCustomPin from '../../hooks/useCustomPin';
 
-const TicketComponent = ({ ticketList, serverData, movePage }) => {
+const TicketComponent = () => {
+  const loginState = useSelector((state) => state.loginSlice);
+  const currentUserEmail = loginState.email;
 
-  // 찜 기능에 필요한 상태와 함수 가져오기
-    const { togglePin, isPinned } = useCustomPin();
+  const [tab, setTab] = useState('ALL');
+  const [serverData, setServerData] = useState({ dtoList: [], totalCount: 0 });
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
-    const getStateBadge = (state) => {
-        const styles = {
-            NEW: 'bg-green-100 text-green-700',
-            IN_PROGRESS: 'bg-blue-100 text-blue-700',
-            NEED_INFO: 'bg-yellow-100 text-yellow-700',
-            DONE: 'bg-gray-100 text-gray-700'
-        };
-        return <span className={`px-2 py-1 rounded text-[11px] font-bold ${styles[state] || 'bg-gray-100'}`}>{state}</span>;
-    };
+  const [inputKeyword, setInputKeyword] = useState("");
+  const [inputGrade, setInputGrade] = useState("");
+  const [inputSort, setInputSort] = useState("tno,desc");
+  const [activeFilter, setActiveFilter] = useState({ keyword: "", grade: "", sort: "tno,desc" });
 
-    const getGradeText = (grade) => {
-        const colors = { HIGH: 'text-red-500', MIDDLE: 'text-blue-500', LOW: 'text-gray-400', URGENT: 'text-purple-600 font-black' };
-        return <span className={`font-bold ${colors[grade]}`}>{grade === 'URGENT' ? '🚨 긴급' : grade}</span>;
-    };
+  const { togglePin, isPinned } = useCustomPin();
 
-    if (!ticketList || ticketList.length === 0) {
-        return <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed text-gray-400">조회된 티켓 데이터가 없습니다.</div>;
+  const fetchData = useCallback(async () => {
+    if (!currentUserEmail) return;
+    setLoading(true);
+    const pageParam = { page, size: 10, sort: activeFilter.sort };
+    const filterParam = { keyword: activeFilter.keyword, grade: activeFilter.grade === "" ? null : activeFilter.grade };
+
+    try {
+      let result;
+      if (tab === 'SENT') result = await getSentTickets(currentUserEmail, pageParam, filterParam);
+      else if (tab === 'RECEIVED') result = await getReceivedTickets(currentUserEmail, pageParam, filterParam);
+      else result = await getAllTickets(currentUserEmail, pageParam, filterParam);
+      setServerData(result || { dtoList: [], totalCount: 0 });
+    } catch (error) {
+      console.error("데이터 로드 실패:", error);
+    } finally {
+      setLoading(false);
     }
+  }, [tab, page, activeFilter, currentUserEmail]);
 
-    return (
-        <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border">
-            <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-800 text-white text-xs">
-                    <tr>
-                        <th className="p-4 w-12 text-center">📌</th> {/* 찜 컬럼 헤더 추가 */}
-                        <th className="p-4">중요도</th>
-                        <th className="p-4">제목</th>
-                        <th className="p-4">요청자</th>
-                        <th className="p-4">받은 사람</th>
-                        <th className="p-4 text-center">마감일</th>
-                        <th className="p-4 text-center">진행도</th>
-                    </tr>
-                </thead>
-                <tbody className="text-sm divide-y">
-                    {ticketList.map((ticket) => {
-                        const receiverInfo = ticket.personals && ticket.personals.length > 0
-                            ? ticket.personals[0].receiver
-                            : ticket.receiver || '미지정';
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-                        const stateInfo = ticket.personals && ticket.personals.length > 0
-                            ? ticket.personals[0].state
-                            : ticket.state || 'NEW';
+  const handleSearch = () => {
+    setPage(1);
+    setActiveFilter({ keyword: inputKeyword, grade: inputGrade, sort: inputSort });
+  };
 
-                       // 현재 티켓이 찜 상태인지 확인
-                       const pinned = isPinned(ticket.tno);
+  const handleTabChange = (newTab) => {
+    setTab(newTab);
+    setPage(1);
+    setInputKeyword("");
+    setInputGrade("");
+    setInputSort("tno,desc");
+    setActiveFilter({ keyword: "", grade: "", sort: "tno,desc" });
+  };
 
-                       return (
-                           <tr key={ticket.tno || ticket.pno} className="hover:bg-gray-50 transition-colors">
-                               {/*  찜 버튼 셀 추가 */}
-                               <td className="p-4 text-center">
-                                   <button
-                                       onClick={() => togglePin(ticket.tno)}
-                                       className={`text-xl transition-all hover:scale-125 ${pinned ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-200'}`}
-                                   >
-                                       {pinned ? '★' : '☆'}
-                                   </button>
-                               </td>
-                                <td className="p-4">{getGradeText(ticket.grade)}</td>
-                                <td className="p-4 font-bold text-gray-800">{ticket.title}</td>
-                                <td className="p-4 text-gray-500">{ticket.writer}</td>
-                                <td className="p-4 text-gray-500">{receiverInfo}</td>
-                                <td className="p-4 text-center font-mono text-red-500 font-semibold">
-                                    {ticket.deadline ? ticket.deadline.split(' ')[0] : '기한없음'}
-                                </td>
-                                <td className="p-4 text-center">{getStateBadge(stateInfo)}</td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+  const getStateBadge = (state) => {
+    const styles = {
+      NEW: 'bg-green-100 text-green-700',
+      IN_PROGRESS: 'bg-blue-100 text-blue-700',
+      NEED_INFO: 'bg-yellow-100 text-yellow-700',
+      DONE: 'bg-gray-100 text-gray-700'
+    };
+    return <span className={`px-3 py-1 rounded-xl text-[11px] font-black ${styles[state] || 'bg-gray-100'}`}>{state}</span>;
+  };
 
-            {/* 공통 페이징 컴포넌트 사용 */}
-            <div className="p-4 bg-white border-t">
-                <PageComponent serverData={serverData} movePage={movePage} />
-            </div>
+  const getGradeText = (grade) => {
+    const colors = { HIGH: 'text-red-500', MIDDLE: 'text-blue-500', LOW: 'text-gray-400', URGENT: 'text-purple-600 font-black' };
+    return <span className={`font-black ${colors[grade]}`}>{grade === 'URGENT' ? '🚨 긴급' : grade}</span>;
+  };
+
+  return (
+    <div className="w-full">
+      <h1 className="text-4xl font-black mb-10 text-gray-900 border-b-8 border-blue-500 pb-4 inline-block tracking-tighter">
+        티켓 목록
+      </h1>
+
+      <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center mb-8 gap-6 bg-white p-6 rounded-3xl shadow-xl border border-gray-100">
+        <div className="flex bg-gray-100 p-2 rounded-2xl shadow-inner">
+          {['ALL', 'RECEIVED', 'SENT'].map((t) => (
+            <button
+              key={t}
+              onClick={() => handleTabChange(t)}
+              className={`px-6 py-3 rounded-xl font-black text-sm transition-all ${
+                tab === t ? "bg-white text-blue-600 shadow-md" : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {t === 'ALL' ? '전체 티켓' : t === 'RECEIVED' ? '받은 티켓' : '보낸 티켓'}
+            </button>
+          ))}
         </div>
-    );
+
+        <div className="flex items-center gap-3 flex-grow">
+          <select
+            value={inputGrade}
+            onChange={(e) => setInputGrade(e.target.value)}
+            className="border-2 border-gray-200 p-3 rounded-2xl bg-white font-bold focus:border-blue-500 outline-none w-32 shadow-sm"
+          >
+            <option value="">중요도</option>
+            <option value="URGENT">🚨 긴급</option>
+            <option value="HIGH">HIGH</option>
+            <option value="MIDDLE">MIDDLE</option>
+            <option value="LOW">LOW</option>
+          </select>
+
+          <select
+            value={inputSort}
+            onChange={(e) => setInputSort(e.target.value)}
+            className="border-2 border-gray-200 p-3 rounded-2xl bg-white font-bold focus:border-blue-500 outline-none w-44 shadow-sm"
+          >
+            <option value="tno,desc">최신 등록순</option>
+            <option value="deadline,asc">마감 빠른순</option>
+            <option value="deadline,desc">마감 느린순</option>
+          </select>
+
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="제목, 본문 또는 요청자를 입력하세요..."
+              value={inputKeyword}
+              onChange={(e) => setInputKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="w-full border-2 border-gray-200 p-3 pl-6 rounded-2xl font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all shadow-inner"
+            />
+          </div>
+
+          <button
+            onClick={handleSearch}
+            className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black hover:bg-blue-600 transition-all shadow-lg"
+          >
+            검색
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 min-h-[600px] flex flex-col">
+        <div className="p-6 bg-gray-900 text-white flex justify-between items-center">
+          <h2 className="text-xl font-black italic uppercase tracking-wider">Ticket List</h2>
+          <span className="bg-blue-500 px-6 py-1 rounded-full text-sm font-black italic">
+            TOTAL: {serverData?.totalCount || 0}
+          </span>
+        </div>
+
+        <div className="overflow-x-auto flex-grow">
+          <table className="w-full table-fixed">
+            <thead>
+              <tr className="bg-gray-50 border-b-2 border-gray-100">
+                <th className="p-5 w-16 text-center text-xs font-black text-gray-400 uppercase tracking-widest">Pin</th>
+                <th className="p-5 w-32 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Grade</th>
+                <th className="p-5 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Subject</th>
+                <th className="p-5 w-32 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Sender</th>
+                <th className="p-5 w-32 text-left text-xs font-black text-gray-400 uppercase tracking-widest">Receiver</th>
+                <th className="p-5 w-32 text-center text-xs font-black text-gray-400 uppercase tracking-widest">Deadline</th>
+                <th className="p-5 w-28 text-center text-xs font-black text-gray-400 uppercase tracking-widest">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr><td colSpan="7" className="p-40 text-center font-black text-gray-300 animate-pulse uppercase">Loading Tickets...</td></tr>
+              ) : serverData.dtoList?.length > 0 ? (
+                serverData.dtoList.map((ticket) => {
+                  const receiverInfo = ticket.personals?.length > 0 ? ticket.personals[0].receiver : ticket.receiver || '미지정';
+                  const stateInfo = ticket.personals?.length > 0 ? ticket.personals[0].state : ticket.state || 'NEW';
+                  return (
+                    <tr key={ticket.tno || ticket.pno} className="hover:bg-blue-50/30 transition-all h-[65px]">
+                      <td className="p-4 text-center">
+                        <button onClick={() => togglePin(ticket.tno)} className={`text-2xl transition-all hover:scale-125 ${isPinned(ticket.tno) ? 'text-yellow-500' : 'text-gray-200'}`}>
+                          {isPinned(ticket.tno) ? '★' : '☆'}
+                        </button>
+                      </td>
+                      <td className="p-4 truncate">{getGradeText(ticket.grade)}</td>
+                      <td className="p-4 font-bold text-gray-800 truncate">{ticket.title}</td>
+                      <td className="p-4 text-gray-500 font-medium truncate">{ticket.writer}</td>
+                      <td className="p-4 text-gray-500 font-medium truncate">{receiverInfo}</td>
+                      <td className="p-4 text-center font-black text-red-500 tracking-tighter truncate">
+                        {ticket.deadline ? ticket.deadline.split(' ')[0] : '-'}
+                      </td>
+                      <td className="p-4 text-center">{getStateBadge(stateInfo)}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr><td colSpan="7" className="p-40 text-center text-gray-300 font-black text-2xl uppercase italic">No Data Found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="p-8 bg-gray-50 flex justify-center border-t border-gray-100 mt-auto">
+          {serverData?.dtoList?.length > 0 && <PageComponent serverData={serverData} movePage={(p) => setPage(p.page)} />}
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default TicketComponent;

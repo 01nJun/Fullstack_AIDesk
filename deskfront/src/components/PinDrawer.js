@@ -1,43 +1,82 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import useCustomPin from '../hooks/useCustomPin';
 
 const PinDrawer = () => {
     const [isOpen, setIsOpen] = useState(false);
     const { pinItems, refreshPins, togglePin } = useCustomPin();
+    const loginState = useSelector((state) => state.loginSlice);
+    const navigate = useNavigate();
 
     useEffect(() => {
-        refreshPins();
-    }, [refreshPins]);
+        // 로그인이 안 되어 있으면 로그인 페이지로 이동
+        if (!loginState.email && isOpen) {
+            alert("로그인이 필요한 서비스입니다.");
+            setIsOpen(false);
+            navigate("/member/login");
+        }
+        if (loginState.email) {
+            refreshPins();
+        }
+    }, [loginState.email, refreshPins, isOpen, navigate]);
+
+    if (!loginState.email) return null;
 
     return (
         <>
-            {/* 찜 버튼: 헤더 바로 아래 고정 (헤더 높이 64px 기준) */}
-            <div className="fixed top-[64px] right-0 z-[40]">
-                <button onClick={() => setIsOpen(true)} className="bg-blue-600 text-white p-3 rounded-l-lg shadow-xl hover:bg-blue-700 transition-all flex items-center gap-2">
-                    <span className="font-bold">PIN</span>
-                    <span className="bg-white text-blue-600 text-xs px-2 py-0.5 rounded-full font-black">{pinItems.length}</span>
+            {/* 찜 버튼 */}
+            <div className="fixed top-[100px] right-0 z-[40]">
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className="bg-gray-900 text-white p-4 rounded-l-3xl shadow-2xl hover:bg-blue-600 transition-all flex items-center gap-3 border-y-2 border-l-2 border-blue-500"
+                >
+                    <span className="font-black italic tracking-tighter">PIN</span>
+                    <span className="bg-blue-500 text-white text-xs px-2.5 py-1 rounded-full font-black shadow-lg">
+                        {pinItems.length}
+                    </span>
                 </button>
             </div>
 
             {/* 슬라이드 드로어 */}
-            <div className={`fixed inset-y-0 right-0 w-80 bg-white shadow-2xl z-[100] transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                    <h2 className="text-lg font-bold">찜한 티켓 목록</h2>
-                    <button onClick={() => setIsOpen(false)} className="text-2xl">&times;</button>
+            <div className={`fixed inset-y-0 right-0 w-96 bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] z-[100] transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} border-l-4 border-gray-900`}>
+                <div className="p-6 bg-gray-900 text-white flex justify-between items-center">
+                    <h2 className="text-xl font-black italic uppercase tracking-widest">Pinned Tickets</h2>
+                    <button onClick={() => setIsOpen(false)} className="text-3xl font-black hover:text-blue-400 transition-colors">&times;</button>
                 </div>
-                <div className="p-4 overflow-y-auto h-full">
-                    {pinItems.map(item => (
-                        <div key={item.tno} className="mb-3 p-3 border rounded-lg flex justify-between items-center group">
-                            <div className="truncate w-40">
-                                <span className="text-[10px] text-blue-500 font-bold">{item.grade}</span>
-                                <div className="text-sm font-medium truncate">{item.title}</div>
+
+                <div className="p-6 overflow-y-auto h-[calc(100%-80px)] bg-gray-50">
+                    {pinItems.length > 0 ? (
+                        pinItems.map(item => (
+                            <div key={item.tno} className="mb-4 p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                                <div className="absolute left-0 top-0 h-full w-2 bg-blue-500"></div>
+                                <div className="flex justify-between items-start">
+                                    <div className="truncate pr-4">
+                                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg font-black uppercase mb-1 inline-block">
+                                            {item.grade}
+                                        </span>
+                                        <div className="text-sm font-black text-gray-800 truncate">{item.title}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => togglePin(item.tno)}
+                                        className="bg-red-50 text-red-500 p-2 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
-                            <button onClick={() => togglePin(item.tno)} className="text-xs text-red-400 hover:underline">삭제</button>
+                        ))
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-300 italic font-black">
+                            <span className="text-4xl mb-4">EMPTY</span>
+                            <p>No Pinned Items</p>
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
-            {isOpen && <div className="fixed inset-0 bg-black/20 z-[90]" onClick={() => setIsOpen(false)} />}
+            {isOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] transition-opacity" onClick={() => setIsOpen(false)} />}
         </>
     );
 };

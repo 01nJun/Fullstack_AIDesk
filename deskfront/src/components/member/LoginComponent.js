@@ -9,8 +9,6 @@ const initState = {
 
 const LoginComponent = () => {
   const [loginParam, setLoginParam] = useState({ ...initState });
-
-  // useCustomLogin 훅에서 moveToPath 가져오기
   const { doLogin, moveToPath } = useCustomLogin();
 
   const handleChange = (e) => {
@@ -20,87 +18,56 @@ const LoginComponent = () => {
 
   const handleClickLogin = (e) => {
     doLogin(loginParam).then((data) => {
-      console.log("Login Result:", data); // 디버깅용 로그
-
       if (data.error) {
-        // 백엔드에서 보낸 에러 코드에 따라 분기 처리
-        if (data.error === "PENDING_APPROVAL") {
-          alert("현재 승인 대기 상태입니다.\n관리자 승인 후 로그인해주세요.");
-        } else if (data.error === "DELETED_ACCOUNT") {
-          alert("탈퇴 또는 삭제된 계정입니다.");
-        } else if (data.error === "BAD_CREDENTIALS") {
-          alert("아이디 또는 비밀번호가 일치하지 않습니다.");
-        } else {
-          alert("로그인 실패. 다시 시도해주세요.");
-        }
+        if (data.error === "PENDING_APPROVAL") alert("현재 승인 대기 상태입니다.\n관리자 승인 후 로그인해주세요.");
+        else if (data.error === "DELETED_ACCOUNT") alert("탈퇴 또는 삭제된 계정입니다.");
+        else if (data.error === "BAD_CREDENTIALS") alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+        else alert("로그인 실패. 다시 시도해주세요.");
       } else {
-        // alert("로그인 성공");
         moveToPath("/");
       }
     });
   };
 
-  // 회원가입 페이지로 이동하는 함수
   const handleClickJoin = () => {
     moveToPath("/member/join");
   };
 
   return (
-    <div className="border-2 border-sky-200 mt-10 m-2 p-4 w-full max-w-md bg-white shadow-lg rounded">
-      <div className="flex justify-center">
-        <div className="text-4xl m-4 p-4 font-extrabold text-blue-500">
+    <div className="bg-white p-10 rounded-[40px] shadow-2xl border border-gray-100">
+      <div className="flex flex-col items-center mb-10">
+        <h1 className="text-5xl font-black italic tracking-tighter text-gray-900 border-b-8 border-blue-500 pb-2">
           LOGIN
-        </div>
+        </h1>
+        <p className="text-gray-400 font-bold mt-4 uppercase tracking-widest text-[10px]">Access your ticket system</p>
       </div>
 
-      {/* Email Input */}
-      <div className="flex justify-center">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-          <div className="w-full p-1 text-left font-bold text-gray-600">
-            Email
-          </div>
+      <div className="space-y-6">
+        <div>
+          <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-2">Email Address</label>
           <input
-            className="w-full p-3 rounded border border-solid border-neutral-300 shadow-sm focus:outline-none focus:border-blue-500"
-            name="email"
-            type={"text"}
-            value={loginParam.email}
-            onChange={handleChange}
-            placeholder="이메일을 입력하세요"
+            className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all shadow-inner"
+            name="email" type="text" value={loginParam.email} onChange={handleChange} placeholder="example@domain.com"
           />
         </div>
-      </div>
 
-      {/* Password Input */}
-      <div className="flex justify-center">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-          <div className="w-full p-1 text-left font-bold text-gray-600">
-            Password
-          </div>
+        <div>
+          <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-2">Password</label>
           <input
-            className="w-full p-3 rounded border border-solid border-neutral-300 shadow-sm focus:outline-none focus:border-blue-500"
-            name="pw"
-            type={"password"}
-            value={loginParam.pw}
-            onChange={handleChange}
-            placeholder="비밀번호를 입력하세요"
+            className="w-full p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all shadow-inner"
+            name="pw" type="password" value={loginParam.pw} onChange={handleChange} placeholder="••••••••"
           />
         </div>
-      </div>
 
-      {/* Buttons Area */}
-      <div className="flex justify-center w-full mt-4">
-        <div className="relative mb-4 flex w-full justify-between gap-2">
-          {/* LOGIN 버튼 */}
+        <div className="flex gap-4 pt-4">
           <button
-            className="w-1/2 rounded p-3 bg-blue-500 text-white font-bold text-lg hover:bg-blue-600 transition duration-200"
+            className="flex-1 bg-gray-900 text-white p-5 rounded-3xl font-black text-lg hover:bg-blue-600 hover:scale-[1.02] transition-all shadow-lg active:scale-95"
             onClick={handleClickLogin}
           >
             LOGIN
           </button>
-
-          {/* JOIN 버튼 */}
           <button
-            className="w-1/2 rounded p-3 bg-green-500 text-white font-bold text-lg hover:bg-green-600 transition duration-200"
+            className="flex-1 bg-white text-gray-900 border-2 border-gray-900 p-5 rounded-3xl font-black text-lg hover:bg-gray-50 hover:scale-[1.02] transition-all shadow-lg active:scale-95"
             onClick={handleClickJoin}
           >
             JOIN
@@ -108,9 +75,11 @@ const LoginComponent = () => {
         </div>
       </div>
 
-      <div className="border-t border-gray-300 my-4"></div>
+      <div className="relative my-10">
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-gray-100"></div></div>
+        <div className="relative flex justify-center text-[10px] font-black uppercase"><span className="bg-white px-4 text-gray-300 tracking-[0.3em]">Social Access</span></div>
+      </div>
 
-      {/* Kakao Login */}
       <KakaoLoginComponent />
     </div>
   );
