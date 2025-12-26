@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import useCustomPin from '../hooks/useCustomPin';
-import { getGradeBadge} from "../util/ticketUtils";
-import TicketDetailModal from './ticket/TicketDetailModal';
+import { getGradeBadge } from "../util/ticketUtils"; // 다른 개발자 추가분
+import TicketDetailModal from './ticket/TicketDetailModal'; // 다른 개발자 추가분
 
 const PinDrawer = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedTno, setSelectedTno] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
     const { pinItems, refreshPins, togglePin } = useCustomPin();
     const loginState = useSelector((state) => state.loginSlice);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // 로그인이 안 되어 있으면 로그인 페이지로 이동
         if (!loginState.email && isOpen) {
             alert("로그인이 필요한 서비스입니다.");
             setIsOpen(false);
@@ -27,20 +27,18 @@ const PinDrawer = () => {
 
     if (!loginState.email) return null;
 
-    // 아이템 클릭 시 모달 열기
+    // 상세 모달 로직 통합
     const openTicketModal = (tno) => {
         if (!tno) return;
         setSelectedTno(tno);
         setIsModalOpen(true);
     };
 
-    // 모달 닫기
     const closeTicketModal = () => {
         setIsModalOpen(false);
         setSelectedTno(null);
     };
 
-    // 티켓 삭제 후 핸들러 (모달에서 삭제 시 호출)
     const handleDeleted = () => {
         refreshPins();
     };
@@ -66,22 +64,26 @@ const PinDrawer = () => {
                     <h2 className="text-xl font-black italic uppercase tracking-widest">Pinned Tickets</h2>
                     <button onClick={() => setIsOpen(false)} className="text-3xl font-black hover:text-blue-400 transition-colors">&times;</button>
                 </div>
-<<<<<<< HEAD
 
                 <div className="p-6 overflow-y-auto h-[calc(100%-80px)] bg-gray-50">
                     {pinItems.length > 0 ? (
                         pinItems.map(item => (
-                            <div key={item.tno} className="mb-4 p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                            <div
+                                key={item.tno}
+                                onClick={() => openTicketModal(item.tno)}
+                                className="mb-4 p-4 bg-white border-2 border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all group relative overflow-hidden cursor-pointer"
+                            >
                                 <div className="absolute left-0 top-0 h-full w-2 bg-blue-500"></div>
                                 <div className="flex justify-between items-start">
                                     <div className="truncate pr-4">
-                                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg font-black uppercase mb-1 inline-block">
-                                            {item.grade}
-                                        </span>
+                                        <div className="mb-1">{getGradeBadge ? getGradeBadge(item.grade) : <span className="text-[10px] font-black text-blue-500">{item.grade}</span>}</div>
                                         <div className="text-sm font-black text-gray-800 truncate">{item.title}</div>
                                     </div>
                                     <button
-                                        onClick={() => togglePin(item.tno)}
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // 모달 오픈 방지
+                                            togglePin(item.tno);
+                                        }}
                                         className="bg-red-50 text-red-500 p-2 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,38 +97,14 @@ const PinDrawer = () => {
                         <div className="h-full flex flex-col items-center justify-center text-gray-300 italic font-black">
                             <span className="text-4xl mb-4">EMPTY</span>
                             <p>No Pinned Items</p>
-=======
-                <div className="p-4 overflow-y-auto h-full">
-                    {pinItems.map(item => (
-                        <div
-                            key={item.tno}
-                            className="mb-3 p-3 border rounded-lg flex justify-between items-center group cursor-pointer hover:bg-gray-50"
-                            onClick={() => openTicketModal(item.tno)}
-                        >
-                            <div className="truncate w-40">
-                                {getGradeBadge(item.grade)}
-                                <div className="text-sm font-medium truncate">{item.title}</div>
-                            </div>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation(); // 이벤트 버블링 방지
-                                    togglePin(item.tno);
-                                }}
-                                className="text-xs text-red-400 hover:underline"
-                            >
-                                삭제
-                            </button>
->>>>>>> 844f24cfe8af8e00e3ae8322d770f4a17a6c51dd
                         </div>
                     )}
                 </div>
             </div>
-<<<<<<< HEAD
-            {isOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] transition-opacity" onClick={() => setIsOpen(false)} />}
-=======
-            {isOpen && <div className="fixed inset-0 bg-black/20 z-[90]" onClick={() => setIsOpen(false)} />}
 
-            {/* 티켓 상세 모달 */}
+            {isOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] transition-opacity" onClick={() => setIsOpen(false)} />}
+
+            {/* 티켓 상세 모달 통합 */}
             {isModalOpen && selectedTno && (
                 <div className="fixed inset-0 z-[110]">
                     <TicketDetailModal
@@ -136,7 +114,6 @@ const PinDrawer = () => {
                     />
                 </div>
             )}
->>>>>>> 844f24cfe8af8e00e3ae8322d770f4a17a6c51dd
         </>
     );
 };

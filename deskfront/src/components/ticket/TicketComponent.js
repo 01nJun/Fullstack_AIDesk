@@ -2,25 +2,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { getSentTickets, getReceivedTickets, getAllTickets } from '../../api/ticketApi';
 import PageComponent from '../common/PageComponent';
-<<<<<<< HEAD
 import useCustomPin from '../../hooks/useCustomPin';
 
 const TicketComponent = () => {
   const loginState = useSelector((state) => state.loginSlice);
   const currentUserEmail = loginState.email;
-=======
-import useCustomPin from '../../hooks/useCustomPin'; // 커스텀 훅 임포트
-import { getGradeBadge, getStateLabel, formatDate } from "../../util/ticketUtils";
-
-const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
->>>>>>> 844f24cfe8af8e00e3ae8322d770f4a17a6c51dd
 
   const [tab, setTab] = useState('ALL');
   const [serverData, setServerData] = useState({ dtoList: [], totalCount: 0 });
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
 
-<<<<<<< HEAD
   const [inputKeyword, setInputKeyword] = useState("");
   const [inputGrade, setInputGrade] = useState("");
   const [inputSort, setInputSort] = useState("tno,desc");
@@ -44,10 +36,6 @@ const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
       console.error("데이터 로드 실패:", error);
     } finally {
       setLoading(false);
-=======
-    if (!ticketList || ticketList.length === 0) {
-        return <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed text-gray-400">조회된 티켓 데이터가 없습니다.</div>;
->>>>>>> 844f24cfe8af8e00e3ae8322d770f4a17a6c51dd
     }
   }, [tab, page, activeFilter, currentUserEmail]);
 
@@ -67,7 +55,6 @@ const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
     setActiveFilter({ keyword: "", grade: "", sort: "tno,desc" });
   };
 
-<<<<<<< HEAD
   const getStateBadge = (state) => {
     const styles = {
       NEW: 'bg-green-100 text-green-700',
@@ -77,39 +64,6 @@ const TicketComponent = ({ ticketList, serverData, movePage, onRowClick}) => {
     };
     return <span className={`px-3 py-1 rounded-xl text-[11px] font-black ${styles[state] || 'bg-gray-100'}`}>{state}</span>;
   };
-=======
-                       return (
-                           <tr
-                                key={ticket.tno || ticket.pno}
-                                className="hover:bg-gray-50 transition-colors"
-                                onClick={() => onRowClick?.(ticket.tno)}
-                                >
-                               {/*  찜 버튼 셀 추가 */}
-                               <td className="p-4 text-center">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation(); // 이벤트 버블링 방지
-                                        togglePin(ticket.tno);
-                                      }}
-                                      className={`text-xl transition-all hover:scale-125 ${pinned ? 'text-yellow-500' : 'text-gray-300 hover:text-yellow-200'}`}
-                                    >
-                                      {pinned ? '★' : '☆'}
-                                    </button>
-                               </td>
-                                <td className="p-4">{getGradeBadge(ticket.grade)}</td>
-                                <td className="p-4 font-bold text-gray-800">{ticket.title}</td>
-                                <td className="p-4 text-gray-500">{ticket.writer}</td>
-                                <td className="p-4 text-gray-500">{receiverInfo}</td>
-                                <td className="p-4 text-center font-mono text-red-500 font-semibold">
-                                    {ticket.deadline ? formatDate(ticket.deadline): '기한없음'}
-                                </td>
-                                <td className="p-4 text-center">{getStateLabel(stateInfo)}</td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
->>>>>>> 844f24cfe8af8e00e3ae8322d770f4a17a6c51dd
 
   const getGradeText = (grade) => {
     const colors = { HIGH: 'text-red-500', MIDDLE: 'text-blue-500', LOW: 'text-gray-400', URGENT: 'text-purple-600 font-black' };
