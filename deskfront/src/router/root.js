@@ -1,6 +1,8 @@
 import { Suspense, lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import memberRouter from "./memberRouter";
+import boardRouter from "./boardRouter";
+import BoardIndex from "../pages/board/IndexPage";
 
 const Loading = <div>Loading....</div>;
 
@@ -15,7 +17,16 @@ const root = createBrowserRouter([
         <Main />
       </Suspense>
     ),
-    },
+  },
+  {
+    path: "board",
+    element: (
+      <Suspense fallback={Loading}>
+        <BoardIndex />
+      </Suspense>
+    ),
+    children: boardRouter(),
+  },
   {
     path: "member",
     children: memberRouter(),

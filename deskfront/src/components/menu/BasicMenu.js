@@ -61,6 +61,9 @@ const BasicMenu = () => {
 
             {loginState.email ? (
               <>
+                  <li className="pr-6 text-2xl">
+                    <Link to={"/board/"}>게시판</Link>
+                  </li>
                 <li className="pr-6 text-2xl">
                   <Link to={"/todo/"}>Todo</Link>
                 </li>

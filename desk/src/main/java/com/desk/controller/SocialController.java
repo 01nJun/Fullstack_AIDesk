@@ -18,12 +18,12 @@ import java.util.Map;
 @Log4j2
 @RequiredArgsConstructor
 public class SocialController {
-    
+
     private final MemberService memberService;
 
     @GetMapping("/api/member/kakao") // 카카오 로그인 API (/api/member/kakao?accessToken=xxxx)
     public Map<String, Object> getMemberFromKakao(String accessToken) {
-        
+
         // 내부 동작 (Service에서 처리): 카카오 API 호출 → 이메일 조회, DB에 회원이 있으면 그대로 사용, 없으면 소셜 회원 자동 생성, 결과: MemberDTO
         MemberDTO memberDTO = memberService.getKakaoMember(accessToken);
 
@@ -44,17 +44,17 @@ public class SocialController {
         return claims;
     }
 
-  // 회원 정보 수정
-  @PutMapping("/api/member/modify") 
-  // API Service에서 처리되는 내용 : 회원 조회, 비밀번호 암호화 후 변경, 닉네임 변경, social = false → 일반 회원 전환
-  public Map<String,String> modify(@RequestBody MemberModifyDTO memberModifyDTO) {
+    // 회원 정보 수정
+    @PutMapping("/api/member/modify")
+    // API Service에서 처리되는 내용 : 회원 조회, 비밀번호 암호화 후 변경, 닉네임 변경, social = false → 일반 회원 전환
+    public Map<String,String> modify(@RequestBody MemberModifyDTO memberModifyDTO) {
 
-    log.info("member modify: " + memberModifyDTO);
+        log.info("member modify: " + memberModifyDTO);
 
-    memberService.modifyMember(memberModifyDTO);
+        memberService.modifyMember(memberModifyDTO);
 
-    return Map.of("result","modified");
+        return Map.of("result","modified");
 
-  }
-    
+    }
+
 }

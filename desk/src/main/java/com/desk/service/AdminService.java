@@ -4,11 +4,9 @@ import com.desk.dto.MemberDTO;
 import com.desk.dto.PageRequestDTO;
 import com.desk.dto.PageResponseDTO;
 
-import java.util.List;
-
 public interface AdminService {
-    List<MemberDTO> getPendingMembers();
-    PageResponseDTO<MemberDTO> getActiveMembers(PageRequestDTO pageRequestDTO);
+    PageResponseDTO<MemberDTO> getPendingMembers(PageRequestDTO pageRequestDTO, String keyword, String department);
+    PageResponseDTO<MemberDTO> getActiveMembers(PageRequestDTO pageRequestDTO, String keyword, String department);
     void approveMember(String email);
     void deleteMember(String email);
 }

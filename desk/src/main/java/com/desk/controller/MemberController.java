@@ -22,7 +22,7 @@ public class MemberController {
     @PostMapping("/join")
     public Map<String, String> join(@RequestBody MemberJoinDTO memberJoinDTO) {
         log.info("member join: " + memberJoinDTO);
-        
+
         memberService.join(memberJoinDTO);
 
         return Map.of("result", "success");

@@ -20,17 +20,22 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService; // MemberService 대신 AdminService 분리 추천
-
     // 1. 승인 대기 목록 조회
     @GetMapping("/pending")
-    public List<MemberDTO> getPendingMembers() {
-        return adminService.getPendingMembers();
+    public PageResponseDTO<MemberDTO> getPendingMembers(
+            PageRequestDTO pageRequestDTO,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "department", required = false) String department) {
+        return adminService.getPendingMembers(pageRequestDTO, keyword, department);
     }
 
-    // 2. 전체 직원 목록 조회 (페이징)
+    // 2. 전체 직원 목록 조회
     @GetMapping("/active")
-    public PageResponseDTO<MemberDTO> getActiveMembers(PageRequestDTO pageRequestDTO) {
-        return adminService.getActiveMembers(pageRequestDTO);
+    public PageResponseDTO<MemberDTO> getActiveMembers(
+            PageRequestDTO pageRequestDTO,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "department", required = false) String department) {
+        return adminService.getActiveMembers(pageRequestDTO, keyword, department);
     }
 
     // 3. 승인
