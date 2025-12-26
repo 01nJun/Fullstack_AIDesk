@@ -67,7 +67,14 @@ const AdminComponent = () => {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 flex-grow">
+        {/* 검색 영역을 form으로 변경: 엔터 시 handleSearch 실행 */}
+        <form
+          className="flex items-center gap-3 flex-grow"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSearch();
+          }}
+        >
           <select
             value={inputDept}
             onChange={(e) => setInputDept(e.target.value)}
@@ -88,18 +95,17 @@ const AdminComponent = () => {
               placeholder="이름이나 이메일을 입력하세요..."
               value={inputKeyword}
               onChange={(e) => setInputKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="w-full border-2 border-gray-200 p-3 pl-6 rounded-2xl font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all shadow-inner"
             />
           </div>
 
           <button
-            onClick={handleSearch}
+            type="submit"
             className="bg-gray-900 text-white px-8 py-3 rounded-2xl font-black hover:bg-blue-600 transition-all shadow-lg"
           >
             검색
           </button>
-        </div>
+        </form>
       </div>
 
       <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 min-h-[600px] flex flex-col">

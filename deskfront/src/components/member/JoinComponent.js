@@ -14,11 +14,16 @@ const JoinComponent = () => {
   const { moveToLogin } = useCustomLogin();
 
   const handleChange = (e) => {
-    joinParam[e.target.name] = e.target.value;
-    setJoinParam({ ...joinParam });
+    // 상태 업데이트 방식 개선 (직접 변경 대신 setState 사용)
+    setJoinParam({
+      ...joinParam,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleClickJoin = () => {
+  const handleClickJoin = (e) => {
+    if(e) e.preventDefault();
+
     if (!joinParam.email || !joinParam.pw || !joinParam.nickname) {
       alert("모든 정보를 입력해주세요.");
       return;
@@ -44,7 +49,8 @@ const JoinComponent = () => {
         <p className="text-gray-400 font-bold mt-4 uppercase tracking-widest text-[10px]">Create your professional account</p>
       </div>
 
-      <div className="space-y-5">
+      {/* 디자인 유지를 위해 기존 클래스 그대로 적용 */}
+      <form className="space-y-5" onSubmit={handleClickJoin}>
         <div>
           <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-2">Email Address</label>
           <input
@@ -93,12 +99,11 @@ const JoinComponent = () => {
 
         <button
           className="w-full bg-blue-600 text-white p-5 rounded-3xl font-black text-xl hover:bg-gray-900 hover:scale-[1.02] transition-all shadow-xl mt-6 active:scale-95"
-          type="button"
-          onClick={handleClickJoin}
+          type="submit"
         >
           CREATE ACCOUNT
         </button>
-      </div>
+      </form>
     </div>
   );
 };

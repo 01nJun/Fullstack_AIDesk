@@ -31,7 +31,9 @@ const ModifyComponent = () => {
     setMember({ ...member, [e.target.name]: e.target.value });
   };
 
-  const handleClickModify = () => {
+  const handleClickModify = (e) => {
+    if(e) e.preventDefault();
+
     if (!member.nickname) {
       alert("닉네임은 필수 입력 항목입니다.");
       return;
@@ -58,7 +60,7 @@ const ModifyComponent = () => {
         <p className="text-gray-400 font-bold mt-4 uppercase tracking-widest text-[10px]">Update your personal information</p>
       </div>
 
-      <div className="space-y-5">
+      <form className="space-y-5" onSubmit={handleClickModify}>
         <div>
           <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-2">Email (Read Only)</label>
           <input
@@ -108,12 +110,11 @@ const ModifyComponent = () => {
 
         <button
           className="w-full bg-blue-600 text-white p-5 rounded-3xl font-black text-xl hover:bg-gray-900 hover:scale-[1.02] transition-all shadow-xl mt-6 active:scale-95"
-          type="button"
-          onClick={handleClickModify}
+          type="submit"
         >
           UPDATE & RE-APPROVE
         </button>
-      </div>
+      </form>
     </div>
   );
 };

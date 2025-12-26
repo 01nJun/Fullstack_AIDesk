@@ -17,6 +17,9 @@ const LoginComponent = () => {
   };
 
   const handleClickLogin = (e) => {
+    // form onSubmit에서 호출될 경우를 대비해 preventDefault 추가 가능
+    if(e) e.preventDefault();
+
     doLogin(loginParam).then((data) => {
       if (data.error) {
         if (data.error === "PENDING_APPROVAL") alert("현재 승인 대기 상태입니다.\n관리자 승인 후 로그인해주세요.");
@@ -42,7 +45,8 @@ const LoginComponent = () => {
         <p className="text-gray-400 font-bold mt-4 uppercase tracking-widest text-[10px]">Access your ticket system</p>
       </div>
 
-      <div className="space-y-6">
+      {/* 기존 div 클래스를 그대로 유지한 form 태그 */}
+      <form className="space-y-6" onSubmit={handleClickLogin}>
         <div>
           <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 ml-2">Email Address</label>
           <input
@@ -61,19 +65,20 @@ const LoginComponent = () => {
 
         <div className="flex gap-4 pt-4">
           <button
+            type="submit"
             className="flex-1 bg-gray-900 text-white p-5 rounded-3xl font-black text-lg hover:bg-blue-600 hover:scale-[1.02] transition-all shadow-lg active:scale-95"
-            onClick={handleClickLogin}
           >
             LOGIN
           </button>
           <button
+            type="button"
             className="flex-1 bg-white text-gray-900 border-2 border-gray-900 p-5 rounded-3xl font-black text-lg hover:bg-gray-50 hover:scale-[1.02] transition-all shadow-lg active:scale-95"
             onClick={handleClickJoin}
           >
             JOIN
           </button>
         </div>
-      </div>
+      </form>
 
       <div className="relative my-10">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t-2 border-gray-100"></div></div>
