@@ -1,61 +1,34 @@
-import axios from "axios";
-import { getCookie } from "../util/cookieUtil";
+import jwtAxios from "../util/jwtUtil"; // 커스텀 axios 임포트
+import { API_SERVER_HOST } from "./memberApi"; // 호스트 주소 임포트
 
-export const API_SERVER_HOST = "http://localhost:8080";
+// 댓글 관련 API의 기본 경로
 const prefix = `${API_SERVER_HOST}/api/replies`;
 
-// [공통] 쿠키에서 토큰을 꺼내 Authorization 헤더를 만드는 함수
-const getAuthHeader = () => {
-  const member = getCookie("member");
-  if (!member) return {};
-
-  let memberObj = member;
-  if (typeof member === "string") {
-    try {
-      memberObj = JSON.parse(decodeURIComponent(member));
-    } catch (err) {
-      return {};
-    }
-  }
-
-  const token = memberObj.accessToken;
-  if (!token) return {};
-
-  return {
-    headers: { Authorization: `Bearer ${token}` },
-  };
-};
-
-// 1. 특정 게시물의 댓글 목록 가져오기 (GET)
+//  특정 게시물의 댓글 목록 가져오기 (GET)
 export const getReplyList = async (bno, page = 1) => {
-  // Config와 Filter에서 허용했으므로 비로그인 시에도 작동합니다.
-  const res = await axios.get(`${prefix}/list/${bno}`, {
+  // jwtAxios가 요청을 가로채서(Interceptor) 자동으로 토큰을 실어 보냅니다.
+  const res = await jwtAxios.get(`${prefix}/list/${bno}`, {
     params: { page },
-    ...getAuthHeader(), // 로그인 상태라면 토큰을 실어 보냄 (선택 사항)
   });
   return res.data;
 };
 
-// 2. 새 댓글 등록하기 (POST)
+// 새 댓글 등록하기 (POST)
 export const postReply = async (replyObj) => {
-  // axios.post(url, data, config) -> 헤더는 반드시 세 번째 인자에 들어가야 합니다.
-  const header = getAuthHeader();
-  const res = await axios.post(`${prefix}/`, replyObj, header);
+  // 토큰 정보가 필요 없으므로 세 번째 인자로 헤더를 넘길 필요가 없습니다.
+  const res = await jwtAxios.post(`${prefix}/`, replyObj);
   return res.data;
 };
 
-// 3. 댓글 삭제하기 (DELETE) - 추가 구현 시 참고
+// 댓글 삭제하기 (DELETE)
 export const deleteReply = async (rno) => {
-  const res = await axios.delete(`${prefix}/${rno}`, getAuthHeader());
+  const res = await jwtAxios.delete(`${prefix}/${rno}`);
   return res.data;
 };
 
-// 4. 댓글 수정하기 (PUT) - 추가 구현 시 참고
+//  댓글 수정하기 (PUT)
 export const putReply = async (replyObj) => {
-  const res = await axios.put(
-    `${prefix}/${replyObj.rno}`,
-    replyObj,
-    getAuthHeader()
-  );
+  // replyObj에 rno가 포함되어 있으므로 이를 활용해 경로를 구성합니다.
+  const res = await jwtAxios.put(`${prefix}/${replyObj.rno}`, replyObj);
   return res.data;
 };
