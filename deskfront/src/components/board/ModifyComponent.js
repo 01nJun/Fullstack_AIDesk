@@ -25,9 +25,8 @@ const ModifyComponent = ({ bno }) => {
       })
       .catch((err) => {
         setFetching(false);
-        // ★ 데이터를 불러올 때 서버가 꺼져있을 경우 처리
         console.error("데이터 로딩 에러:", err);
-        alert("게시글 정보를 불러올 수 없습니다. 서버 연결을 확인하세요.");
+        alert("게시글 정보를 불러올 수 없습니다.");
       });
   }, [bno]);
 
@@ -40,45 +39,22 @@ const ModifyComponent = ({ bno }) => {
 
   const handleClickModify = () => {
     setFetching(true);
-
-    const boardParam = {
-      bno: board.bno,
-      title: board.title,
-      content: board.content,
-      writer: board.writer,
-      category: board.category,
-    };
+    const boardParam = { ...board };
 
     putOne(bno, boardParam)
       .then((data) => {
-        // data?.error 처럼 옵셔널 체이닝을 쓰면 더 안전합니다.
         if (data?.error) {
-          alert("수정 실패: 관리자 권한이 필요합니다.");
+          alert("수정 실패: 권한이 없습니다.");
           setFetching(false);
           return;
         }
-
         setFetching(false);
         alert("성공적으로 수정되었습니다.");
         moveToRead(bno);
       })
       .catch((err) => {
         setFetching(false);
-
-        // ★ [핵심 수정] 서버가 꺼져있으면 err.response 자체가 없습니다.
-        // err.response가 있을 때만 status를 확인하도록 수정했습니다.
-        if (err.response) {
-          if (err.response.status === 401) {
-            alert("인증에 실패했습니다. 다시 로그인해 주세요.");
-          } else if (err.response.status === 403) {
-            alert("실제 권한이 없습니다(관리자만 가능).");
-          } else {
-            alert("서버 에러가 발생했습니다: " + err.response.status);
-          }
-        } else {
-          // 서버가 꺼져있거나 네트워크 연결이 안 된 경우(ERR_CONNECTION_REFUSED 등)
-          alert("서버와 연결할 수 없습니다. 백엔드 서버가 작동 중인지 확인하세요.");
-        }
+        alert("서버 통신 에러가 발생했습니다.");
       });
   };
 
@@ -86,9 +62,9 @@ const ModifyComponent = ({ bno }) => {
     if (window.confirm("정말로 삭제하시겠습니까?")) {
       setFetching(true);
       deleteOne(bno)
-        .then((data) => { // 여기
+        .then((data) => {
           if (data?.error) {
-            alert("삭제 실패: 관리자 권한이 필요합니다.");
+            alert("삭제 실패: 권한이 없습니다.");
             setFetching(false);
             return;
           }
@@ -98,93 +74,130 @@ const ModifyComponent = ({ bno }) => {
         })
         .catch((err) => {
           setFetching(false);
-          // ★ 삭제 시에도 네트워크 에러 처리 추가
-          if (!err.response) {
-            alert("서버와 연결할 수 없어 삭제에 실패했습니다.");
-          } else {
-            alert("삭제 실패: 관리자 권한이 필요합니다.");
-          }
+          alert("삭제 처리 중 에러가 발생했습니다.");
         });
     }
   };
 
   return (
-    <div className="border-2 border-gray-100 mt-10 p-6 bg-white rounded-xl shadow-sm">
-      {fetching ? <FetchingModal /> : <></>}
+    <div className="max-w-7xl mx-auto p-8 space-y-10 bg-gray-50/30 min-h-screen">
+      {fetching && <FetchingModal />}
 
-      <div className="mb-4">
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          카테고리
-        </label>
-        <select
-          name="category"
-          value={board.category}
-          onChange={handleChangeBoard}
-          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          <option value="공지사항">공지사항</option>
-          <option value="가이드">가이드</option>
-          <option value="FAQ">FAQ</option>
-        </select>
+      {/* 1. 상단 타이틀 섹션 */}
+      <div className="relative inline-block mb-2">
+        <span className="text-blue-600 font-black text-xs uppercase tracking-widest mb-3 block italic">
+            Management System
+        </span>
+        <h1 className="text-4xl font-black text-[#111827] mb-4 tracking-tighter uppercase">
+            게시글 수정
+        </h1>
+        <div className="h-1.5 w-full bg-blue-600 rounded-full shadow-[0_2px_10px_rgba(37,99,235,0.3)]"></div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          제목
-        </label>
-        <input
-          name="title"
-          type="text"
-          value={board.title}
-          onChange={handleChangeBoard}
-          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
+      {/* 2. 수정 폼 카드 (티켓 상세 박스 스타일) */}
+      <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.05)] border border-gray-100">
 
-      <div className="mb-4">
-        <label className="block text-sm font-bold text-gray-400 mb-2">
-          작성자
-        </label>
-        <input
-          type="text"
-          value={board.writer}
-          readOnly
-          className="w-full p-3 border rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed"
-        />
-      </div>
+        {/* 상단 다크 네이비 바 */}
+        <div className="bg-[#1a1f2c] px-10 py-5 flex justify-between items-center border-b border-gray-800">
+          <h2 className="text-white font-black italic tracking-widest text-xs uppercase opacity-80">
+            Modifier Interface
+          </h2>
+          <div className="flex gap-2.5">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+            <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+            <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+          </div>
+        </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-bold text-gray-700 mb-2">
-          내용
-        </label>
-        <textarea
-          name="content"
-          rows="10"
-          value={board.content}
-          onChange={handleChangeBoard}
-          className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-        ></textarea>
-      </div>
+        {/* 입력 폼 영역 */}
+        <div className="p-12 space-y-8 bg-gradient-to-b from-white to-gray-50/30">
 
-      <div className="flex justify-end space-x-4">
-        <button
-          className="bg-red-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-600"
-          onClick={handleClickDelete}
-        >
-          삭제하기
-        </button>
-        <button
-          className="bg-gray-100 text-gray-600 px-6 py-2 rounded-lg font-bold"
-          onClick={() => moveToRead(bno)}
-        >
-          취소
-        </button>
-        <button
-          className="bg-black text-white px-6 py-2 rounded-lg font-bold"
-          onClick={handleClickModify}
-        >
-          저장하기
-        </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* 카테고리 선택 */}
+            <div>
+              <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1">
+                Category Selection
+              </label>
+              <select
+                name="category"
+                value={board.category}
+                onChange={handleChangeBoard}
+                className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none font-bold text-gray-700 appearance-none cursor-pointer"
+              >
+                <option value="공지사항">공지사항</option>
+                <option value="가이드">가이드</option>
+                <option value="FAQ">FAQ</option>
+              </select>
+            </div>
+
+            {/* 작성자 (Read Only) */}
+            <div>
+              <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1">
+                Writer (Identity)
+              </label>
+              <input
+                type="text"
+                value={board.writer}
+                readOnly
+                className="w-full p-4 bg-gray-100 border-2 border-transparent rounded-2xl text-gray-400 font-black italic cursor-not-allowed outline-none"
+              />
+            </div>
+          </div>
+
+          {/* 제목 입력 */}
+          <div>
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1">
+              Ticket Subject
+            </label>
+            <input
+              name="title"
+              type="text"
+              value={board.title}
+              onChange={handleChangeBoard}
+              className="w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none font-bold text-gray-700"
+            />
+          </div>
+
+          {/* 내용 입력 */}
+          <div>
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 block ml-1">
+              Content Description
+            </label>
+            <textarea
+              name="content"
+              rows="10"
+              value={board.content}
+              onChange={handleChangeBoard}
+              className="w-full p-5 bg-gray-50 border-2 border-transparent rounded-[2rem] focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none font-medium text-gray-700 resize-none leading-relaxed"
+            ></textarea>
+          </div>
+        </div>
+
+        {/* 푸터 버튼 영역 */}
+        <div className="bg-white px-10 py-8 flex justify-end items-center gap-4 border-t border-gray-100/60">
+          <button
+            onClick={handleClickDelete}
+            className="bg-[#ef4444] text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-red-600 hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-red-100"
+          >
+            삭제하기
+          </button>
+
+          <div className="flex-1"></div> {/* 간격 벌리기 */}
+
+          <button
+            onClick={() => moveToRead(bno)}
+            className="bg-gray-100 text-gray-400 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-gray-200 hover:text-gray-600 transition-all duration-300"
+          >
+            취소
+          </button>
+
+          <button
+            onClick={handleClickModify}
+            className="bg-[#111827] text-white px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-600 hover:-translate-y-1 transition-all duration-300 shadow-xl shadow-gray-200"
+          >
+            저장하기
+          </button>
+        </div>
       </div>
     </div>
   );

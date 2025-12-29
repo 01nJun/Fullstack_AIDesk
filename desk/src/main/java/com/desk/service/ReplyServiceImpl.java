@@ -33,55 +33,61 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public Long register(ReplyDTO replyDTO) {
-        Reply reply = modelMapper.map(replyDTO, Reply.class);
-        Board board = Board.builder().bno(replyDTO.getBno()).build();
-        reply.setBoard(board);
+        // [수정] ModelMapper 대신 빌더를 사용하여 매핑 에러 방지
+        Reply reply = Reply.builder()
+                .replyText(replyDTO.getReplyText())
+                .replyer(replyDTO.getReplyer())
+                .board(Board.builder().bno(replyDTO.getBno()).build())
+                .build();
 
-        log.info("댓글 등록: " + reply);
+        // 대댓글 로직: 부모 번호가 있다면 직접 찾아서 연결
+        if (replyDTO.getParentRno() != null && replyDTO.getParentRno() > 0) {
+            Reply parent = replyRepository.findById(replyDTO.getParentRno())
+                    .orElseThrow(() -> new RuntimeException("부모 댓글이 존재하지 않습니다."));
+            reply.setParent(parent); // 엔티티의 필드명이 parent라면 setParent 사용
+        }
+
+        log.info("댓글/대댓글 등록 시도: " + reply);
         return replyRepository.save(reply).getRno();
     }
 
     @Override
     public ReplyDTO read(Long rno) {
-        return replyRepository.findById(rno)
-                .map(reply -> modelMapper.map(reply, ReplyDTO.class))
-                .orElseThrow();
+        Reply reply = replyRepository.findById(rno).orElseThrow();
+        ReplyDTO dto = modelMapper.map(reply, ReplyDTO.class);
+
+        if(reply.getParent() != null) {
+            dto.setParentRno(reply.getParent().getRno());
+        }
+        return dto;
     }
 
-    /**
-     * 댓글 수정: [표의 규칙] 오직 본인(닉네임 일치)만 가능
-     */
     @Override
     public void modify(ReplyDTO replyDTO) {
         Reply reply = replyRepository.findById(replyDTO.getRno()).orElseThrow();
-
         String currentUserNickname = getCurrentUserNickname();
 
-        log.info("수정 시도 - 현재유저: " + currentUserNickname + " / 작성자: " + reply.getReplyer());
+        log.info("수정 시도 - 유저: {}, 작성자: {}", currentUserNickname, reply.getReplyer());
 
-        // [핵심 로직] 작성자와 현재 로그인한 유저의 닉네임이 다르면 거부
-        if (!reply.getReplyer().equals(currentUserNickname)) {
-            throw new RuntimeException("수정 권한이 없습니다. 본인만 수정할 수 있습니다.");
+        // [보안] 본인 확인
+        if (reply.getReplyer() == null || !reply.getReplyer().equals(currentUserNickname)) {
+            throw new RuntimeException("수정 권한이 없습니다.");
         }
 
         reply.changeText(replyDTO.getReplyText());
         replyRepository.save(reply);
     }
 
-    /**
-     * 댓글 삭제: [표의 규칙] 본인 또는 관리자(ADMIN) 가능
-     */
     @Override
     public void remove(Long rno) {
         Reply reply = replyRepository.findById(rno).orElseThrow();
-
         String currentUserNickname = getCurrentUserNickname();
         boolean isAdmin = checkAdminRole();
 
-        log.info("삭제 시도 - 현재유저: " + currentUserNickname + " / 작성자: " + reply.getReplyer() + " / 관리자여부: " + isAdmin);
+        log.info("삭제 시도 - 유저: {}, 작성자: {}, 관리자: {}", currentUserNickname, reply.getReplyer(), isAdmin);
 
-        // [핵심 로직] 작성자 본인이거나 관리자(ROLE_ADMIN)인 경우만 삭제 허용
-        if (reply.getReplyer().equals(currentUserNickname) || isAdmin) {
+        // [보안] 본인 또는 관리자 확인
+        if (isAdmin || (reply.getReplyer() != null && reply.getReplyer().equals(currentUserNickname))) {
             replyRepository.deleteById(rno);
         } else {
             throw new RuntimeException("삭제 권한이 없습니다.");
@@ -90,38 +96,39 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public PageResponseDTO<ReplyDTO> getListOfBoard(Long bno, PageRequestDTO pageRequestDTO) {
+        // [수정] 정렬은 Repository의 @Query에서 coalesce로 처리하므로 Sort는 비웁니다.
         Pageable pageable = PageRequest.of(
                 pageRequestDTO.getPage() <= 0 ? 0 : pageRequestDTO.getPage() - 1,
-                pageRequestDTO.getSize(),
-                Sort.by("rno").ascending());
+                pageRequestDTO.getSize()
+        );
 
         Page<Reply> result = replyRepository.listOfBoard(bno, pageable);
 
         List<ReplyDTO> dtoList = result.getContent().stream()
-                .map(reply -> modelMapper.map(reply, ReplyDTO.class))
+                .map(reply -> {
+                    ReplyDTO dto = modelMapper.map(reply, ReplyDTO.class);
+                    if (reply.getParent() != null) {
+                        dto.setParentRno(reply.getParent().getRno());
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
 
         return PageResponseDTO.<ReplyDTO>withAll()
                 .pageRequestDTO(pageRequestDTO)
                 .dtoList(dtoList)
-                .totalCount((int)result.getTotalElements())
+                .totalCount((int) result.getTotalElements())
                 .build();
     }
 
-    // --- [중요 수정] 현재 로그인한 사용자의 '닉네임'을 가져오는 로직 ---
+    // --- 보안 헬퍼 메서드 ---
     private String getCurrentUserNickname() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
         if (auth == null || !auth.isAuthenticated()) return null;
-
         Object principal = auth.getPrincipal();
-
-        // 1. JWT 등으로 로그인한 사용자가 MemberDTO(UserDetails) 타입인 경우
         if (principal instanceof MemberDTO) {
-            return ((MemberDTO) principal).getNickname(); // DTO에 있는 닉네임을 반환
+            return ((MemberDTO) principal).getNickname();
         }
-
-        // 2. 만약 MemberDTO가 아니라 단순 문자열(이메일 등)이라면 getName 반환
         return auth.getName();
     }
 

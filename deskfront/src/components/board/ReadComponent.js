@@ -22,9 +22,8 @@ const ReadComponent = ({ bno }) => {
 
   const loginState = useSelector((state) => state.loginSlice);
 
-  const isAdmin =
-    loginState.roleNames &&
-    (loginState.roleNames.includes("ADMIN"));
+  // 관리자이거나 본인인 경우 수정 가능하도록 로직 보완
+  const canModify = loginState.roleNames?.includes("ADMIN") || loginState.nickname === board.writer;
 
   useEffect(() => {
     setFetching(true);
@@ -40,56 +39,74 @@ const ReadComponent = ({ bno }) => {
   }, [bno]);
 
   return (
-    <div className="border-2 border-gray-100 mt-10 p-6 bg-white rounded-xl shadow-sm">
-      {fetching ? <FetchingModal /> : <></>}
+    <div className="max-w-7xl mx-auto p-8 space-y-10 bg-gray-50/30 min-h-screen">
+      {fetching && <FetchingModal />}
 
-      {/* 1. 상단 헤더 영역 (카테고리, 제목, 작성 정보) */}
-      <div className="flex justify-between items-center border-b pb-4 mb-6">
-        <div>
-          <span className="text-blue-500 font-bold text-sm uppercase tracking-wider">
-            {board.category || "카테고리 없음"}
+      {/* 1. 상단 타이틀 섹션 (티켓 목록 헤더 스타일) */}
+      <div className="flex justify-between items-end mb-4">
+        <div className="relative inline-block">
+          <span className="text-blue-600 font-black text-xs uppercase tracking-widest mb-3 block italic">
+            {board.category || "General Board"}
           </span>
-          <h2 className="text-3xl font-bold text-gray-800 mt-1">
-            {board.title || "제목 없음"}
-          </h2>
+          <h1 className="text-4xl font-black text-[#111827] mb-4 tracking-tighter uppercase">
+            {board.title || "No Title"}
+          </h1>
+          {/* 타이틀 아래의 굵은 블루 라인 */}
+          <div className="h-1.5 w-full bg-blue-600 rounded-full shadow-[0_2px_10px_rgba(37,99,235,0.3)]"></div>
         </div>
-        <div className="text-right text-sm text-gray-400">
-          <p>
-            작성자:{" "}
-            <span className="text-gray-600 font-medium">
-              {board.writer || "익명"}
-            </span>
-          </p>
-          <p>작성일: {board.regDate || board.modDate || "날짜 정보 없음"}</p>
+
+        {/* 작성 정보 섹션 */}
+        <div className="text-right space-y-1 pb-2">
+          <div className="text-sm font-black text-gray-900 italic">
+            WRITER. <span className="text-blue-600 underline decoration-2 underline-offset-4">{board.writer || "Unknown"}</span>
+          </div>
+          <div className="text-[11px] font-bold text-gray-300 italic uppercase tracking-widest">
+            REG.DATE: {board.regDate || board.modDate}
+          </div>
         </div>
       </div>
 
-      {/* 2. 게시글 본문 영역 (댓글창 위로 이동) */}
-      <div className="min-h-[300px] text-gray-700 leading-relaxed text-lg mb-10 px-2">
-        {board.content || "내용이 없습니다."}
-      </div>
+      {/* 2. 메인 콘텐츠 카드 (티켓 상세 박스 스타일) */}
+      <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.05)] border border-gray-100 transition-all hover:shadow-[0_25px_60px_rgba(0,0,0,0.08)]">
+        {/* 카드 상단 다크 네이비 바 */}
+        <div className="bg-[#1a1f2c] px-10 py-5 flex justify-between items-center border-b border-gray-800">
+          <h2 className="text-white font-black italic tracking-widest text-xs uppercase opacity-80">Article Detail View</h2>
+          <div className="flex gap-2.5">
+            <div className="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+            <div className="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+            <div className="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+          </div>
+        </div>
 
-      {/* 3. 하단 버튼 영역 (목록, 수정) */}
-      <div className="flex justify-end space-x-4 border-b pb-10 mb-10">
-        <button
-          className="bg-gray-100 text-gray-600 px-6 py-2 rounded-lg font-bold hover:bg-gray-200 transition"
-          onClick={() => moveToList()}
-        >
-          목록으로
-        </button>
+        {/* 본문 텍스트 영역 */}
+        <div className="p-12 min-h-[450px] bg-gradient-to-b from-white to-gray-50/30">
+          <div className="text-gray-700 leading-[1.8] text-lg font-medium whitespace-pre-wrap break-all">
+            {board.content || "No Content available."}
+          </div>
+        </div>
 
-        {isAdmin && (
+        {/* 푸터 버튼 영역 (경계선 강조) */}
+        <div className="bg-white px-10 py-8 flex justify-end gap-4 border-t border-gray-100/60">
           <button
-            className="bg-black text-white px-6 py-2 rounded-lg font-bold hover:bg-gray-800 transition"
-            onClick={() => moveToModify(bno)}
+            onClick={moveToList}
+            className="bg-gray-100 text-gray-400 px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-gray-200 hover:text-gray-600 transition-all duration-300"
           >
-            수정하기
+            목록으로
           </button>
-        )}
+
+          {canModify && (
+            <button
+              onClick={() => moveToModify(bno)}
+              className="bg-[#111827] text-white px-10 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-600 hover:-translate-y-1 transition-all duration-300 shadow-xl shadow-gray-200"
+            >
+              수정하기
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* 4. 댓글 영역 (맨 밑으로 배치) */}
-      <div className="pt-4">
+      {/* 3. 댓글 영역 */}
+      <div className="mt-16 bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-sm">
         <ReplyComponent bno={bno} />
       </div>
     </div>
