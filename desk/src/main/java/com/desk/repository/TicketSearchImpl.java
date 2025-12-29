@@ -43,9 +43,11 @@ public class TicketSearchImpl implements TicketSearch{
         QTicket ticket = QTicket.ticket;
         QTicketPersonal tp = QTicketPersonal.ticketPersonal;
         BooleanBuilder builder = new BooleanBuilder();
+
+        // 내가 작성자이거나, 내가 수신자인 티켓 (교차 조회)
         builder.and(ticket.writer.email.eq(email).or(tp.receiver.email.eq(email)));
 
-        applyFilters(builder, filter, ticket);
+        applyFilters(builder, filter, ticket, tp);
 
         List<Ticket> content = queryFactory.selectFrom(ticket).distinct()
                 .leftJoin(ticket.personalList, tp).fetchJoin()
@@ -58,46 +60,56 @@ public class TicketSearchImpl implements TicketSearch{
         return new PageImpl<>(content, pageable, total);
     }
 
-    // [보낸 티켓 탭]
     @Override
     public Page<Ticket> findAllWithPersonalList(String writer, TicketFilterDTO filter, Pageable pageable) {
         QTicket ticket = QTicket.ticket;
+        QTicketPersonal tp = QTicketPersonal.ticketPersonal;
         BooleanBuilder builder = new BooleanBuilder();
         builder.and(ticket.writer.email.eq(writer));
 
-        applyFilters(builder, filter, ticket);
+        applyFilters(builder, filter, ticket, tp);
 
         List<Ticket> content = queryFactory.selectFrom(ticket).distinct()
-                .leftJoin(ticket.personalList).fetchJoin()
+                .leftJoin(ticket.personalList, tp).fetchJoin()
                 .where(builder)
                 .offset(pageable.getOffset()).limit(pageable.getPageSize())
                 .orderBy(getOrderSpecifier(pageable, ticket))
                 .fetch();
 
-        long total = queryFactory.select(ticket.countDistinct()).from(ticket).where(builder).fetchOne();
+        long total = queryFactory.select(ticket.countDistinct()).from(ticket).leftJoin(ticket.personalList, tp).where(builder).fetchOne();
         return new PageImpl<>(content, pageable, total);
     }
 
-    private void applyFilters(BooleanBuilder builder, TicketFilterDTO filter, QTicket ticket) {
+    private void applyFilters(BooleanBuilder builder, TicketFilterDTO filter, QTicket ticket, QTicketPersonal tp) {
         if (filter != null) {
-            if (filter.getGrade() != null) builder.and(ticket.grade.eq(filter.getGrade()));
+            // 1. 읽음/안읽음 필터 (ALL/SENT에서도 tp와 연동)
+            if (filter.getRead() != null) {
+                builder.and(tp.isread.eq(filter.getRead()));
+            }
+            // 2. 중요도 필터
+            if (filter.getGrade() != null) {
+                builder.and(ticket.grade.eq(filter.getGrade()));
+            }
+            // 3. 키워드 검색
             if (filter.getKeyword() != null && !filter.getKeyword().isBlank()) {
                 String kw = "%" + filter.getKeyword() + "%";
                 builder.and(ticket.title.like(kw).or(ticket.content.like(kw)).or(ticket.writer.email.like(kw)));
             }
+            // 4. 상태 필터
+            if (filter.getState() != null) {
+                builder.and(tp.state.eq(filter.getState()));
+            }
         }
     }
+
     private OrderSpecifier<?> getOrderSpecifier(Pageable pageable, QTicket ticket) {
         if (!pageable.getSort().isEmpty()) {
             for (Sort.Order order : pageable.getSort()) {
                 if (order.getProperty().equals("deadline")) {
                     return order.isAscending() ? ticket.deadline.asc() : ticket.deadline.desc();
                 }
-                if (order.getProperty().equals("tno")) {
-                    return order.isAscending() ? ticket.tno.asc() : ticket.tno.desc();
-                }
             }
         }
-        return ticket.tno.desc(); // 최종 기본값: 최신순
+        return ticket.tno.desc();
     }
 }

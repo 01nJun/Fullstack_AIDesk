@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import useCustomPin from '../hooks/useCustomPin';
-import { getGradeBadge } from "../util/ticketUtils"; // 다른 개발자 추가분
-import TicketDetailModal from './ticket/TicketDetailModal'; // 다른 개발자 추가분
+import { getGradeBadge } from "../util/ticketUtils";
+import TicketDetailModal from './ticket/TicketDetailModal';
 
 const PinDrawer = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +15,10 @@ const PinDrawer = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // 메인 페이지 등 외부에서 사이드바를 열기 위한 이벤트 리스너 등록
+        const handleOpenDrawer = () => setIsOpen(true);
+        window.addEventListener('open-pin-drawer', handleOpenDrawer);
+
         if (!loginState.email && isOpen) {
             alert("로그인이 필요한 서비스입니다.");
             setIsOpen(false);
@@ -23,11 +27,12 @@ const PinDrawer = () => {
         if (loginState.email) {
             refreshPins();
         }
+
+        return () => window.removeEventListener('open-pin-drawer', handleOpenDrawer);
     }, [loginState.email, refreshPins, isOpen, navigate]);
 
     if (!loginState.email) return null;
 
-    // 상세 모달 로직 통합
     const openTicketModal = (tno) => {
         if (!tno) return;
         setSelectedTno(tno);
@@ -61,7 +66,7 @@ const PinDrawer = () => {
             {/* 슬라이드 드로어 */}
             <div className={`fixed inset-y-0 right-0 w-96 bg-white shadow-[-10px_0_30px_rgba(0,0,0,0.1)] z-[100] transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} border-l-4 border-gray-900`}>
                 <div className="p-6 bg-gray-900 text-white flex justify-between items-center">
-                    <h2 className="text-xl font-black italic uppercase tracking-widest">Pinned Tickets</h2>
+                    <h2 className="text-xl font-black italic uppercase tracking-widest">Pinned Works</h2>
                     <button onClick={() => setIsOpen(false)} className="text-3xl font-black hover:text-blue-400 transition-colors">&times;</button>
                 </div>
 
@@ -81,7 +86,7 @@ const PinDrawer = () => {
                                     </div>
                                     <button
                                         onClick={(e) => {
-                                            e.stopPropagation(); // 모달 오픈 방지
+                                            e.stopPropagation();
                                             togglePin(item.tno);
                                         }}
                                         className="bg-red-50 text-red-500 p-2 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
@@ -104,7 +109,6 @@ const PinDrawer = () => {
 
             {isOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] transition-opacity" onClick={() => setIsOpen(false)} />}
 
-            {/* 티켓 상세 모달 통합 */}
             {isModalOpen && selectedTno && (
                 <div className="fixed inset-0 z-[110]">
                     <TicketDetailModal

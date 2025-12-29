@@ -1,146 +1,204 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import BasicLayout from "../layouts/BasicLayout";
-
-// 가상의 데이터 (추후 API 연동 시 이 구조를 활용)
-const DUMMY_TICKETS = [
-  { id: 1, title: "로그인 페이지 UI 개선 요청", date: "2024-12-20", status: "진행중", manager: "이영희", priority: "높음" },
-  { id: 2, title: "대시보드 차트 추가", date: "2024-12-22", status: "추가 정보 필요", manager: "박민수", priority: "중간" },
-  { id: 3, title: "사용자 권한 관리 기능", date: "2024-12-18", status: "검토중", manager: "김철수", priority: "높음" },
-];
-
-const DUMMY_NOTICES = [
-  { id: 1, title: "디자인 시스템 가이드 v2.0 업데이트", date: "2024-12-15", category: "가이드" },
-  { id: 2, title: "UI 컴포넌트 사용법", date: "2024-12-14", category: "FAQ" },
-  { id: 3, title: "팀 회의 안건 공유", date: "2024-12-13", category: "공지사항" },
-];
+import { getRecentReceivedTickets, getReceivedTickets, getSentTickets } from "../api/ticketApi";
+import { getRecentBoards } from "../api/boardApi";
+import useCustomPin from "../hooks/useCustomPin";
+import TicketDetailModal from "../components/ticket/TicketDetailModal";
+import { getGradeBadge } from "../util/ticketUtils";
 
 const MainPage = () => {
   const loginState = useSelector((state) => state.loginSlice);
   const navigate = useNavigate();
+  const { pinItems } = useCustomPin();
 
-  // 로그인 여부 확인
+  const [recentTasks, setRecentTasks] = useState([]);
+  const [recentBoards, setRecentBoards] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingSentCount, setPendingSentCount] = useState(0);
+
+  const [selectedTno, setSelectedTno] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const isLoggedIn = !!loginState.email;
+  const email = loginState.email;
   const displayName = loginState.nickname || "사용자";
 
-  // 상태 카운트 (추후 API 연동 대상)
-  const statusCounts = {
-    important: 0,
-    unread: 0,
-    pending: 0,
+  const getCategoryStyle = (category) => {
+    switch (category) {
+      case "공지사항": return "bg-red-100 text-red-600 border border-red-200";
+      case "가이드": return "bg-blue-100 text-blue-600 border border-blue-200";
+      case "FAQ": return "bg-green-100 text-green-600 border border-green-200";
+      default: return "bg-gray-100 text-gray-500 border border-gray-200";
+    }
+  };
+
+  const fetchMainData = useCallback(() => {
+    getRecentBoards().then(data => setRecentBoards(data || []));
+    if (isLoggedIn) {
+      getRecentReceivedTickets(email).then(data => setRecentTasks(data || []));
+      getReceivedTickets(email, { size: 1 }, { read: false }).then(res => setUnreadCount(res.totalCount || 0));
+      getSentTickets(email, { size: 1 }, { state: 'IN_PROGRESS' }).then(res => setPendingSentCount(res.totalCount || 0));
+    }
+  }, [isLoggedIn, email]);
+
+  useEffect(() => {
+    fetchMainData();
+  }, [fetchMainData]);
+
+  const moveToListWithFilter = (tab, read = "ALL", state = "") => {
+    const params = new URLSearchParams();
+    params.set("tab", tab);
+    params.set("read", read);
+    if (state) params.set("state", state);
+    navigate({ pathname: "/tickets/list", search: `?${params.toString()}` });
+  };
+
+  const openDetail = (tno) => {
+    setSelectedTno(tno);
+    setIsModalOpen(true);
   };
 
   return (
-  <BasicLayout>
-    <div className="max-w-7xl mx-auto p-6 space-y-8 bg-gray-50 min-h-screen">
-      {/* --- 상단 인사 문구 영역 (컬러 이미지 스타일 반영) --- */}
-      <section className="bg-indigo-600 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">안녕하세요, {displayName}님</h1>
-          <p className="text-indigo-100 opacity-90">AI 챗봇과 대화하며 업무 요청을 정확하게 전달하세요.</p>
-          <button className="mt-6 bg-white text-indigo-600 px-6 py-2 rounded-lg font-semibold hover:bg-indigo-50 transition-colors shadow-md">
-            + 새 요청 만들기
-          </button>
-        </div>
-        {/* 장식용 원형 배경 */}
-        <div className="absolute top-[-20%] right-[-5%] w-64 h-64 bg-indigo-500 rounded-full opacity-20"></div>
-      </section>
+    <BasicLayout>
+      {/* py-12와 space-y-8로 '중간' 크기의 여백 확보 */}
+      <div className="max-w-7xl mx-auto px-6 py-12 space-y-8 bg-gray-50 min-h-[calc(100vh-80px)]">
 
-      {/* --- 상태 카운트 영역 (와이어프레임 구조 + 컬러 디자인 스타일) --- */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatusCard title="중요 (찜, Cart)" count={statusCounts.important} color="text-blue-500" icon="⭐" />
-        <StatusCard title="읽기 전" count={statusCounts.unread} color="text-green-500" icon="✉️" />
-        <StatusCard title="답변 전 (상태 완료 전)" count={statusCounts.pending} color="text-orange-500" icon="💬" />
-      </section>
+        {/* --- 상단 영역 (p-10으로 크기 상향) --- */}
+        <section className="bg-indigo-600 rounded-2xl p-10 text-white shadow-lg relative overflow-hidden">
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold mb-3">안녕하세요, {displayName}님</h1>
+            <p className="text-lg text-indigo-100 opacity-90">AI 챗봇과 대화하며 업무 요청을 정확하게 전달하세요.</p>
+            <button
+              onClick={() => navigate("/tickets/add")}
+              className="mt-6 bg-white text-indigo-600 px-7 py-2.5 rounded-xl font-bold hover:bg-indigo-50 transition-all shadow-md active:scale-95"
+            >
+              + 새 업무 요청 만들기
+            </button>
+          </div>
+          <div className="absolute top-[-20%] right-[-5%] w-72 h-72 bg-indigo-500 rounded-full opacity-20"></div>
+          <div className="absolute bottom-[-15%] left-[30%] w-32 h-32 bg-indigo-400 rounded-full opacity-10"></div>
+        </section>
 
-      {/* --- 리스트 영역 (내 티켓 & 최근 공지) --- */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* 내 요청 티켓 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">내 요청 티켓</h2>
-              <p className="text-sm text-gray-500">최근 생성된 티켓 목록</p>
+        {/* --- 상태 카드 영역 (p-8, text-4xl로 크기 상향) --- */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <StatusCard
+            title="중요 업무 (PIN)"
+            count={pinItems.length}
+            color="text-blue-500"
+            icon="⭐"
+            onClick={() => window.dispatchEvent(new Event('open-pin-drawer'))}
+          />
+          <StatusCard
+            title="읽지 않은 업무 (받은함)"
+            count={unreadCount}
+            color="text-green-500"
+            icon="✉️"
+            onClick={() => moveToListWithFilter('RECEIVED', 'UNREAD')}
+          />
+          <StatusCard
+            title="진행 중인 업무 (전체)"
+            count={pendingSentCount}
+            color="text-orange-500"
+            icon="💬"
+            onClick={() => moveToListWithFilter('ALL', 'ALL', 'IN_PROGRESS')}
+          />
+        </section>
+
+        {/* --- 하단 리스트 영역 (min-h-[440px]로 밸런스 조정) --- */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+          {/* 최근 받은 업무 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col min-h-[440px]">
+            <h2 className="text-xl font-bold text-gray-800 mb-8 border-l-4 border-indigo-500 pl-4">최근 받은 업무</h2>
+            <div className="flex-grow space-y-4">
+              {!isLoggedIn ? (
+                <p className="text-center py-14 text-gray-400 font-medium">로그인이 필요합니다.</p>
+              ) : recentTasks.length > 0 ? (
+                recentTasks.map((task) => (
+                  <div
+                    key={task.tno}
+                    onClick={() => openDetail(task.tno)}
+                    className="p-5 border border-gray-50 rounded-xl hover:bg-gray-50 transition-all cursor-pointer flex justify-between items-center"
+                  >
+                    <div className="truncate pr-4">
+                      <h3 className="text-lg font-semibold text-gray-800 truncate">{task.title}</h3>
+                      <div className="flex text-sm text-gray-500 space-x-3 mt-1.5">
+                        <span>🕒 {task.birth}</span>
+                        <span>발신자: {task.writer}</span>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                        {getGradeBadge(task.grade)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center py-14 text-gray-400 font-medium">받은 업무가 없습니다.</p>
+              )}
             </div>
+            <button
+              onClick={() => moveToListWithFilter('RECEIVED')}
+              className="mt-8 text-center text-sm text-gray-500 hover:text-indigo-600 font-bold border-t pt-5"
+            >
+              전체 업무 보기
+            </button>
           </div>
 
-          <div className="flex-grow space-y-4">
-            {!isLoggedIn ? (
-              <p className="text-center py-10 text-gray-400 font-medium">로그인 후 이용 부탁드립니다.</p>
-            ) : (
-              DUMMY_TICKETS.map((ticket) => (
-                <div key={ticket.id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-800">{ticket.title}</h3>
-                    <span className={`text-xs px-2 py-1 rounded ${ticket.priority === '높음' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
-                      {ticket.priority}
+          {/* 최근 공지사항 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col min-h-[440px]">
+            <h2 className="text-xl font-bold text-gray-800 mb-8 border-l-4 border-indigo-500 pl-4">최근 공지</h2>
+            <div className="flex-grow space-y-4">
+              {recentBoards.length > 0 ? (
+                recentBoards.map((board) => (
+                  <div
+                    key={board.bno}
+                    onClick={() => navigate(`/board/read/${board.bno}`)}
+                    className="flex justify-between items-center p-5 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-xl transition-all cursor-pointer"
+                  >
+                    <div className="truncate pr-4">
+                      <h3 className="text-base font-medium text-gray-700 truncate">{board.title}</h3>
+                      <span className="text-sm text-gray-400">{board.regDate}</span>
+                    </div>
+                    <span className={`shrink-0 text-[11px] px-3 py-1 rounded-full border font-bold ${getCategoryStyle(board.category)}`}>
+                      {board.category || "일반"}
                     </span>
                   </div>
-                  <div className="flex text-xs text-gray-500 space-x-4">
-                    <span>🕒 {ticket.date}</span>
-                    <span>{ticket.status}</span>
-                    <span>담당: {ticket.manager}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <button
-            onClick={() => navigate("/tickets/")}
-            className="mt-6 text-center text-sm text-gray-500 hover:text-indigo-600 font-medium border-t pt-4"
-          >
-            전체 티켓 보기
-          </button>
-        </div>
-
-        {/* 최근 공지 (게시판) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">최근 공지</h2>
-              <p className="text-sm text-gray-500">최근 등록된 공지사항</p>
+                ))
+              ) : (
+                <p className="text-center py-14 text-gray-400 font-medium">등록된 공지가 없습니다.</p>
+              )}
             </div>
+            <button
+              onClick={() => navigate("/board/list")}
+              className="mt-8 text-center text-sm text-gray-500 hover:text-indigo-600 font-bold border-t pt-5"
+            >
+              전체 공지 보기
+            </button>
           </div>
+        </section>
+      </div>
 
-          <div className="flex-grow space-y-4">
-            {!isLoggedIn ? (
-              <p className="text-center py-10 text-gray-400 font-medium">로그인 후 이용 부탁드립니다.</p>
-            ) : (
-              DUMMY_NOTICES.map((notice) => (
-                <div key={notice.id} className="flex justify-between items-center p-4 border-b border-gray-50 last:border-0">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700">{notice.title}</h3>
-                    <span className="text-xs text-gray-400">{notice.date}</span>
-                  </div>
-                  <span className="text-xs bg-gray-50 text-gray-500 px-2 py-1 rounded border border-gray-200">
-                    {notice.category}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-          <button
-            onClick={() => navigate("/about")} // BasicMenu의 "About" 혹은 "공지사항" 경로
-            className="mt-6 text-center text-sm text-gray-500 hover:text-indigo-600 font-medium border-t pt-4"
-          >
-            전체 공지 보기
-          </button>
-        </div>
-      </section>
-    </div>
+      {isModalOpen && selectedTno && (
+        <TicketDetailModal
+          tno={selectedTno}
+          onClose={() => setIsModalOpen(false)}
+          onDelete={() => { fetchMainData(); setIsModalOpen(false); }}
+        />
+      )}
     </BasicLayout>
   );
 };
 
-// 재사용 가능한 상태 카드 컴포넌트
-const StatusCard = ({ title, count, color, icon }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+// 상태 카드 컴포넌트
+const StatusCard = ({ title, count, color, icon, onClick }) => (
+  <div onClick={onClick} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:shadow-md transition-all">
     <div>
       <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-      <p className={`text-3xl font-bold ${color}`}>{count}</p>
+      <p className={`text-4xl font-extrabold ${color}`}>{count}</p>
     </div>
-    <div className="text-2xl opacity-20">{icon}</div>
+    <div className="text-3xl opacity-20">{icon}</div>
   </div>
 );
 

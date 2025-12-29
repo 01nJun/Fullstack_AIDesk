@@ -19,7 +19,7 @@ const TicketPage = () => {
   return (
     <div className="w-full bg-gray-100 min-h-screen py-8">
       <div className="max-w-[1280px] mx-auto px-4">
-        <div className="bg-white shadow-md rounded-2xl p-8 min-h-[800px]">
+        <div className="bg-white shadow-2xl rounded-3xl p-8 min-h-[800px]">
           <TicketComponent />
         </div>
       </div>

@@ -28,24 +28,39 @@ public class TicketPersonalSearchImpl implements TicketPersonalSearch{ // 구현
         QTicket ticket = QTicket.ticket;
 
         BooleanBuilder builder = new BooleanBuilder();
+
+        // 1. 기본 조건: 수신자 본인 티켓
         builder.and(tp.receiver.email.eq(receiver));
 
-        // 필터 적용
+        // 2. 동적 필터 적용
         if (filter != null) {
-            if (filter.getGrade() != null) builder.and(ticket.grade.eq(filter.getGrade()));
+            // 상단 검색어 (제목, 내용, 작성자)
             if (filter.getKeyword() != null && !filter.getKeyword().isBlank()) {
                 String kw = "%" + filter.getKeyword() + "%";
                 builder.and(ticket.title.like(kw).or(ticket.content.like(kw)).or(ticket.writer.email.like(kw)));
             }
+            // 상단/컬럼 중요도 필터
+            if (filter.getGrade() != null) {
+                builder.and(ticket.grade.eq(filter.getGrade()));
+            }
+            // 상단 읽음 상태 필터
+            if (filter.getRead() != null) {
+                builder.and(tp.isread.eq(filter.getRead()));
+            }
+            // 컬럼 진행 상태 필터
+            if (filter.getState() != null) {
+                builder.and(tp.state.eq(filter.getState()));
+            }
         }
 
-        // 정렬 적용
-        // 프론트 정렬 옵션(tno DESC / deadline ASC·DESC)에 따라 기본 최신순 또는 마감일 기준 QueryDSL 정렬 적용
-        OrderSpecifier<?> orderSpecifier = tp.pno.desc();
+        // 3. 동적 정렬 적용 (Tno 또는 Deadline)
+        OrderSpecifier<?> orderSpecifier = tp.pno.desc(); // 기본값
         if (!pageable.getSort().isEmpty()) {
             for (Sort.Order order : pageable.getSort()) {
                 if (order.getProperty().equals("deadline")) {
                     orderSpecifier = order.isAscending() ? ticket.deadline.asc() : ticket.deadline.desc();
+                } else if (order.getProperty().equals("tno")) {
+                    orderSpecifier = order.isAscending() ? tp.pno.asc() : tp.pno.desc();
                 }
             }
         }
@@ -58,8 +73,10 @@ public class TicketPersonalSearchImpl implements TicketPersonalSearch{ // 구현
                 .fetch();
 
         long total = queryFactory.select(tp.count()).from(tp).join(tp.ticket, ticket).where(builder).fetchOne();
+
         return new PageImpl<>(content, pageable, total);
     }
+
 
 
 

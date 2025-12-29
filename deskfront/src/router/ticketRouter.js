@@ -17,7 +17,7 @@ const todoRouter = () => {
     },
     {
       path: "",
-      element: <Navigate replace to="list" />,
+      element: <Navigate replace to={`list${window.location.search}`} />,
     }
   ];
 };

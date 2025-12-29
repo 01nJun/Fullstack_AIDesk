@@ -3,11 +3,13 @@ import { API_SERVER_HOST } from "./memberApi";
 
 const host = `${API_SERVER_HOST}/api/tickets`;
 
+// 보낸 티켓 조회
 export const getSentTickets = async (writer, pageParam, filter) => {
     const res = await jwtAxios.get(`${host}/sent`, { params: { writer, ...pageParam, ...filter } });
     return res.data;
 };
 
+// 받은 티켓 조회
 export const getReceivedTickets = async (receiver, pageParam, filter) => {
     const res = await jwtAxios.get(`${host}/received`, { params: { receiver, ...pageParam, ...filter } });
     return res.data;
@@ -17,6 +19,25 @@ export const getReceivedTickets = async (receiver, pageParam, filter) => {
 export const getAllTickets = async (email, pageParam, filter) => {
     const res = await jwtAxios.get(`${host}/all`, { params: { email, ...pageParam, ...filter } });
     return res.data;
+};
+
+// 홈 화면용: 내가 받은 티켓 중 최신 3개 가져오기
+export const getRecentReceivedTickets = async (receiver) => {
+    const res = await jwtAxios.get(`${host}/received`, {
+        params: { receiver, page: 1, size: 3, sort: "pno,desc" }
+    });
+    return res.data.dtoList;
+};
+
+// 홈 화면용: 통계 데이터 (안읽음 개수, 보낸 티켓 중 미완료 개수 등)
+export const getTicketStats = async (email) => {
+    const unreadRes = await jwtAxios.get(`${host}/received`, { params: { receiver: email, read: false, size: 1 } });
+    const pendingSentRes = await jwtAxios.get(`${host}/sent`, { params: { writer: email, size: 1 } });
+
+    return {
+        unreadCount: unreadRes.data.totalCount,
+        pendingSentCount: pendingSentRes.data.totalCount,
+    };
 };
 
 // 받은 티켓 단일 조회
