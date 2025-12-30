@@ -60,6 +60,11 @@ public class CustomSecurityConfig {
         http.exceptionHandling(config -> {config.accessDeniedHandler(new CustomAccessDeniedHandler());
         });
 
+        http.authorizeHttpRequests(auth -> {
+            auth.requestMatchers("/api/files/view/**").permitAll();
+            auth.anyRequest().authenticated();
+        });
+
         http.authenticationProvider(authenticationProvider(passwordEncoder()));
 
         // Spring Security의 CORS 필터를 활성화하고 corsConfigurationSource() 설정에 따라 프론트엔드의 API 요청을 허용한다.

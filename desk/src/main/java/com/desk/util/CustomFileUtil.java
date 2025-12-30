@@ -85,7 +85,7 @@ public class CustomFileUtil {
                 if (isImage) {
                     Path thumbnailPath = Paths.get(uploadPath, "s_" + savedName);
                     Thumbnails.of(savePath.toFile())
-                            .size(200, 200)
+                            .size(250, 250)
                             .toFile(thumbnailPath.toFile());
                 }
 
@@ -150,7 +150,15 @@ public class CustomFileUtil {
 
         HttpHeaders headers = new HttpHeaders();
         try {
-            headers.add("Content-Type", Files.probeContentType(resource.getFile().toPath()));
+//            headers.add("Content-Type", Files.probeContentType(resource.getFile().toPath()));
+
+            String contentType = Files.probeContentType(resource.getFile().toPath());
+            if (contentType == null) {
+                contentType = "image/jpeg"; // 기본값 설정
+            }
+            headers.add("Content-Type", contentType);
+
+
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }

@@ -19,16 +19,16 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, TicketSea
     @Query("select p from Ticket p where p.tno = :tno")
     Optional<Ticket> selectOne(@Param("tno") Long tno);
 
-    // 🔥 [수정됨] 보낸 티켓(writer) OR 받은 티켓(personalList.receiver) 모두 조회
-    // 내가 쓴 티켓(t.writer) OR 내가 받은 티켓(p.receiver)에 포함된 파일(d)을 모두 조회
-    // ticket_document_list 테이블과 ticket 테이블을 조인하여 가져옵니다.
-    // 조건: 작성자(writer_email) 이거나 수신자(receiver_email) 인 경우
-    // 복잡한 SQL 대신 안전한 JPQL 사용
-    // 티켓의 documentList(파일들)을 가져오되, 내가 쓴 글이나 내가 받은 글만 필터링
-    @Query("SELECT d " +
+    // [핵심] 내가 작성자(writer)이거나, 수신자(receiver)로 포함된 티켓의 '모든 파일'을 조회
+    // DISTINCT를 사용하여 중복 제거
+    @Query("SELECT DISTINCT d " +
             "FROM Ticket t JOIN t.documentList d " +
-            "LEFT JOIN t.personalList p " +
-            "WHERE t.writer.email = :email OR p.receiver.email = :email " +
-            "ORDER BY t.tno DESC")
+            "WHERE t.writer.email = :email " +
+            "   OR EXISTS (SELECT p FROM t.personalList p WHERE p.receiver.email = :email) " +
+            "ORDER BY t.tno DESC") // 최신 티켓의 파일부터 정렬
     Page<UploadTicketFile> findAllFilesByUser(@Param("email") String email, Pageable pageable);
+
+    // 파일 삭제를 위한 역추적 (UUID로 티켓 찾기)
+    @Query("SELECT t FROM Ticket t JOIN t.documentList d WHERE d.uuid = :uuid")
+    Optional<Ticket> findByFileUuid(@Param("uuid") String uuid);
 }

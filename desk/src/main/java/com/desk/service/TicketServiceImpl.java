@@ -223,52 +223,42 @@ public class TicketServiceImpl implements TicketService {
     }
     // [NEW] 개별 파일 삭제 로직
     @Override
-    public void removeFile(Long tno, String uuid, String writerEmail) {
-        // 1. 티켓 조회
-        Ticket ticket = ticketRepository.findById(tno)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket not found: " + tno));
+    @Transactional
+    public void removeFile(String uuid, String writerEmail) {
+        // 1. UUID로 티켓을 먼저 찾습니다 (역추적)
+        Ticket ticket = ticketRepository.findByFileUuid(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("File not found with uuid: " + uuid));
 
-        // 2. 권한 체크 (작성자만 파일을 삭제할 수 있다고 가정)
+        // 2. 작성자 본인이 맞는지 권한 체크
         if (!ticket.getWriter().getEmail().equals(writerEmail)) {
             throw new IllegalArgumentException("No permission to delete file.");
         }
 
-        // 3. 리스트에서 해당 파일 찾기
+        // 3. 파일 리스트에서 해당 파일 찾기
         List<UploadTicketFile> files = ticket.getDocumentList();
-        UploadTicketFile targetFile = null;
+        UploadTicketFile targetFile = files.stream()
+                .filter(f -> f.getUuid().equals(uuid))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("File object missing..."));
 
-        for (UploadTicketFile f : files) {
-            if (f.getUuid().equals(uuid)) {
-                targetFile = f;
-                break;
-            }
-        }
-
-        if (targetFile != null) {
-            // 4. 물리 파일 삭제
-            fileUtil.deleteFile(targetFile.getLink(), targetFile.isImage());
-
-            files.remove(targetFile);
-        } else {
-            throw new IllegalArgumentException("File not found in ticket.");
-        }
+        // 4. 물리 파일 삭제 + DB 삭제
+        fileUtil.deleteFile(targetFile.getLink(), targetFile.isImage());
+        files.remove(targetFile); // 리스트에서 빼면 DB에서도 사라짐 (orphanRemoval 등 영향)
     }
     // [NEW] 내 파일 전체 목록 조회 구현
+
     @Override
     @Transactional(readOnly = true)
     public PageResponseDTO<FileItemDTO> listUserFiles(String email, PageRequestDTO pageRequestDTO) {
 
+        // 최신순 정렬 (Repository에서 ORDER BY t.tno DESC를 했으므로 여기선 Unsorted로 보내도 됨)
         Pageable pageable = PageRequest.of(pageRequestDTO.getPage() - 1, pageRequestDTO.getSize());
 
-        // Repository 변경에 맞춤
         Page<UploadTicketFile> result = ticketRepository.findAllFilesByUser(email, pageable);
 
-        // UploadTicketFile 객체 -> FileItemDTO 변환
         List<FileItemDTO> dtoList = result.getContent().stream().map(f -> {
-
-            // 저장된 이름 만들기 (DB에 없으므로 조립)
-            String savedName = f.getLink();
-            // ※ 만약 getLink() 빨간줄 뜨면: f.getUuid() + "_" + f.getOriginalName(); 으로 쓰세요.
+            // 저장된 파일명 조합 (UUID_원본명)
+            String savedName = f.getUuid() + "_" + f.getOriginalName();
 
             return FileItemDTO.builder()
                     .ord(f.getOrd())
@@ -278,9 +268,9 @@ public class TicketServiceImpl implements TicketService {
                     .size(f.getSize())
                     .image(f.isImage())
                     .savedName(savedName)
-                    .viewUrl(fileUtil.makeViewUrl(savedName))
-                    .previewUrl(fileUtil.makePreviewUrl(f))
-                    .downloadUrl(fileUtil.makeDownloadUrl(savedName))
+                    .viewUrl(fileUtil.makeViewUrl(savedName))     // 이미지 보기 URL
+                    .previewUrl(fileUtil.makePreviewUrl(f))       // 썸네일 or 아이콘 URL
+                    .downloadUrl(fileUtil.makeDownloadUrl(savedName)) // 다운로드 URL
                     .build();
         }).collect(Collectors.toList());
 
@@ -290,5 +280,6 @@ public class TicketServiceImpl implements TicketService {
                 .totalCount(result.getTotalElements())
                 .build();
     }
+
 
 }

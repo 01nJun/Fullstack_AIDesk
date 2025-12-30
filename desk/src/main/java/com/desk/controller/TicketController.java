@@ -42,13 +42,6 @@ public class TicketController {
         int receiverCount = (req.getReceivers() == null) ? 0 : req.getReceivers().size();
         log.info("[Ticket] 생성 요청 | 작성자={} | 수신자수={}", writer, receiverCount);
 
-
-        // 1) 파일 저장
-//        List<UploadTicketFile> uploadFileNames = fileUtil.saveFiles(files);
-        // 2) DTO에 파일명 세팅
-//        req.setUploadFileNames(uploadFileNames);
-
-
         // 생성 (수신자마다 생성됨)
         TicketSentListDTO created = ticketService.create(req, writer, files);
         log.info("[Ticket] 생성 완료 | 작성자={} | 티켓번호={}", writer, created.getTno());
@@ -113,15 +106,14 @@ public class TicketController {
 
     // [NEW] 티켓 내 개별 파일 삭제
     // DELETE /api/tickets/{tno}/files/{uuid}?writer=이메일
-    @DeleteMapping("/{tno}/files/{uuid}")
+    @DeleteMapping("/files/{uuid}")
     public ResponseEntity<Void> removeFile(
-            @PathVariable Long tno,
             @PathVariable String uuid,
             @RequestParam String writer
     ) {
-        log.info("[File Delete] 요청 | tno={} | uuid={} | 요청자={}", tno, uuid, writer);
+        log.info("[File Delete] 요청 | uuid={} | 요청자={}", uuid, writer);
 
-        ticketService.removeFile(tno, uuid, writer);
+        ticketService.removeFile(uuid, writer);
 
         return ResponseEntity.noContent().build();
     }

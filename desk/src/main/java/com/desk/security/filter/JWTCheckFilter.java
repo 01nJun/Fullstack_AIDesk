@@ -44,7 +44,12 @@ public class JWTCheckFilter extends OncePerRequestFilter{
             return true;
         }
 
-        return false;
+        // 이 부분이 없거나 오타가 나서 JSON 에러가 뜨는 겁니다.
+        if (path.startsWith("/api/files/view/")) {
+            return true;
+        }
+
+          return false;
     }
     @Override // 실제 JWT 검증 처리를 수행. 성공 → SecurityContext에 인증 정보 설정, 실패 → JSON 에러 응답
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
