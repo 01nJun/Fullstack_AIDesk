@@ -228,15 +228,24 @@
 .st-input,
 .st-textarea {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+
+  /* ✅ [핵심 수정] 글자가 위아래 중앙에 오고 잘리지 않도록 함 */
+  line-height: 1.5; /* 줄 간격을 1.5배로 (너무 좁으면 잘림) */
+  padding: 0px 12px; /* 내부 여백 (0.5rem 0.75rem을 픽셀로 변환해서 미세조정) */
+  min-height: 40px; /* 최소 높이를 줘서 글자가 답답하지 않게 함 */
+  vertical-align: middle; /* 세로 정렬 중앙 */
+
   border: 1px solid #d6d6d6;
   border-radius: 0.5rem;
-  /* [수정] 배경색을 흰색으로 변경하여 입력 가능함을 표시 */
   background-color: #ffffff;
   color: #31333f;
-  font-size: 1rem;
+
+  font-size: 14px; /* 글자가 너무 크면 박스 밖으로 삐져나가니 살짝 줄임 (1rem=16px는 클 수 있음) */
   font-family: inherit;
-  resize: none;
+
+  /* Textarea는 늘어날 수 있게, Input은 고정 */
+  resize: vertical;
+  overflow: auto; /* 내용이 많으면 스크롤 */
 }
 
 .st-input:focus,
