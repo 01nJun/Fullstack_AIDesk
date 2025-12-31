@@ -3,6 +3,8 @@ import { useSelector } from "react-redux";
 import { aiSecretaryApi } from "../../api/aiSecretaryApi";
 import FilePreview from "../common/FilePreview";
 import "./AIChatWidget.css";
+import html2canvas from "html2canvas"; // ✅ PDF용
+import jsPDF from "jspdf"; // ✅ PDF용
 
 // PDF 관련 라이브러리 import
 import html2canvas from "html2canvas";
@@ -49,6 +51,12 @@ const AIChatWidget = ({ onClose }) => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
 
+<<<<<<< HEAD
+=======
+  const audioInputRef = useRef(null); // ✅ 오디오 전용 input ref
+  const pdfTargetRef = useRef(null); // ✅ PDF 변환 대상 영역 ref
+
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -67,10 +75,69 @@ const AIChatWidget = ({ onClose }) => {
     setSelectedFiles((prev) => [...prev, ...files]);
   };
 
+<<<<<<< HEAD
   const removeFile = (index) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+=======
+  // ✅ [NEW] 오디오 파일 업로드 및 분석 요청
+  const handleAudioUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const userMsg = {
+      role: "user",
+      content: `🎙️ 회의록 분석 요청: ${file.name}`,
+    };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsLoading(true);
+
+    try {
+      // Python 서버로 전송
+      const response = await aiSecretaryApi.analyzeMeetingAudio(
+        file,
+        conversationId
+      );
+
+      if (response.updated_ticket) {
+        setCurrentTicket(response.updated_ticket);
+
+        let aiMsg = "✅ 회의록 분석이 완료되었습니다.";
+        if (response.summary) {
+          aiMsg += `\n\n[요약]\n${response.summary}`;
+        }
+        setMessages((prev) => [...prev, { role: "assistant", content: aiMsg }]);
+
+        if (response.identified_target_dept)
+          setTargetDept(response.identified_target_dept);
+        setIsCompleted(true);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: "분석 결과가 충분하지 않습니다." },
+        ]);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "회의록 분석 중 오류가 발생했습니다. (서버 연결 확인 필요)",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+      e.target.value = null; // 초기화
+    }
+  };
+  const removeFile = (index) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // [중요] 유효성 검사 함수 (이게 false면 전송 안 됨)
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
   const isFormValid = () => {
     const t = currentTicket;
     const hasReceivers =
@@ -160,19 +227,36 @@ const AIChatWidget = ({ onClose }) => {
     }
   };
 
+<<<<<<< HEAD
   const handleSubmitTicket = async () => {
     console.log("전송 버튼 클릭됨");
     if (!isFormValid()) {
       alert("필수 항목(제목, 내용, 담당자, 마감일)을 모두 확인해 주세요.");
+=======
+  // 5. 티켓 전송 (Java 서버로 전송)
+  const handleSubmitTicket = async () => {
+    if (!currentTicket.title || !currentTicket.content) {
+      alert("제목과 내용은 필수입니다.");
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
       return;
     }
     setIsLoading(true);
     try {
+<<<<<<< HEAD
+=======
+      console.log("API 호출 직전...");
+      // 위에서 만든 API 호출
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
       await aiSecretaryApi.submitTicket(
         currentTicket,
         selectedFiles,
         currentUserEmail
       );
+<<<<<<< HEAD
+=======
+
+      console.log("전송 프로세스 전체 완료");
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
       setSubmitSuccess(true);
       setTimeout(() => {
         onClose();
@@ -180,6 +264,55 @@ const AIChatWidget = ({ onClose }) => {
     } catch (error) {
       alert("티켓 전송에 실패했습니다.");
       setIsLoading(false);
+    }
+  };
+
+  // ✅ [핵심] PDF 다운로드 기능 (A4 사이즈 완벽 대응)
+  const handleDownloadPDF = async () => {
+    const element = pdfTargetRef.current;
+    if (!element) return;
+
+    try {
+      // 1. 화면 캡처 (옵션 중요!)
+      const canvas = await html2canvas(element, {
+        scale: 2, // 해상도 2배 (글자 선명하게)
+        useCORS: true, // 이미지 로딩 허용
+        backgroundColor: "#ffffff", // 배경을 강제로 흰색으로 (투명 방지)
+        scrollY: -window.scrollY, // 스크롤 위치 보정 (잘림 방지)
+        windowWidth: document.documentElement.offsetWidth, // 전체 너비 확보
+      });
+
+      // 2. PDF 생성
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4"); // A4 세로
+
+      const imgWidth = 210; // A4 너비 (mm)
+      const pageHeight = 297; // A4 높이 (mm)
+
+      // 이미지 비율에 맞춰 높이 계산
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // 첫 페이지
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // 내용이 길면 다음 페이지 추가
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // 3. 저장
+      const fileName = `Ticket_${currentTicket.title || "Untitled"}.pdf`;
+      pdf.save(fileName);
+    } catch (err) {
+      console.error("PDF Error:", err);
+      alert("PDF 저장 중 오류가 발생했습니다.");
     }
   };
 
@@ -241,6 +374,26 @@ const AIChatWidget = ({ onClose }) => {
                 ref={fileInputRef}
                 onChange={handleFileChange}
               />
+<<<<<<< HEAD
+=======
+
+              {/* 🎙️ 회의록(오디오) 첨부 버튼 */}
+              <button
+                type="button"
+                className="icon-btn audio-btn"
+                title="회의록(음성) 분석"
+                onClick={() => audioInputRef.current.click()}
+              >
+                🎙️
+              </button>
+              <input
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                ref={audioInputRef}
+                onChange={handleAudioUpload}
+              />
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
 
               <input
                 type="text"
@@ -263,6 +416,7 @@ const AIChatWidget = ({ onClose }) => {
           </div>
 
           <div className="ai-ticket-section">
+<<<<<<< HEAD
             <div
               className="ticket-header-row"
               style={{ display: "flex", gap: "10px" }}
@@ -294,6 +448,27 @@ const AIChatWidget = ({ onClose }) => {
 
             {/* ✅ PDF 캡처 대상에 ref 연결 */}
             <div className="ticket-preview-box" ref={pdfRef}>
+=======
+            <div className="ticket-header-row">
+              <span className="dept-badge">To: {targetDept || "(미지정)"}</span>
+              <div className="flex gap-2">
+                {/* PDF 다운로드 버튼 */}
+                <button
+                  className="pdf-btn"
+                  onClick={handleDownloadPDF}
+                  title="PDF 다운로드"
+                >
+                  📄 PDF
+                </button>
+
+                <button className="reset-btn" onClick={handleReset}>
+                  🔄 초기화
+                </button>
+              </div>
+            </div>
+
+            <div className="ticket-preview-box" ref={pdfTargetRef}>
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
               <div className="form-group">
                 <label>
                   제목 <span className="text-red-500">*</span>
@@ -383,6 +558,7 @@ const AIChatWidget = ({ onClose }) => {
                 />
               </div>
 
+<<<<<<< HEAD
               {/* [파일 미리보기 영역] */}
               {selectedFiles.length > 0 && (
                 <div className="form-group">
@@ -427,6 +603,49 @@ const AIChatWidget = ({ onClose }) => {
                       </div>
                     ))}
                   </div>
+=======
+              {/* [파일 미리보기 영역] 기존 스타일 유지 */}
+              <div className="form-group">
+                <label>첨부 파일 ({selectedFiles.length})</label>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(5, 1fr)",
+                    gap: "5px",
+                    marginTop: "10px",
+                  }}
+                >
+                  {selectedFiles.map((file, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        position: "relative",
+                        aspectRatio: "1/1",
+                        border: "1px solid #ddd",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <FilePreview file={file} isLocal={true} />
+                      <button
+                        onClick={() => removeFile(idx)}
+                        data-html2canvas-ignore="true" // ✅ PDF 캡처 시 삭제 버튼 제외
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          background: "rgba(0,0,0,0.5)",
+                          color: "white",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "20px",
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+>>>>>>> 9a26bee9327a8cbf266b266bfef68982fcfdeb40
                 </div>
               )}
             </div>
