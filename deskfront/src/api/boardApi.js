@@ -1,7 +1,5 @@
 import jwtAxios from "../util/jwtUtil"; // 커스텀 axios 임포트
 import { API_SERVER_HOST } from "./memberApi";
-import axios from "axios";
-import { getCookie } from "../util/cookieUtil";
 
 const prefix = `${API_SERVER_HOST}/api/board`;
 
