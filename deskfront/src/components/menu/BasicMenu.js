@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../../slices/loginSlice";
 import CommonModal from "../common/CommonModal";
 import useCustomLogin from "../../hooks/useCustomLogin";
-import AIChatWidget from "./AIChatWidget";
+import AIChatWidget from "./AIChatWidget"; // [NEW] AI 위젯 임포트
 import useCustomPin from "../../hooks/useCustomPin";
 
 const BasicMenu = () => {
