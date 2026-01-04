@@ -12,13 +12,13 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 public class OllamaConfig {
     
-    @Value("${ai.ollama.url:http://127.0.0.1:11434}")
+    @Value("${OLLAMA_BASE_URL:http://127.0.0.1:11434}")
     private String baseUrl;
     
-    @Value("${ai.ollama.model-name:qwen3:8b}")
+    @Value("${OLLAMA_MODEL_NAME:qwen3:8b}")
     private String modelName;
     
-    @Value("${ai.ollama.api-key:}")
+    @Value("${OLLAMA_API_KEY:}")
     private String apiKey;
 }
 
