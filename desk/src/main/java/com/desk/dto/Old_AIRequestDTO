@@ -1,0 +1,92 @@
+// package com.desk.dto;
+
+// import com.fasterxml.jackson.annotation.JsonInclude;
+// import com.fasterxml.jackson.annotation.JsonProperty;
+// import lombok.AllArgsConstructor;
+// import lombok.Builder;
+// import lombok.Data;
+// import lombok.NoArgsConstructor;
+
+// import java.util.ArrayList;
+// import java.util.List;
+
+// /**
+//  * [Python AI 서버 요청용 DTO]
+//  * 역할: Python의 MediationRequest 구조와 1:1 매핑
+//  */
+// @Data
+// @Builder
+// @AllArgsConstructor
+// @NoArgsConstructor
+// public class AIRequestDTO {
+
+//     @JsonProperty("conversation_id")
+//     private String conversationId;
+
+//     @JsonProperty("sender_dept")
+//     private String senderDept;
+
+//     @JsonProperty("target_dept")
+//     private String targetDept;
+
+//     @JsonProperty("user_input")
+//     private String userInput;
+
+//     @JsonProperty("chat_history")
+//     @Builder.Default
+//     private List<AIChatMessage> chatHistory = new ArrayList<>();
+
+//     @JsonProperty("current_ticket")
+//     private AITicketSchema currentTicket;
+
+//     // --------------------------------------------------------
+//     // Inner Classes (Python Sub Models)
+//     // --------------------------------------------------------
+
+//     @Data
+//     @Builder
+//     @AllArgsConstructor
+//     @NoArgsConstructor
+//     public static class AIChatMessage {
+//         private String role;
+//         private String content;
+        
+//         // [핵심 수정] 값이 null이면 JSON 전송 시 필드 자체를 생략
+//         // -> Python Pydantic 모델이 default_factory로 현재 시간을 자동 생성함
+//         @JsonInclude(JsonInclude.Include.NON_NULL)
+//         private String timestamp;
+//     }
+
+//     @Data
+//     @Builder
+//     @AllArgsConstructor
+//     @NoArgsConstructor
+//     public static class AITicketSchema {
+        
+//         @Builder.Default
+//         private String title = "";
+
+//         @Builder.Default
+//         private String content = "";
+
+//         @Builder.Default
+//         private String purpose = "";
+
+//         @Builder.Default
+//         private String requirement = "";
+
+//         @Builder.Default
+//         private String deadline = "";
+
+//         @Builder.Default
+//         private String grade = "MIDDLE";
+
+//         @JsonProperty("receivers")
+//         @Builder.Default
+//         private List<String> receivers = new ArrayList<>();
+
+//         @JsonProperty("completion_rate")
+//         @Builder.Default
+//         private int completionRate = 0;
+//     }
+// }

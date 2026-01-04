@@ -4,7 +4,8 @@ import { API_SERVER_HOST } from "./memberApi";
 const host = `${API_SERVER_HOST}/api/admin`;
 
 // 1. 승인 대기 목록
-export const getPendingList = async (pageParam) => { //pageParam 안에는 page, size, keyword, department가 들어있음
+export const getPendingList = async (pageParam) => {
+  //pageParam 안에는 page, size, keyword, department가 들어있음
   const res = await jwtAxios.get(`${host}/pending`, { params: pageParam });
   return res.data;
 };

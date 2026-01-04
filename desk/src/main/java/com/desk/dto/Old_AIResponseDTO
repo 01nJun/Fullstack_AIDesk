@@ -1,0 +1,44 @@
+// package com.desk.dto;
+
+// import com.desk.dto.AIRequestDTO.AITicketSchema; // 티켓 구조 재활용
+// import com.fasterxml.jackson.annotation.JsonProperty;
+// import lombok.AllArgsConstructor;
+// import lombok.Builder;
+// import lombok.Data;
+// import lombok.NoArgsConstructor;
+
+// import java.util.ArrayList;
+// import java.util.List;
+
+// /**
+//  * [Python AI 서버 응답용 DTO]
+//  * Python의 app.models.dtos.MediationResponse 구조와 1:1 매핑
+//  */
+// @Data
+// @Builder
+// @AllArgsConstructor
+// @NoArgsConstructor
+// public class AIResponseDTO {
+
+//     @JsonProperty("conversation_id")
+//     private String conversationId;
+
+//     @JsonProperty("ai_message")
+//     private String aiMessage;
+
+//     @JsonProperty("identified_target_dept")
+//     private String identifiedTargetDept; // AI가 찾은 부서명 (없으면 null)
+
+//     @JsonProperty("updated_ticket")
+//     private AITicketSchema updatedTicket; // 갱신된 티켓 정보
+
+//     @JsonProperty("is_completed")
+//     private boolean isCompleted; // 모든 필수 정보 수집 완료 여부
+
+//     @JsonProperty("next_action")
+//     private String nextAction; // "continue_chat" or "suggest_submit"
+
+//     @JsonProperty("missing_info_list")
+//     @Builder.Default
+//     private List<String> missingInfoList = new ArrayList<>(); // 누락된 정보 목록
+// }

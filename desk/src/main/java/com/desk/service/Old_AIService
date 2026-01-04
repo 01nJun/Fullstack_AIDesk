@@ -1,0 +1,19 @@
+package com.desk.service;
+
+import com.desk.dto.AIRequestDTO;
+import com.desk.dto.AIResponseDTO;
+
+/**
+ * [AI 서비스 인터페이스]
+ * Python AI 서버와의 통신을 담당하는 서비스 명세
+ */
+public interface AIService {
+
+    /**
+     * AI와 대화 및 티켓 분석 요청
+     * @param requestDTO 프론트엔드에서 전달받은 대화 및 티켓 정보
+     * @return AIResponseDTO AI의 분석 결과 및 응답 메시지
+     */
+    AIResponseDTO chatWithAI(AIRequestDTO requestDTO);
+
+}

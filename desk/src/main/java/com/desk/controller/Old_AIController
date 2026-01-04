@@ -1,0 +1,31 @@
+package com.desk.controller;
+
+import com.desk.dto.AIRequestDTO;
+import com.desk.dto.AIResponseDTO;
+import com.desk.service.AIService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/ai")
+@RequiredArgsConstructor
+@Log4j2
+public class AIController {
+
+    private final AIService aiService;
+
+    @PostMapping("/chat")
+    @PreAuthorize("isAuthenticated()") // 로그인한 사용자만 AI 사용 가능
+    public AIResponseDTO chat(@RequestBody AIRequestDTO requestDTO) {
+        
+        log.info("[AIController] 채팅 요청 수신 (User: {}, Target: {})", 
+                requestDTO.getSenderDept(), requestDTO.getTargetDept());
+        
+        return aiService.chatWithAI(requestDTO);
+    }
+}
