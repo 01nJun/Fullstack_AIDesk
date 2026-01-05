@@ -63,7 +63,7 @@ public class OllamaClient {
                     .baseUrl(ollamaConfig.getBaseUrl())
                     .clientConnector(new ReactorClientHttpConnector(httpClient))
                     .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .defaultHeader("api-key", ollamaConfig.getApiKey())
+                    .defaultHeader("X-API-Key", ollamaConfig.getApiKey())
                     .build();
         }
         return webClient;
@@ -102,8 +102,6 @@ public class OllamaClient {
     }
 
     /**
-     * (예전 프롬프트 방식) 메시지를 필터링하고 티켓 생성 여부를 판단
-     * 
      * Timeout 처리 전략:
      * 1. WebClient 레벨: HttpClient에 responseTimeout(35초) 설정
      * 2. Reactor 레벨: .timeout(Duration.ofSeconds(30)) - WebClient timeout보다 짧게

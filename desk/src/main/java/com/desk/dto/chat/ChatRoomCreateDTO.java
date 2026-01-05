@@ -20,3 +20,4 @@ public class ChatRoomCreateDTO {
     private List<String> userIds; // 초대할 사용자 이메일 목록
 }
 
+

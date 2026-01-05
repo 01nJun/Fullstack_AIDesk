@@ -18,3 +18,4 @@ public class ChatReadUpdateDTO {
     private Long messageSeq; // 읽은 메시지의 messageSeq
 }
 
+

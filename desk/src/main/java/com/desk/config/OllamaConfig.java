@@ -22,3 +22,4 @@ public class OllamaConfig {
     private String apiKey;
 }
 
+

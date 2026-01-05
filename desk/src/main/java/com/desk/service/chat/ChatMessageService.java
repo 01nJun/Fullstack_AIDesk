@@ -32,3 +32,4 @@ public interface ChatMessageService {
     ChatMessageDTO createSystemMessage(Long roomId, String content, String actorId);
 }
 
+

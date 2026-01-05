@@ -38,3 +38,4 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     Long countUnreadMessages(@Param("roomId") Long roomId, @Param("lastReadSeq") Long lastReadSeq);
 }
 
+

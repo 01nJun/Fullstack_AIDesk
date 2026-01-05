@@ -27,3 +27,4 @@ public class ChatParticipantDTO {
     private LocalDateTime leftAt;
 }
 
+
