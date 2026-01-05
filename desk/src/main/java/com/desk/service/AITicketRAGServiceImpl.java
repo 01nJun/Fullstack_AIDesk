@@ -1,11 +1,11 @@
 package com.desk.service;
 
+import com.desk.config.OllamaConfig;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,7 @@ public class AITicketRAGServiceImpl implements AITicketRAGService {
 
     private final AITicketClientService aiClient; // 인터페이스 주입
     private final ObjectMapper objectMapper;
-
-    @Value("${ai.ollama.embedding-model-name}")
-    private String embeddingModelName;
+    private final OllamaConfig ollamaConfig;
 
     // 메모리에 상주할 지식 데이터베이스
     private final List<Document> knowledgeBase = new ArrayList<>();
@@ -67,7 +65,7 @@ public class AITicketRAGServiceImpl implements AITicketRAGService {
                         String jsonDept = entry.getKey(); // JSON 키값 사용 (부서명)
                         for (String text : entry.getValue()) {
                             // 텍스트를 벡터로 변환 (AI 서버 호출)
-                            List<Double> vector = aiClient.getEmbedding(text, embeddingModelName);
+                            List<Double> vector = aiClient.getEmbedding(text, ollamaConfig.getModelName());
                             if (!vector.isEmpty()) {
                                 knowledgeBase.add(new Document(text, jsonDept, vector));
                             }
@@ -87,7 +85,7 @@ public class AITicketRAGServiceImpl implements AITicketRAGService {
         if (knowledgeBase.isEmpty()) return "관련 가이드라인 없음";
 
         // 1. 사용자 질문을 벡터로 변환
-        List<Double> queryVector = aiClient.getEmbedding(userInput, embeddingModelName);
+        List<Double> queryVector = aiClient.getEmbedding(userInput, ollamaConfig.getModelName());
         if (queryVector.isEmpty()) return "가이드라인 검색 실패";
 
         // 2. 유사도 계산 및 정렬 (우선순위 큐 사용)

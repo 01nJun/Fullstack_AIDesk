@@ -98,6 +98,9 @@ const BasicMenu = () => {
                 <Link to="/file/" className={getMenuClass("/file/")}>
                   파일함
                 </Link>
+                <Link to="/chat/" className={getMenuClass("/chat/")}>
+                  채팅
+                </Link>
               </>
                 {loginState.email && (
                 <>

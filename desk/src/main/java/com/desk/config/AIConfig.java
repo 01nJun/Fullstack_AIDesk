@@ -1,6 +1,6 @@
 package com.desk.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -16,10 +16,10 @@ import java.util.List;
  * 2. API Key 자동 주입 (Interceptor)
  */
 @Configuration
+@RequiredArgsConstructor
 public class AIConfig {
 
-    @Value("${ai.ollama.api-key}")
-    private String apiKey;
+    private final OllamaConfig ollamaConfig;
 
     @Bean("aiRestTemplate")
     public RestTemplate aiRestTemplate() {
@@ -34,7 +34,7 @@ public class AIConfig {
         // 이 RestTemplate으로 보내는 모든 요청에 자동으로 헤더가 붙습니다.
         List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
         interceptors.add((request, body, execution) -> {
-            request.getHeaders().add("X-API-Key", apiKey);
+            request.getHeaders().add("X-API-Key", ollamaConfig.getApiKey());
             return execution.execute(request, body);
         });
         

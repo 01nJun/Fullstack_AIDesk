@@ -60,3 +60,15 @@ export const loginFace = async (file) => {
     });
     return res.data;
 }
+// 멤버 검색 (일반 사용자용)
+export const searchMembers = async (keyword, page = 1, size = 20, department = null) => {
+  const params = {
+    page,
+    size,
+    keyword: keyword || null,
+    department: department || null
+  };
+
+  const res = await jwtAxios.get(`${host}/search`, { params });
+  return res.data;
+};

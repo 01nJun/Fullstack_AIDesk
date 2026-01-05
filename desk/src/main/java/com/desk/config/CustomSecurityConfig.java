@@ -74,6 +74,12 @@ public class CustomSecurityConfig {
             httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource());
         });
 
+        // WebSocket 엔드포인트 허용 (인증은 WebSocketSecurityConfig에서 처리)
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers("/ws/**").permitAll()  // WebSocket 연결 허용
+                .anyRequest().authenticated()  // 나머지는 인증 필요
+        );
+
         // 로그인 설정 (JWT 발급 지점)
         http.formLogin(config ->{
             config.loginPage("/api/member/login");

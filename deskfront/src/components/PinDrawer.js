@@ -86,8 +86,8 @@ const PinDrawer = () => {
                                     </div>
                                     <button
                                         onClick={(e) => {
-                                            e.stopPropagation();
-                                            togglePin(item.tno);
+                                          e.stopPropagation();
+                                          togglePin(item.tno);
                                         }}
                                         className="bg-red-50 text-red-500 p-2 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
                                     >

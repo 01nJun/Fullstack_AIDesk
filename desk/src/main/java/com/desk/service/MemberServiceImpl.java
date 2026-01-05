@@ -6,10 +6,13 @@ import com.desk.domain.MemberRole;
 import com.desk.dto.MemberDTO;
 import com.desk.dto.MemberJoinDTO;
 import com.desk.dto.MemberModifyDTO;
+import com.desk.dto.PageRequestDTO;
+import com.desk.dto.PageResponseDTO;
 import com.desk.repository.MemberRepository;
 import com.desk.util.MemberExistException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,7 +24,9 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -190,6 +195,25 @@ public class MemberServiceImpl implements MemberService {
 
         // 4. 저장
         memberRepository.save(member);
+    }
+
+    @Override
+    public PageResponseDTO<MemberDTO> searchActiveMembers(PageRequestDTO pageRequestDTO, String keyword, String department) {
+        // 승인된 멤버만 검색 (isApproved = true)
+        Page<Member> result = memberRepository.searchMembers(true, pageRequestDTO, keyword, department);
+        return makePageResponse(result, pageRequestDTO);
+    }
+
+    private PageResponseDTO<MemberDTO> makePageResponse(Page<Member> result, PageRequestDTO pageRequestDTO) {
+        List<MemberDTO> dtoList = result.getContent().stream()
+                .map(this::entityToDTO)
+                .collect(Collectors.toList());
+
+        return PageResponseDTO.<MemberDTO>withAll()
+                .dtoList(dtoList)
+                .pageRequestDTO(pageRequestDTO)
+                .totalCount((int)result.getTotalElements())
+                .build();
     }
 
 }

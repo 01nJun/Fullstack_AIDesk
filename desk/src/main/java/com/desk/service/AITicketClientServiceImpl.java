@@ -1,11 +1,12 @@
 package com.desk.service;
 
+import com.desk.config.OllamaConfig;
 import com.desk.dto.OllamaDTO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -18,22 +19,12 @@ import java.util.List;
 
 @Service
 @Log4j2
+@RequiredArgsConstructor
 public class AITicketClientServiceImpl implements AITicketClientService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-
-    @Value("${ai.ollama.url}")
-    private String ollamaUrl;
-
-    @Value("${ai.ollama.model-name}")
-    private String modelName;
-
-    // AIConfig에서 만든 5분 타임아웃 RestTemplate 주입
-    public AITicketClientServiceImpl(@Qualifier("aiRestTemplate") RestTemplate restTemplate, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-    }
+    private final OllamaConfig ollamaConfig;
 
     @Override
     public String generateText(String prompt) {
@@ -47,7 +38,7 @@ public class AITicketClientServiceImpl implements AITicketClientService {
 
     @Override
     public List<Double> getEmbedding(String text, String embeddingModel) {
-        String apiUrl = ollamaUrl + "/api/embeddings";
+        String apiUrl = ollamaConfig.getBaseUrl() + "/api/embeddings";
         // JSON 문자열 직접 구성 (간단한 구조)
         String requestJson = String.format("{\"model\": \"%s\", \"prompt\": \"%s\"}", embeddingModel, text.replace("\"", "\\\""));
 
@@ -73,10 +64,10 @@ public class AITicketClientServiceImpl implements AITicketClientService {
     }
 
     private String callOllama(String prompt, boolean jsonMode) {
-        String apiUrl = ollamaUrl + "/api/chat";
+        String apiUrl = ollamaConfig.getBaseUrl() + "/api/chat";
 
         OllamaDTO.Request requestDTO = OllamaDTO.Request.builder()
-                .model(modelName)
+                .model(ollamaConfig.getModelName())
                 .messages(Collections.singletonList(
                         OllamaDTO.Message.builder().role("user").content(prompt).build()
                 ))

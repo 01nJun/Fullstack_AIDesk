@@ -34,13 +34,18 @@ public class JWTCheckFilter extends OncePerRequestFilter{
         log.info("check uri......................."+path);
 
         // “로그인 안 한 사용자도 접근 가능한 API”는 JWT 체크 안 함
-        // api/member/ 경로의 호출은 체크하지 않음 
+        // api/member/ 경로의 호출은 체크하지 않음
         if(path.startsWith("/api/member/")) {
             return true;
         }
 
         // 이미지 조회 경로는 체크하지 않음
         if (path.startsWith("/api/files/view/") || path.startsWith("/api/files/download/")) {
+            return true;
+        }
+
+        // WebSocket 핸드셰이크 경로는 체크하지 않음 (인증은 WebSocketSecurityConfig에서 처리)
+        if (path.startsWith("/ws/")) {
             return true;
         }
 
