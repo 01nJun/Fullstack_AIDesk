@@ -118,6 +118,20 @@ const TicketDetailModal = ({ tno, onClose, onDelete }) => {
                 <p className="text-baseText whitespace-pre-wrap leading-relaxed">{ticket.content}</p>
               </div>
 
+              {ticket.purpose && (
+                <div className="ui-panel">
+                  <h3 className="ui-title mb-4">목적</h3>
+                  <p className="text-baseText whitespace-pre-wrap leading-relaxed">{ticket.purpose}</p>
+                </div>
+              )}
+
+              {ticket.requirement && (
+                <div className="ui-panel">
+                  <h3 className="ui-title mb-4">요구사항</h3>
+                  <p className="text-baseText whitespace-pre-wrap leading-relaxed">{ticket.requirement}</p>
+                </div>
+              )}
+
               <div className="ui-panel">
                 <h3 className="ui-title mb-4">첨부 파일 ({ticket.files?.length || 0})</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

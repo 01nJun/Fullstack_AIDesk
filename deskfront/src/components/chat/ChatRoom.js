@@ -519,7 +519,7 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
             </button>
             <button
               onClick={() => navigate("/chat")}
-              className="bg-white border border-chatBorder text-chatText px-4 py-2.5 rounded-chat font-semibold text-sm hover:border-chatNavy transition-all shadow-chat focus:outline-none focus:ring-2 focus:ring-chatNavy focus:ring-offset-2 lg:hidden"
+              className="bg-white border border-chatBorder text-chatText px-4 py-2.5 rounded-chat font-semibold text-sm hover:border-chatNavy transition-all shadow-chat focus:outline-none focus:ring-2 focus:ring-chatNavy focus:ring-offset-2"
             >
               목록
             </button>
