@@ -1,0 +1,324 @@
+/* ----------------------------------------------------------------
+   [Global Modal Layout]
+   기존 화면 위에 뜨는 오버레이 및 메인 컨테이너
+---------------------------------------------------------------- */
+.ai-widget-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  @apply bg-black/60;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(2px);
+}
+
+.ai-widget-container {
+  width: 90%;
+  max-width: 1400px;
+  height: 85vh;
+  @apply bg-baseBg rounded-ui shadow-ui border border-baseBorder;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, sans-serif; /* Streamlit Font */
+}
+
+/* ----------------------------------------------------------------
+   [Header]
+---------------------------------------------------------------- */
+.ai-widget-header {
+  padding: 1rem 1.5rem;
+  @apply border-b border-baseBorder flex justify-between items-center bg-baseSurface;
+}
+
+.ai-widget-header h2 {
+  @apply text-xl font-semibold text-baseText;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  @apply cursor-pointer text-baseMuted transition-colors;
+}
+
+.close-btn:hover {
+  @apply text-baseText;
+}
+
+/* ----------------------------------------------------------------
+   [Body Layout] Left(6) : Right(4)
+---------------------------------------------------------------- */
+.ai-widget-body {
+  display: flex;
+  flex: 1;
+  @apply overflow-hidden p-4 gap-8 bg-baseBg;
+}
+
+/* ----------------------------------------------------------------
+   [Left: Chat Section]
+---------------------------------------------------------------- */
+.ai-chat-section {
+  flex: 6;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  @apply border border-baseBorder rounded-ui mb-4 bg-baseSurface;
+}
+
+.chat-message {
+  display: flex;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  @apply mx-2.5 bg-baseBorder;
+}
+
+.chat-bubble {
+  max-width: 80%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  @apply whitespace-pre-wrap bg-baseBg text-baseText border border-baseBorder;
+}
+
+.chat-message.user .chat-bubble {
+  @apply bg-brandNavy text-white text-right border-none;
+}
+
+/* 채팅 입력창 */
+.chat-input-wrapper {
+  display: flex;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  @apply border border-baseBorder rounded-ui text-sm outline-none transition-all bg-baseBg text-baseText;
+}
+
+.chat-input:focus {
+  @apply border-brandNavy;
+  box-shadow: 0 0 0 2px rgba(31, 58, 104, 0.1);
+}
+
+.chat-input:disabled {
+  @apply bg-baseSurface cursor-not-allowed;
+}
+
+/* ----------------------------------------------------------------
+   [Right: Ticket Section]
+---------------------------------------------------------------- */
+.ai-ticket-section {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.ticket-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dept-badge {
+  @apply bg-baseSurface text-baseText px-4 py-2 rounded-lg font-semibold text-sm border border-baseBorder;
+}
+
+.reset-btn {
+  @apply bg-baseBg border border-baseBorder px-4 py-2 rounded-ui cursor-pointer text-sm font-semibold text-baseText transition-all;
+}
+
+.reset-btn:hover {
+  @apply border-brandNavy text-brandNavy;
+}
+
+.ticket-preview-box {
+  @apply border border-baseBorder rounded-ui p-6 bg-baseBg;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  @apply text-sm text-baseText font-semibold;
+}
+
+/* Input Style */
+.st-input,
+.st-textarea {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  @apply border border-baseBorder rounded-ui bg-baseBg text-baseText text-sm resize-none transition-all;
+  font-family: inherit;
+  resize: none;
+}
+
+.st-input:focus,
+.st-textarea:focus {
+  @apply outline-none border-brandNavy;
+  box-shadow: 0 0 0 2px rgba(31, 58, 104, 0.1);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* ----------------------------------------------------------------
+   [Success Box & Submit Button]
+   demo_ui.py의 CSS 직접 이식 (색상 코드 일치)
+---------------------------------------------------------------- */
+.success-box {
+  @apply p-4 bg-baseSurface border border-baseBorder rounded-ui text-baseText;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.submit-btn {
+  @apply mt-4 w-full py-3 bg-brandNavy text-white border-none rounded-ui font-semibold text-sm cursor-pointer transition-opacity;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 채팅 입력창 아이콘 버튼 스타일 */
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  margin-right: 8px;
+  padding: 5px;
+  border-radius: 5px;
+  transition: background-color 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: #f0f2f6;
+}
+
+.audio-btn {
+  font-size: 1.4rem; /* 마이크 아이콘 조금 더 크게 */
+}
+
+/* PDF 다운로드 버튼 */
+.pdf-btn {
+  background-color: #ffffff;
+  border: 1px solid #d6d6d6;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #d32f2f; /* PDF 느낌의 붉은색 텍스트 */
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pdf-btn:hover {
+  background-color: #ffebee;
+  border-color: #d32f2f;
+}
+
+/* 회의록 테이블 스타일 */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background-color: white;
+  font-size: 13px;
+}
+
+.summary-table th,
+.summary-table td {
+  border: 1px solid #d1d5db; /* 연한 회색 테두리 */
+  padding: 8px 10px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.summary-table th {
+  background-color: #f3f4f6; /* 헤더 배경색 */
+  width: 120px; /* 제목 칸 너비 고정 */
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.summary-table td {
+  color: #1f2937;
+  white-space: pre-wrap; /* 줄바꿈 허용 */
+  line-height: 1.5;
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+  color: #4f46e5;
+  margin-bottom: 8px;
+}

@@ -1,0 +1,127 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import useCustomPin from '../hooks/useCustomPin';
+import { getGradeBadge } from "../util/ticketUtils";
+import TicketDetailModal from './ticket/TicketDetailModal';
+
+const PinDrawer = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedTno, setSelectedTno] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const { pinItems, refreshPins, togglePin } = useCustomPin();
+    const loginState = useSelector((state) => state.loginSlice);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // 메인 페이지 등 외부에서 사이드바를 열기 위한 이벤트 리스너 등록
+        const handleOpenDrawer = () => setIsOpen(true);
+        window.addEventListener('open-pin-drawer', handleOpenDrawer);
+
+        if (!loginState.email && isOpen) {
+            alert("로그인이 필요한 서비스입니다.");
+            setIsOpen(false);
+            navigate("/member/login");
+        }
+        if (loginState.email) {
+            refreshPins();
+        }
+
+        return () => window.removeEventListener('open-pin-drawer', handleOpenDrawer);
+    }, [loginState.email, refreshPins, isOpen, navigate]);
+
+    if (!loginState.email) return null;
+
+    const openTicketModal = (tno) => {
+        if (!tno) return;
+        setSelectedTno(tno);
+        setIsModalOpen(true);
+    };
+
+    const closeTicketModal = () => {
+        setIsModalOpen(false);
+        setSelectedTno(null);
+    };
+
+    const handleDeleted = () => {
+        refreshPins();
+    };
+
+    return (
+        <>
+            {/* 찜 버튼 */}
+            <div className="fixed top-[100px] right-0 z-[40]">
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className="bg-brandNavy text-white p-3 rounded-l-ui shadow-lg hover:opacity-90 transition-all flex items-center gap-2"
+                >
+                    <span className="font-semibold text-sm">PIN</span>
+                    {pinItems.length > 0 && (
+                        <span className="ui-badge-notify text-xs px-2 py-0.5">
+                            {pinItems.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* 슬라이드 드로어 */}
+            <div className={`fixed inset-y-0 right-0 w-80 lg:w-96 bg-baseBg shadow-lg z-[100] transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'} border-l border-baseBorder`}>
+                <div className="ui-modal-header">
+                    <h2 className="ui-title">고정된 업무</h2>
+                    <button onClick={() => setIsOpen(false)} className="text-xl font-bold text-baseMuted hover:text-baseText transition-colors">&times;</button>
+                </div>
+
+                <div className="p-4 lg:p-6 overflow-y-auto h-[calc(100%-80px)] bg-baseSurface">
+                    {pinItems.length > 0 ? (
+                        pinItems.map(item => (
+                            <div
+                                key={item.tno}
+                                onClick={() => openTicketModal(item.tno)}
+                                className="mb-3 p-4 ui-card hover:shadow-md transition-all group relative overflow-hidden cursor-pointer"
+                            >
+                                <div className="absolute left-0 top-0 h-full w-1 bg-brandNavy"></div>
+                                <div className="flex justify-between items-start">
+                                    <div className="truncate pr-4">
+                                        <div className="mb-1">{getGradeBadge ? getGradeBadge(item.grade) : <span className="text-xs font-semibold text-brandNavy">{item.grade}</span>}</div>
+                                        <div className="text-sm font-semibold text-baseText truncate">{item.title}</div>
+                                    </div>
+                                    <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          togglePin(item.tno);
+                                        }}
+                                        className="bg-red-50 text-red-600 p-1.5 rounded-ui hover:bg-red-600 hover:text-white transition-all"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-baseMuted">
+                            <span className="text-2xl mb-2">📌</span>
+                            <p className="text-sm">고정된 항목이 없습니다</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {isOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90] transition-opacity" onClick={() => setIsOpen(false)} />}
+
+            {isModalOpen && selectedTno && (
+                <div className="fixed inset-0 z-[110]">
+                    <TicketDetailModal
+                        tno={selectedTno}
+                        onClose={closeTicketModal}
+                        onDelete={handleDeleted}
+                    />
+                </div>
+            )}
+        </>
+    );
+};
+
+export default PinDrawer;

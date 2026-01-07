@@ -1,0 +1,471 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-baseBg text-baseText;
+  }
+  
+  /* 기본 링크 포커스 */
+  a:focus-visible {
+    @apply outline-none ring-2 ring-brandNavy ring-offset-2 rounded;
+  }
+  
+  /* 스크롤바 스타일 */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-baseBg;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-baseMuted rounded-md;
+  }
+}
+
+@layer components {
+  /* 컨테이너 */
+  .ui-container {
+    @apply max-w-[1200px] mx-auto px-4 lg:px-6;
+  }
+  
+  /* 카드 */
+  .ui-card {
+    @apply bg-baseBg border border-baseBorder rounded-ui shadow-ui;
+  }
+  
+  /* 패널 */
+  .ui-panel {
+    @apply ui-card p-6;
+  }
+  
+  /* 타이틀 */
+  .ui-title {
+    @apply text-lg lg:text-xl font-semibold text-baseText;
+  }
+  
+  /* Muted 텍스트 */
+  .ui-muted {
+    @apply text-baseMuted;
+  }
+  
+  /* 구분선 */
+  .ui-divider {
+    @apply border-t border-baseBorder;
+  }
+  
+  /* 버튼 - Primary */
+  .ui-btn-primary {
+    @apply bg-brandNavy text-white px-4 py-2.5 rounded-ui font-semibold text-sm;
+    @apply hover:opacity-90 active:opacity-80 transition-all;
+    @apply focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  /* 버튼 - Secondary/Outline */
+  .ui-btn-secondary {
+    @apply bg-baseBg border border-baseBorder text-baseText px-4 py-2.5 rounded-ui font-semibold text-sm;
+    @apply hover:border-brandNavy transition-all;
+    @apply focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  /* 버튼 - Ghost */
+  .ui-btn-ghost {
+    @apply bg-transparent text-baseText px-4 py-2.5 rounded-ui font-semibold text-sm;
+    @apply hover:bg-baseSurface transition-all;
+    @apply focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  /* 버튼 - Danger (오렌지 사용 안 함) */
+  .ui-btn-danger {
+    @apply bg-red-500 text-white px-4 py-2.5 rounded-ui font-semibold text-sm;
+    @apply hover:bg-red-600 active:opacity-80 transition-all;
+    @apply focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  /* 입력 필드 */
+  .ui-input {
+    @apply w-full px-4 py-2.5 border border-baseBorder rounded-ui bg-baseBg text-baseText;
+    @apply placeholder:text-baseMuted;
+    @apply focus:outline-none focus:ring-2 focus:ring-brandNavy focus:border-brandNavy;
+    @apply disabled:bg-baseSurface disabled:cursor-not-allowed;
+  }
+  
+  /* Select */
+  .ui-select {
+    @apply ui-input;
+  }
+  
+  /* Textarea */
+  .ui-textarea {
+    @apply ui-input resize-y min-h-[100px];
+  }
+  
+  /* Badge - 기본 */
+  .ui-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+    @apply bg-baseSurface text-baseMuted;
+  }
+  
+  /* Badge - Unread/Notify (오렌지) */
+  .ui-badge-notify {
+    @apply ui-badge bg-brandOrange text-white;
+  }
+  
+  /* 모달 오버레이 */
+  .ui-modal-overlay {
+    @apply fixed inset-0 z-[2000] flex items-center justify-center;
+    @apply bg-black/60 backdrop-blur-sm transition-all;
+  }
+  
+  /* 모달 패널 */
+  .ui-modal-panel {
+    @apply relative bg-baseBg w-full max-w-[550px] rounded-ui shadow-lg overflow-hidden;
+    @apply border border-baseBorder transform transition-all;
+  }
+  
+  /* 모달 헤더 */
+  .ui-modal-header {
+    @apply px-6 py-4 border-b border-baseBorder bg-baseSurface;
+  }
+  
+  /* 모달 본문 */
+  .ui-modal-body {
+    @apply px-6 py-6;
+  }
+  
+  /* 모달 푸터 */
+  .ui-modal-footer {
+    @apply px-6 py-4 border-t border-baseBorder bg-baseSurface flex gap-3 justify-end;
+  }
+  
+  /* 테이블 */
+  .ui-table {
+    @apply w-full border-collapse;
+  }
+  
+  .ui-table thead {
+    @apply bg-baseSurface;
+  }
+  
+  .ui-table th {
+    @apply px-4 py-3 text-left text-sm font-semibold text-baseText border-b border-baseBorder;
+  }
+  
+  .ui-table td {
+    @apply px-4 py-3 text-sm text-baseText border-b border-baseBorder;
+  }
+  
+  .ui-table tbody tr {
+    @apply hover:bg-baseSurface transition-colors;
+  }
+  
+  /* 네비게이션 - 활성 상태 */
+  .ui-nav-active {
+    @apply text-brandNavy border-b-2 border-brandNavy;
+  }
+  
+  /* 네비게이션 - 기본 */
+  .ui-nav-link {
+    @apply px-4 py-2 font-medium transition-colors text-baseMuted;
+    @apply hover:text-brandNavy;
+  }
+  
+  /* 작은 텍스트 */
+  .ui-text-xs {
+    @apply text-xs;
+  }
+  
+  .ui-text-2xs {
+    @apply text-[10px] leading-tight;
+  }
+  
+  .ui-text-3xs {
+    @apply text-[11px] leading-tight;
+  }
+  
+  .ui-text-4xs {
+    @apply text-[8px] leading-tight;
+  }
+  
+  /* 카테고리 배지 */
+  .ui-badge-category {
+    @apply ui-badge;
+  }
+  
+  .ui-badge-category-notice {
+    @apply ui-badge bg-red-50 text-red-600;
+  }
+  
+  .ui-badge-category-guide {
+    @apply ui-badge bg-blue-50 text-blue-600;
+  }
+  
+  .ui-badge-category-faq {
+    @apply ui-badge bg-green-50 text-green-600;
+  }
+  
+  /* 중요도 배지 */
+  .ui-badge-grade {
+    @apply inline-flex items-center px-3 py-1 rounded text-sm font-semibold text-white;
+  }
+  
+  .ui-badge-grade-low {
+    @apply ui-badge-grade bg-gray-500;
+  }
+  
+  .ui-badge-grade-middle {
+    @apply ui-badge-grade bg-blue-500;
+  }
+  
+  .ui-badge-grade-high {
+    @apply ui-badge-grade bg-brandOrange;
+  }
+  
+  .ui-badge-grade-urgent {
+    @apply ui-badge-grade bg-red-600;
+  }
+  
+  /* 페이지네이션 */
+  .ui-pagination {
+    @apply flex justify-center gap-2;
+  }
+  
+  .ui-pagination-btn {
+    @apply px-3 py-2 text-center rounded shadow-md text-white font-semibold;
+    @apply bg-brandNavy hover:opacity-90 transition-all cursor-pointer;
+  }
+  
+  .ui-pagination-btn-active {
+    @apply ui-pagination-btn bg-gray-500;
+  }
+  
+  .ui-pagination-btn-nav {
+    @apply ui-pagination-btn w-16;
+  }
+  
+  /* 로딩 모달 */
+  .ui-loading-overlay {
+    @apply fixed inset-0 z-[1055] flex items-center justify-center;
+    @apply bg-black/20 backdrop-blur-sm;
+  }
+  
+  .ui-loading-panel {
+    @apply bg-baseBg rounded-ui opacity-100 min-w-[600px] h-1/4;
+    @apply flex justify-center items-center;
+  }
+  
+  /* 카카오 노란색 (특수 케이스) */
+  .ui-btn-kakao {
+    @apply bg-kakaoYellow hover:bg-kakaoYellowHover text-baseText;
+    @apply px-4 py-3 rounded-ui shadow-md transition-all;
+    @apply hover:scale-[1.02] active:scale-95;
+    @apply font-semibold;
+  }
+  
+  /* 드롭다운 화살표 */
+  .ui-dropdown-arrow {
+    @apply text-[10px] text-baseMuted;
+  }
+  
+  /* 필수 표시 (별표) */
+  .ui-required {
+    @apply text-red-500;
+  }
+  
+  /* 연결 상태 표시 */
+  .ui-status-connected {
+    @apply text-green-600;
+  }
+  
+  .ui-status-disconnected {
+    @apply text-brandOrange;
+  }
+  
+  /* 마감일 강조 */
+  .ui-deadline {
+    @apply text-red-500 font-semibold;
+  }
+  
+  /* Pin 아이콘 */
+  .ui-pin-active {
+    @apply text-yellow-500;
+  }
+
+  .ui-pin-inactive {
+    @apply text-baseMuted;
+  }
+
+  /* Glass Effect */
+  .glass-effect {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .glass-dark-effect {
+    background: rgba(31, 58, 104, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Pattern Grid Background */
+  .bg-pattern-grid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  /* Pulse Glow Animation */
+  @keyframes pulseGlow {
+    0%, 100% {
+      opacity: 0.4;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulseGlow 3s infinite;
+  }
+
+  /* Hero Section Background Grid */
+  .bg-grid {
+    background-size: 50px 50px;
+    background-image: 
+      linear-gradient(to right, rgba(60, 90, 160, 0.2) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(60, 90, 160, 0.2) 1px, transparent 1px);
+    mask-image: radial-gradient(circle at center, black 55%, transparent 100%);
+    z-index: 0;
+  }
+
+  /* Flow Lines Container */
+  .flow-lines-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    opacity: 1;
+    pointer-events: none;
+    overflow: hidden;
+    mix-blend-mode: screen;
+  }
+
+  .flow-path {
+    fill: none;
+    stroke: url(#gradient-stroke);
+    stroke-width: 2.5;
+    stroke-dasharray: 15, 25;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 8px rgba(31, 58, 104, 0.8));
+    animation: flowAnimation 15s linear infinite;
+  }
+
+  .flow-path-reverse {
+    fill: none;
+    stroke: url(#gradient-stroke-orange);
+    stroke-width: 2;
+    stroke-dasharray: 10, 20;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 8px rgba(255, 138, 42, 0.6));
+    animation: flowAnimationReverse 20s linear infinite;
+  }
+
+  @keyframes flowAnimation {
+    from { stroke-dashoffset: 500; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes flowAnimationReverse {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: 500; }
+  }
+
+  /* Glow Blobs */
+  .glow-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.3;
+    z-index: 2;
+  }
+
+  /* Glass Card */
+  .glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 
+      0 25px 50px -12px rgba(0, 0, 0, 0.7),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transform-style: preserve-3d;
+  }
+
+  /* Floating Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0) translateZ(20px); }
+    50% { transform: translateY(-12px) translateZ(20px); }
+  }
+
+  @keyframes float-delayed {
+    0%, 100% { transform: translateY(0) translateZ(50px); }
+    50% { transform: translateY(-15px) translateZ(50px); }
+  }
+
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0) translateZ(0); }
+    50% { transform: translateY(-8px) translateZ(0); }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-delayed {
+    animation: float-delayed 7s ease-in-out infinite 1s;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite 0.5s;
+  }
+
+  /* Text Gradient */
+  .text-gradient-brand {
+    background: linear-gradient(135deg, #ffffff 30%, #a5b4fc 60%, #ff8a2a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 3D Scene Styles */
+  .scene-container {
+    perspective: 1200px;
+    transform-style: preserve-3d;
+    z-index: 10;
+  }
+
+  .scene-content {
+    transform-style: preserve-3d;
+    transition: transform 0.1s ease-out;
+    will-change: transform;
+  }
+
+  /* Spin animation for orbitals */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-\[spin_60s_linear_infinite\] {
+    animation: spin 60s linear infinite;
+  }
+}

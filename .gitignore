@@ -1,0 +1,27 @@
+### 1. 시스템 및 IDE 설정 (팀원과 공유 X) ###
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+### 2. 보안 파일 (해킹 위험) ###
+.env
+
+### 3. 프론트엔드 (deskfront 관련) - 무거운 거 제거 ###
+node_modules/
+dist/
+build/
+.npmrc
+npm-debug.log
+yarn-error.log
+
+### 4. 백엔드 (desk - Java/Spring 관련) - 빌드 파일 제거 ###
+.gradle/
+build/
+bin/
+out/
+*.class
+
+### 5. 업로드 폴더 (이미지 등 껍데기만 유지하거나 무시) ###
+upload/
+**/upload/

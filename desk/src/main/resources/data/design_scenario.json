@@ -1,0 +1,269 @@
+{
+  "scenarios": [
+    {
+      "stage": "DEPT",
+      "trigger": "디자인",
+      "identifiedTargetDept": "DESIGN",
+      "aiMessage": "좋아요. **[DESIGN]** 부서 업무로 확인됐어요.\n\n담당자 지정이 필요합니다.\n- 담당자 닉네임을 입력 (예: 황시우)\n- 또는 '없음' 입력 시 디자인팀 전체 전송",
+      "nextStage": "ASSIGNEE",
+      "setLastPrompt": "담당자 닉네임을 입력해 주세요. (없으면 '없음')"
+    },
+
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DESIGN",
+      "trigger": "황시우",
+      "assigneeName": "황시우",
+      "aiMessage": "네, 담당자 **황시우**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": {
+        "receivers": ["design01@desk.com"],
+        "completionRate": 10
+      },
+      "nextStage": "TASK",
+      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
+    },
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DESIGN",
+      "trigger": "안은지",
+      "assigneeName": "안은지",
+      "aiMessage": "네, 담당자 **안은지**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": {
+        "receivers": ["design02@desk.com"],
+        "completionRate": 10
+      },
+      "nextStage": "TASK",
+      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
+    },
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DESIGN",
+      "trigger": "송현준",
+      "assigneeName": "송현준",
+      "aiMessage": "네, 담당자 **송현준**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": {
+        "receivers": ["design03@desk.com"],
+        "completionRate": 10
+      },
+      "nextStage": "TASK",
+      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
+    },
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DESIGN",
+      "trigger": "전가온",
+      "assigneeName": "전가온",
+      "aiMessage": "네, 담당자 **전가온**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": {
+        "receivers": ["design04@desk.com"],
+        "completionRate": 10
+      },
+      "nextStage": "TASK",
+      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
+    },
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DESIGN",
+      "trigger": "홍성민",
+      "assigneeName": "홍성민",
+      "aiMessage": "네, 담당자 **홍성민**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": {
+        "receivers": ["design05@desk.com"],
+        "completionRate": 10
+      },
+      "nextStage": "TASK",
+      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
+    },
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DESIGN",
+      "trigger": "없음",
+      "assigneeName": "디자인팀",
+      "aiMessage": "네, 특정 담당자가 지정되지 않아 **디자인팀 전체**에게 전송될 예정입니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": { "receivers": ["TEAM_DESIGN"], "completionRate": 10 },
+      "nextStage": "TASK",
+      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
+    },
+
+    {
+      "stage": "TASK",
+      "dept": "DESIGN",
+      "trigger": "배너",
+      "aiMessage": "좋아요. **배너 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(문구/톤앤매너/사이즈/참고 링크 등)을 입력해 주세요.",
+      "ticketUpdate": {
+        "title": "배너 디자인 제작 요청",
+        "purpose": "프로모션/캠페인 배너 제작",
+        "grade": "MIDDLE",
+        "completionRate": 25
+      },
+      "nextStage": "REQUIREMENT",
+      "setLastPrompt": "요청사항을 입력해 주세요. (예: 문구, 사이즈, 참고 링크)"
+    },
+    {
+      "stage": "TASK",
+      "dept": "DESIGN",
+      "trigger": "상세페이지",
+      "aiMessage": "좋아요. **상세페이지 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(구성/이미지/문구/참고 링크 등)을 입력해 주세요.",
+      "ticketUpdate": {
+        "title": "상세페이지 디자인 제작 요청",
+        "purpose": "상품/서비스 상세페이지 제작",
+        "grade": "HIGH",
+        "completionRate": 25
+      },
+      "nextStage": "REQUIREMENT",
+      "setLastPrompt": "요청사항을 입력해 주세요. (예: 구성, 이미지, 문구, 참고 링크)"
+    },
+    {
+      "stage": "TASK",
+      "dept": "DESIGN",
+      "trigger": "포스터",
+      "aiMessage": "좋아요. **포스터 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(행사 정보/문구/사이즈/출력 여부 등)을 입력해 주세요.",
+      "ticketUpdate": {
+        "title": "포스터 디자인 제작 요청",
+        "purpose": "행사/프로모션 포스터 제작",
+        "grade": "HIGH",
+        "completionRate": 25
+      },
+      "nextStage": "REQUIREMENT",
+      "setLastPrompt": "요청사항을 입력해 주세요. (예: 행사 정보, 문구, 사이즈)"
+    },
+    {
+      "stage": "TASK",
+      "dept": "DESIGN",
+      "trigger": "로고",
+      "aiMessage": "좋아요. **로고 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(브랜드 키워드/컬러/참고 로고 등)을 입력해 주세요.",
+      "ticketUpdate": {
+        "title": "로고 디자인 제작 요청",
+        "purpose": "브랜드 로고 신규/리뉴얼",
+        "grade": "HIGH",
+        "completionRate": 25
+      },
+      "nextStage": "REQUIREMENT",
+      "setLastPrompt": "요청사항을 입력해 주세요. (예: 브랜드 키워드, 컬러, 참고 로고)"
+    },
+    {
+      "stage": "TASK",
+      "dept": "DESIGN",
+      "trigger": "SNS콘텐츠",
+      "aiMessage": "좋아요. **SNS 콘텐츠 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(채널/카피/톤앤매너/참고 링크 등)을 입력해 주세요.",
+      "ticketUpdate": {
+        "title": "SNS 콘텐츠 디자인 요청",
+        "purpose": "SNS 콘텐츠 카드/이미지 제작",
+        "grade": "MIDDLE",
+        "completionRate": 25
+      },
+      "nextStage": "REQUIREMENT",
+      "setLastPrompt": "요청사항을 입력해 주세요. (예: 채널, 카피, 톤앤매너, 참고 링크)"
+    },
+
+    {
+      "stage": "REQUIREMENT",
+      "dept": "DESIGN",
+      "trigger": "중앙배치",
+      "aiMessage": "요청사항 확인했습니다.\n1. 메인 이미지 중앙 배치\n2. 계절감을 살린 톤앤매너 적용\n3. 참고자료 스타일 반영\n\n위 내용을 정리하여 {ASSIGNEE}님에게 전달하겠습니다.\n마감기한은 언제까지인가요? (예: 1월20일)",
+      "ticketUpdate": {
+        "requirement": "1. 메인 이미지 중앙 배치\n2. 계절감을 살린 톤앤매너 적용\n3. 참고자료 스타일 반영",
+        "completionRate": 70
+      },
+      "nextStage": "DEADLINE",
+      "setLastPrompt": "마감기한을 입력해 주세요. (예: 1월20일)"
+    },
+    {
+      "stage": "REQUIREMENT",
+      "dept": "DESIGN",
+      "trigger": "심플하게",
+      "aiMessage": "요청사항 확인했습니다.\n- 전체적으로 심플/미니멀 톤\n- 가독성 우선\n\n정리하여 {ASSIGNEE}님에게 전달하겠습니다.\n마감기한은 언제까지인가요? (예: 1월20일)",
+      "ticketUpdate": {
+        "requirement": "- 심플/미니멀 톤\n- 가독성 우선",
+        "completionRate": 70
+      },
+      "nextStage": "DEADLINE",
+      "setLastPrompt": "마감기한을 입력해 주세요. (예: 1월20일)"
+    },
+    {
+      "stage": "REQUIREMENT",
+      "dept": "DESIGN",
+      "trigger": "참고자료반영",
+      "aiMessage": "요청사항 확인했습니다.\n- 첨부 참고자료 스타일 반영\n- 색상은 브랜드 컬러 유지\n\n정리하여 {ASSIGNEE}님에게 전달하겠습니다.\n마감기한은 언제까지인가요? (예: 1월20일)",
+      "ticketUpdate": {
+        "requirement": "- 첨부 참고자료 스타일 반영\n- 브랜드 컬러 유지",
+        "completionRate": 70
+      },
+      "nextStage": "DEADLINE",
+      "setLastPrompt": "마감기한을 입력해 주세요. (예: 1월20일)"
+    },
+
+    {
+      "stage": "DEADLINE",
+      "dept": "DESIGN",
+      "trigger": "1월20일",
+      "aiMessage": "알겠습니다. 마감기한은 **1월 20일**로 요청하겠습니다.\n\n중요도는 어떻게 되나요? (기본: 보통, 급함: 긴급)",
+      "ticketUpdate": {
+        "deadline": "2026-01-20",
+        "completionRate": 85
+      },
+      "nextStage": "PRIORITY",
+      "setLastPrompt": "중요도를 입력해 주세요. (기본: 보통, 급함: 긴급)"
+    },
+    {
+      "stage": "DEADLINE",
+      "dept": "DESIGN",
+      "trigger": "1월25일",
+      "aiMessage": "알겠습니다. 마감기한은 **1월 25일**로 요청하겠습니다.\n\n중요도는 어떻게 되나요? (기본: 보통, 급함: 긴급)",
+      "ticketUpdate": {
+        "deadline": "2026-01-25",
+        "completionRate": 85
+      },
+      "nextStage": "PRIORITY",
+      "setLastPrompt": "중요도를 입력해 주세요. (기본: 보통, 급함: 긴급)"
+    },
+    {
+      "stage": "DEADLINE",
+      "dept": "DESIGN",
+      "trigger": "2월1일",
+      "aiMessage": "알겠습니다. 마감기한은 **2월 1일**로 요청하겠습니다.\n\n중요도는 어떻게 되나요? (기본: 보통, 급함: 긴급)",
+      "ticketUpdate": {
+        "deadline": "2026-02-01",
+        "completionRate": 85
+      },
+      "nextStage": "PRIORITY",
+      "setLastPrompt": "중요도를 입력해 주세요. (기본: 보통, 급함: 긴급)"
+    },
+    {
+      "stage": "PRIORITY",
+      "dept": "DESIGN",
+      "trigger": "보통",
+      "aiMessage": "중요도는 **보통**으로 설정하겠습니다.\n\n✅ 티켓이 완성되었습니다. 우측의 **[업무 티켓 전송]** 버튼을 눌러주세요.",
+      "isCompleted": true,
+      "nextAction": "suggest_submit",
+      "ticketUpdate": {
+        "grade": "MIDDLE",
+        "completionRate": 100
+      }
+    },
+    {
+      "stage": "PRIORITY",
+      "dept": "DESIGN",
+      "trigger": "긴급",
+      "aiMessage": "중요도는 **긴급**으로 설정하겠습니다.\n\n✅ 티켓이 완성되었습니다. 우측의 **[업무 티켓 전송]** 버튼을 눌러주세요.",
+      "isCompleted": true,
+      "nextAction": "suggest_submit",
+      "ticketUpdate": {
+        "grade": "URGENT",
+        "completionRate": 100
+      }
+    },
+    {
+      "stage": "PRIORITY",
+      "dept": "DESIGN",
+      "trigger": "급함",
+      "aiMessage": "중요도는 **긴급**으로 설정하겠습니다.\n\n✅ 티켓이 완성되었습니다. 우측의 **[업무 티켓 전송]** 버튼을 눌러주세요.",
+      "isCompleted": true,
+      "nextAction": "suggest_submit",
+      "ticketUpdate": {
+        "grade": "URGENT",
+        "completionRate": 100
+      }
+    }
+  ]
+}
