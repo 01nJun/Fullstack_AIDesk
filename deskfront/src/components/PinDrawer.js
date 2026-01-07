@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import useCustomPin from '../hooks/useCustomPin';
@@ -9,6 +9,27 @@ const PinDrawer = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedTno, setSelectedTno] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    // header 높이 (h-16 = 64px)
+    const HEADER_HEIGHT = 64;
+    
+    const [topPosition, setTopPosition] = useState(() => {
+        // localStorage에서 저장된 위치 불러오기
+        const saved = localStorage.getItem('pinButtonTop');
+        const initialTop = saved ? parseInt(saved, 10) : 100;
+        // header 아래에 위치하도록 최소값 설정
+        return Math.max(HEADER_HEIGHT, initialTop);
+    });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStartY = useRef(0);
+    const dragStartTop = useRef(0);
+    const buttonRef = useRef(null);
+    const hasDragged = useRef(false);
+    const currentTopRef = useRef(topPosition);
+
+    // topPosition이 변경될 때 ref도 업데이트
+    useEffect(() => {
+        currentTopRef.current = topPosition;
+    }, [topPosition]);
 
     const { pinItems, refreshPins, togglePin } = useCustomPin();
     const loginState = useSelector((state) => state.loginSlice);
@@ -31,6 +52,61 @@ const PinDrawer = () => {
         return () => window.removeEventListener('open-pin-drawer', handleOpenDrawer);
     }, [loginState.email, refreshPins, isOpen, navigate]);
 
+    // 드래그 핸들러
+    const handleMouseDown = (e) => {
+        e.preventDefault();
+        setIsDragging(true);
+        hasDragged.current = false;
+        dragStartY.current = e.clientY;
+        dragStartTop.current = topPosition;
+    };
+
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMouseMove = (e) => {
+            const deltaY = e.clientY - dragStartY.current;
+            
+            // 5px 이상 이동했으면 드래그로 간주
+            if (Math.abs(deltaY) > 5) {
+                hasDragged.current = true;
+            }
+            
+            let newTop = dragStartTop.current + deltaY;
+
+            // 화면 경계 체크 (최소 header 높이, 최대 화면 높이 - 버튼 높이)
+            const buttonHeight = buttonRef.current?.offsetHeight || 50;
+            const maxTop = window.innerHeight - buttonHeight;
+            newTop = Math.max(HEADER_HEIGHT, Math.min(newTop, maxTop));
+
+            currentTopRef.current = newTop;
+            setTopPosition(newTop);
+        };
+
+        const handleMouseUp = () => {
+            const wasDragging = hasDragged.current;
+            setIsDragging(false);
+            
+            // 드래그가 있었던 경우에만 위치 저장
+            if (wasDragging) {
+                localStorage.setItem('pinButtonTop', currentTopRef.current.toString());
+            }
+            
+            // 다음 드래그를 위해 초기화
+            setTimeout(() => {
+                hasDragged.current = false;
+            }, 0);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isDragging, topPosition]);
+
     if (!loginState.email) return null;
 
     const openTicketModal = (tno) => {
@@ -51,10 +127,20 @@ const PinDrawer = () => {
     return (
         <>
             {/* 찜 버튼 */}
-            <div className="fixed top-[100px] right-0 z-[40]">
+            <div 
+                ref={buttonRef}
+                className="fixed right-0 z-[40]"
+                style={{ top: `${topPosition}px` }}
+            >
                 <button
-                    onClick={() => setIsOpen(true)}
-                    className="bg-brandNavy text-white p-3 rounded-l-ui shadow-lg hover:opacity-90 transition-all flex items-center gap-2"
+                    onMouseDown={handleMouseDown}
+                    onClick={(e) => {
+                        // 드래그가 없었던 경우에만 클릭 처리
+                        if (!hasDragged.current) {
+                            setIsOpen(true);
+                        }
+                    }}
+                    className={`bg-brandNavy text-white p-3 rounded-l-ui shadow-lg hover:opacity-90 transition-all flex items-center gap-2 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                 >
                     <span className="font-semibold text-sm">PIN</span>
                     {pinItems.length > 0 && (

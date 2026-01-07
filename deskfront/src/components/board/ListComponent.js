@@ -66,17 +66,17 @@ const ListComponent = () => {
       </div>
 
       {/* 2. 검색 및 필터 바 */}
-      <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center mb-8 gap-6 ui-card p-6">
+      <div className="flex flex-col gap-4 lg:gap-6 mb-8 ui-card p-4 sm:p-6">
 
         {/* 카테고리 탭 영역 */}
-        <div className="flex bg-baseSurface p-2 rounded-ui">
+        <div className="flex bg-baseSurface p-1.5 sm:p-2 rounded-ui">
           {["전체", "공지사항", "가이드", "FAQ"].map((tab) => (
             <button
               key={tab}
               onClick={() => handleClickCategory(tab)}
-              className={`px-6 py-2.5 rounded-ui font-semibold text-sm transition-all ${
+              className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-ui font-semibold text-xs sm:text-sm transition-all flex-1 ${
                 category === tab || (tab === "전체" && !category)
-                  ? "bg-baseBg text-brandNavy shadow-chat"
+                  ? "bg-baseBg text-brandNavy shadow-ui"
                   : "text-baseMuted hover:text-baseText"
               }`}
             >
@@ -86,7 +86,7 @@ const ListComponent = () => {
         </div>
 
         {/* 검색창 영역 */}
-        <div className="flex items-center gap-3 flex-grow">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow">
           <div className="relative flex-grow">
             <input
               type="text"
@@ -94,12 +94,12 @@ const ListComponent = () => {
               value={searchStr}
               onChange={(e) => setSearchStr(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="ui-input"
+              className="ui-input w-full"
             />
           </div>
           <button
             onClick={handleSearch}
-            className="ui-btn-primary"
+            className="ui-btn-primary w-full sm:w-auto whitespace-nowrap"
           >
             검색
           </button>
@@ -110,15 +110,15 @@ const ListComponent = () => {
       <div className="ui-card overflow-hidden">
 
         {/* 리스트 헤더 */}
-        <div className="px-6 py-4 bg-baseSurface border-b border-baseBorder flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-baseText uppercase tracking-wide">게시판 목록</h2>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-baseSurface border-b border-baseBorder flex justify-between items-center">
+          <h2 className="text-xs sm:text-sm font-semibold text-baseText uppercase tracking-wide">게시판 목록</h2>
           <span className="text-xs text-baseMuted font-medium">
             총 {serverData.totalCount}개
           </span>
         </div>
 
-        {/* 테이블 본문 */}
-        <div className="w-full">
+        {/* 데스크톱 테이블 뷰 */}
+        <div className="hidden lg:block w-full">
           <table className="ui-table">
             <thead>
               <tr>
@@ -171,6 +171,46 @@ const ListComponent = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* 모바일/태블릿 카드 뷰 */}
+        <div className="lg:hidden p-4 space-y-3">
+          {serverData.dtoList.length > 0 ? (
+            serverData.dtoList.map((board) => (
+              <div
+                key={board.bno}
+                onClick={() => moveToRead(board.bno)}
+                className="bg-baseBg border border-baseBorder rounded-ui p-4 hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className={`ui-text-2xs shrink-0 ${
+                      board.category === '공지사항' ? 'ui-badge-category-notice' :
+                      board.category === '가이드' ? 'ui-badge-category-guide' : 'ui-badge-category'
+                    }`}>
+                      {board.category || "일반"}
+                    </span>
+                    {board.replyCount > 0 && (
+                      <span className="ui-badge ui-text-2xs shrink-0">
+                        {board.replyCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <h3 className="font-semibold text-base text-baseText mb-2 line-clamp-2">
+                  {board.title}
+                </h3>
+                <div className="flex items-center justify-between text-sm text-baseMuted">
+                  <span>{board.writer}</span>
+                  <span className="text-xs">
+                    {board.regDate ? board.regDate.split(' ')[0] : ''}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-20 text-center text-baseMuted">데이터가 없습니다.</div>
+          )}
         </div>
       </div>
 

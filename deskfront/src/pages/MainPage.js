@@ -139,8 +139,8 @@ const MainPage = () => {
       {isAIWidgetOpen && <AIChatWidget onClose={() => setIsAIWidgetOpen(false)} />}
 
       <div className="bg-slate-50 min-h-screen flex flex-col">
-        {/* Hero Section */}
-        <section id="hero-section" className="relative w-full bg-[#05060a] text-white overflow-hidden shadow-xl z-0 min-h-[550px] md:min-h-[450px] transition-all">
+        {/* Hero Section - 데스크톱만 표시 */}
+        <section id="hero-section" className="hidden lg:block relative w-full bg-[#05060a] text-white overflow-hidden shadow-xl z-0 min-h-[550px] md:min-h-[450px] transition-all">
           {/* 1. Vivid Background Grid */}
           <div className="absolute inset-0 bg-grid pointer-events-none"></div>
 
@@ -227,7 +227,7 @@ const MainPage = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
                 <button
                   onClick={() => isLoggedIn ? setIsAIWidgetOpen(true) : navigate("/member/login")}
-                  className="group px-8 py-3.5 rounded-xl bg-[#1f3a68] hover:bg-[#2c4c82] border border-[#ff8a2a]/50 text-white font-semibold shadow-[0_0_20px_rgba(31,58,104,0.4)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                  className="group px-8 py-3.5 rounded-md bg-[#1f3a68] hover:bg-[#2c4c82] border border-[#ff8a2a]/50 text-white font-semibold shadow-[0_0_20px_rgba(31,58,104,0.4)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
                 >
                   <span>{isLoggedIn ? "새 업무 요청서 만들기" : "로그인 하러 가기"}</span>
                   <span className="material-symbols-outlined text-sm text-[#ff8a2a] group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -334,9 +334,9 @@ const MainPage = () => {
         </section>
 
         {/* Main Content Area */}
-        <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-10 -mt-16 relative z-20">
-          {/* Stats Overview Cards */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:-mt-16 w-full space-y-10 relative z-20">
+          {/* Stats Overview Cards - 모든 화면에서 가로 배치 */}
+          <section className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             <StatusCard
               title="중요 업무 (PIN)"
               count={isLoggedIn ? pinItems.length : 0}
@@ -365,7 +365,7 @@ const MainPage = () => {
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left: Recent Tasks */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full">
+            <div className="bg-white rounded-md shadow-sm border border-slate-200 flex flex-col h-full">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-6 bg-brandNavy rounded-full"></div>
@@ -413,7 +413,7 @@ const MainPage = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="p-4 flex flex-col items-center justify-center h-28 text-slate-300 border-2 border-dashed border-slate-100 rounded-xl m-2 bg-slate-50/50">
+                  <div className="p-4 flex flex-col items-center justify-center h-28 text-slate-300 border-2 border-dashed border-slate-100 rounded-md m-2 bg-slate-50/50">
                     <span className="material-symbols-outlined mb-1">check_circle</span>
                     <span className="text-xs font-medium">받은 업무가 없습니다</span>
                   </div>
@@ -422,7 +422,7 @@ const MainPage = () => {
             </div>
 
             {/* Right: Notices */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full">
+            <div className="bg-white rounded-md shadow-sm border border-slate-200 flex flex-col h-full">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white rounded-t-2xl sticky top-0 z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-6 bg-brandNavy rounded-full"></div>
@@ -445,7 +445,7 @@ const MainPage = () => {
                     <div 
                       key={board.bno} 
                       onClick={() => navigate(`/board/read/${board.bno}`)} 
-                      className="group flex items-start gap-4 p-5 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border-b border-slate-50 last:border-0 mb-1"
+                      className="group flex items-start gap-4 p-5 hover:bg-slate-50 rounded-md transition-all cursor-pointer border-b border-slate-50 last:border-0 mb-1"
                     >
                       <div className={`mt-0.5 min-w-[40px] h-[40px] rounded-full flex items-center justify-center border group-hover:scale-110 transition-transform ${
                         board.category === '공지사항' ? 'bg-red-50 text-red-500 border-red-100' :
@@ -502,40 +502,40 @@ const MainPage = () => {
 const StatusCard = ({ title, count, color, icon, onClick, hasBadge }) => (
   <div 
     onClick={onClick} 
-    className="bg-white rounded-xl p-6 shadow-lg border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative overflow-hidden"
+    className="bg-white rounded-md p-3 sm:p-4 lg:p-6 shadow-lg border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group cursor-pointer relative overflow-hidden"
   >
-    <div className="flex justify-between items-start mb-4">
-      <div>
-        <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
+    <div className="flex justify-between items-start mb-2 sm:mb-3 lg:mb-4">
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] sm:text-xs lg:text-sm font-medium text-slate-500 mb-1 truncate">{title}</p>
         {hasBadge ? (
-          <div className="flex items-center gap-2">
-            <h3 className="text-4xl font-bold text-slate-800 tracking-tight">{count}</h3>
-            <span className="absolute top-5 right-5 flex h-3 w-3">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 tracking-tight">{count}</h3>
+            <span className="absolute top-2 sm:top-3 lg:top-5 right-2 sm:right-3 lg:right-5 flex h-2 w-2 sm:h-2.5 sm:w-2.5 lg:h-3 lg:w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brandOrange opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-brandOrange"></span>
+              <span className="relative inline-flex rounded-full h-full w-full bg-brandOrange"></span>
             </span>
           </div>
         ) : (
-          <h3 className="text-4xl font-bold text-slate-800 tracking-tight">{count}</h3>
+          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 tracking-tight">{count}</h3>
         )}
       </div>
-      <div className={`p-3 rounded-xl group-hover:bg-brandNavy group-hover:text-white transition-colors ${
+      <div className={`p-1.5 sm:p-2 lg:p-3 rounded-lg sm:rounded-xl group-hover:bg-brandNavy group-hover:text-white transition-colors shrink-0 ${
         icon === 'star' ? 'bg-blue-50 text-brandNavy' :
         icon === 'mail' ? 'bg-orange-50 text-brandOrange' :
         icon === 'chat' ? 'bg-purple-50 text-purple-600' :
         'bg-slate-50 text-slate-600'
       }`}>
-        <span className="material-symbols-outlined text-2xl">{icon}</span>
+        <span className="material-symbols-outlined text-base sm:text-xl lg:text-2xl">{icon}</span>
       </div>
     </div>
     {hasBadge && icon === 'mail' && (
-      <p className="text-xs text-slate-400 font-medium">최근 1시간 내 수신</p>
+      <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-400 font-medium hidden sm:block">최근 1시간 내 수신</p>
     )}
     {hasBadge && icon === 'chat' && (
-      <p className="text-xs text-slate-400 font-medium">읽지 않은 메시지</p>
+      <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-400 font-medium hidden sm:block">읽지 않은 메시지</p>
     )}
     {!hasBadge && icon === 'star' && (
-      <p className="text-xs text-slate-400 font-medium">마감 기한 임박 업무 포함</p>
+      <p className="text-[9px] sm:text-[10px] lg:text-xs text-slate-400 font-medium hidden sm:block">마감 기한 임박 업무 포함</p>
     )}
   </div>
 );

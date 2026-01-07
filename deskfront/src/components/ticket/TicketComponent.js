@@ -153,14 +153,14 @@ const TicketComponent = () => {
         <h1 className="ui-title">업무 현황</h1>
       </div>
 
-      <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center mb-8 gap-6 ui-card p-6">
-        <div className="flex bg-baseSurface p-2 rounded-ui">
+      <div className="flex flex-col gap-4 lg:gap-6 mb-8 ui-card p-4 sm:p-6">
+        <div className="flex bg-baseSurface p-1.5 sm:p-2 rounded-ui">
           {['ALL', 'RECEIVED', 'SENT'].map((t) => (
             <button
               key={t}
               onClick={() => handleTabChange(t)}
-              className={`px-6 py-2.5 rounded-ui font-semibold text-sm transition-all ${
-                tab === t ? "bg-baseBg text-brandNavy shadow-chat" : "text-baseMuted hover:text-baseText"
+              className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-ui font-semibold text-xs sm:text-sm transition-all flex-1 ${
+                tab === t ? "bg-baseBg text-brandNavy shadow-ui" : "text-baseMuted hover:text-baseText"
               }`}
             >
               {t === 'ALL' ? '전체 업무' : t === 'RECEIVED' ? '받은 업무' : '보낸 업무'}
@@ -168,11 +168,11 @@ const TicketComponent = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 flex-grow">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow">
           <select
             value={inputRead}
             onChange={(e) => setInputRead(e.target.value)}
-            className="ui-select w-36"
+            className="ui-select w-full sm:w-36"
           >
             <option value="ALL">전체 상태</option>
             <option value="READ">읽음</option>
@@ -186,19 +186,19 @@ const TicketComponent = () => {
               value={inputKeyword}
               onChange={(e) => setInputKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="ui-input"
+              className="ui-input w-full"
             />
           </div>
 
-          <button onClick={handleSearch} className="ui-btn-primary">
+          <button onClick={handleSearch} className="ui-btn-primary w-full sm:w-auto whitespace-nowrap">
             검색
           </button>
         </div>
       </div>
 
       <div className="ui-card overflow-hidden min-h-[600px] flex flex-col">
-        <div className="px-6 py-4 bg-baseSurface border-b border-baseBorder flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-baseText uppercase tracking-wide">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-baseSurface border-b border-baseBorder flex justify-between items-center">
+          <h2 className="text-xs sm:text-sm font-semibold text-baseText uppercase tracking-wide">
             {getWorkListTitle()}
           </h2>
           <span className="text-xs text-baseMuted font-medium">
@@ -206,7 +206,8 @@ const TicketComponent = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto flex-grow">
+        {/* 데스크톱 테이블 뷰 */}
+        <div className="hidden lg:block overflow-x-auto flex-grow">
           <table className="ui-table">
             <thead>
               <tr>
@@ -299,7 +300,77 @@ const TicketComponent = () => {
           </table>
         </div>
 
-        <div className="p-6 bg-baseSurface flex justify-center border-t border-baseBorder mt-auto">
+        {/* 모바일/태블릿 카드 뷰 */}
+        <div className="lg:hidden flex-grow p-4 space-y-3">
+          {loading ? (
+            <div className="p-20 text-center text-baseMuted">로딩 중...</div>
+          ) : serverData.dtoList?.length > 0 ? (
+            serverData.dtoList.map((ticket) => {
+              const myInfo = ticket.personals?.find(p => p.receiver === currentUserEmail);
+              const isRead = tab === 'RECEIVED' ? ticket.isread : (myInfo ? myInfo.isread : true);
+              const receiverInfo = ticket.personals?.length > 0 ? ticket.personals[0].receiver : ticket.receiver || '미지정';
+              const stateInfo = tab === 'RECEIVED' ? ticket.state : (myInfo ? myInfo.state : (ticket.personals?.[0]?.state || 'NEW'));
+
+              return (
+                <div
+                  key={ticket.tno || ticket.pno}
+                  onClick={() => openTicketModal(ticket.tno)}
+                  className="bg-baseBg border border-baseBorder rounded-ui p-4 hover:shadow-md transition-all cursor-pointer"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(ticket.tno);
+                        }}
+                        className={`text-lg transition-all hover:scale-125 shrink-0 ${isPinned(ticket.tno) ? 'ui-pin-active' : 'ui-pin-inactive'}`}
+                      >
+                        {isPinned(ticket.tno) ? '★' : '☆'}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {!isRead && <span className="w-2 h-2 bg-brandOrange rounded-full shrink-0"></span>}
+                          <h3 className="font-semibold text-base text-baseText truncate">{ticket.title}</h3>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {getGradeBadge(ticket.grade)}
+                          <span className="ui-badge ui-text-3xs">
+                            {getStateLabel(stateInfo)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-4 text-baseMuted">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-xs">발신자:</span>
+                        <span className="font-medium">{ticket.writer}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4 text-baseMuted">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-xs">수신자:</span>
+                        <span className="font-medium">{receiverInfo}</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-baseMuted">마감일:</span>
+                      <span className="text-sm font-semibold ui-deadline">
+                        {formatDate(ticket.deadline)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-20 text-center text-baseMuted">데이터가 없습니다.</div>
+          )}
+        </div>
+
+        <div className="p-4 sm:p-6 bg-baseSurface flex justify-center border-t border-baseBorder mt-auto">
           {serverData?.dtoList?.length > 0 && <PageComponent serverData={serverData} movePage={(p) => setPage(p.page)} />}
         </div>
       </div>

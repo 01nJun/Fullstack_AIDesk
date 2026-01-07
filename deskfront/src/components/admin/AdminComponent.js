@@ -50,20 +50,20 @@ const AdminComponent = () => {
         </h1>
       </div>
 
-      <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center mb-8 gap-6 ui-card p-6">
-        <div className="flex bg-baseSurface p-2 rounded-ui">
+      <div className="flex flex-col gap-4 lg:gap-6 mb-8 ui-card p-4 sm:p-6">
+        <div className="flex bg-baseSurface p-1.5 sm:p-2 rounded-ui">
           <button
             onClick={() => handleTabChange("pending")}
-            className={`px-6 py-2.5 rounded-ui font-semibold text-sm transition-all ${
-              activeTab === "pending" ? "bg-baseBg text-brandNavy shadow-chat" : "text-baseMuted hover:text-baseText"
+            className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-ui font-semibold text-xs sm:text-sm transition-all flex-1 ${
+              activeTab === "pending" ? "bg-baseBg text-brandNavy shadow-ui" : "text-baseMuted hover:text-baseText"
             }`}
           >
             승인 대기
           </button>
           <button
             onClick={() => handleTabChange("active")}
-            className={`px-6 py-2.5 rounded-ui font-semibold text-sm transition-all ${
-              activeTab === "active" ? "bg-baseBg text-brandNavy shadow-chat" : "text-baseMuted hover:text-baseText"
+            className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-ui font-semibold text-xs sm:text-sm transition-all flex-1 ${
+              activeTab === "active" ? "bg-baseBg text-brandNavy shadow-ui" : "text-baseMuted hover:text-baseText"
             }`}
           >
             전체 직원
@@ -72,7 +72,7 @@ const AdminComponent = () => {
 
         {/* 검색 영역을 form으로 변경: 엔터 시 handleSearch 실행 */}
         <form
-          className="flex items-center gap-3 flex-grow"
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow"
           onSubmit={(e) => {
             e.preventDefault();
             handleSearch();
@@ -81,7 +81,7 @@ const AdminComponent = () => {
           <select
             value={inputDept}
             onChange={(e) => setInputDept(e.target.value)}
-            className="ui-select w-44"
+            className="ui-select w-full sm:w-44"
           >
             <option value="">모든 부서</option>
             <option value="DEVELOPMENT">개발팀</option>
@@ -98,13 +98,13 @@ const AdminComponent = () => {
               placeholder="이름이나 이메일을 입력하세요..."
               value={inputKeyword}
               onChange={(e) => setInputKeyword(e.target.value)}
-              className="ui-input"
+              className="ui-input w-full"
             />
           </div>
 
           <button
             type="submit"
-            className="ui-btn-primary"
+            className="ui-btn-primary w-full sm:w-auto whitespace-nowrap"
           >
             검색
           </button>
@@ -112,8 +112,8 @@ const AdminComponent = () => {
       </div>
 
       <div className="ui-card overflow-hidden min-h-[600px] flex flex-col">
-        <div className="px-6 py-4 bg-baseSurface border-b border-baseBorder flex justify-between items-center">
-          <h2 className="text-sm font-semibold text-baseText uppercase tracking-wide">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-baseSurface border-b border-baseBorder flex justify-between items-center">
+          <h2 className="text-xs sm:text-sm font-semibold text-baseText uppercase tracking-wide">
             {activeTab === "pending" ? "승인 대기 목록" : "직원 관리"}
           </h2>
           <span className="text-xs text-baseMuted font-medium">
@@ -121,7 +121,8 @@ const AdminComponent = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto flex-grow">
+        {/* 데스크톱 테이블 뷰 */}
+        <div className="hidden lg:block overflow-x-auto flex-grow">
           <table className="ui-table">
             <thead>
               <tr>
@@ -171,7 +172,53 @@ const AdminComponent = () => {
           </table>
         </div>
 
-        <div className="p-6 bg-baseSurface flex justify-center border-t border-baseBorder mt-auto">
+        {/* 모바일/태블릿 카드 뷰 */}
+        <div className="lg:hidden flex-grow p-4 space-y-3">
+          {loading ? (
+            <div className="p-20 text-center text-baseMuted">로딩 중...</div>
+          ) : memberData?.dtoList?.length > 0 ? (
+            memberData.dtoList.map((member) => (
+              <div
+                key={member.email}
+                className="bg-baseBg border border-baseBorder rounded-ui p-4"
+              >
+                <div className="mb-3">
+                  <div className="font-semibold text-base text-baseText mb-1 truncate">{member.email}</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm text-baseMuted">닉네임:</span>
+                    <span className="text-sm font-medium text-baseText">{member.nickname}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-baseMuted">부서:</span>
+                    <span className="ui-badge">
+                      {member.department || "미배정"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-3 border-t border-baseBorder">
+                  {activeTab === "pending" && (
+                    <button
+                      onClick={() => putApprove(member.email).then(() => fetchData())}
+                      className="ui-btn-primary text-xs px-4 py-2 flex-1"
+                    >
+                      승인
+                    </button>
+                  )}
+                  <button
+                    onClick={() => putSoftDelete(member.email).then(() => fetchData())}
+                    className="ui-btn-danger text-xs px-4 py-2 flex-1"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-20 text-center text-baseMuted">데이터가 없습니다.</div>
+          )}
+        </div>
+
+        <div className="p-4 sm:p-6 bg-baseSurface flex justify-center border-t border-baseBorder mt-auto">
           {memberData?.dtoList?.length > 0 && (
             <PageComponent serverData={memberData} movePage={(p) => setSearchParams(prev => ({ ...prev, page: p.page }))} />
           )}

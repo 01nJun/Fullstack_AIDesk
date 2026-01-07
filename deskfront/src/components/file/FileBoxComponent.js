@@ -88,16 +88,16 @@ const FileBoxComponent = () => {
             </div>
 
             {/* 필터 및 검색 바  */}
-            <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center mb-8 gap-6 ui-card p-6">
+            <div className="flex flex-col gap-4 lg:gap-6 mb-8 ui-card p-4 sm:p-6">
 
                 {/* 탭 버튼 */}
-                <div className="flex bg-baseSurface p-2 rounded-ui">
+                <div className="flex bg-baseSurface p-1.5 sm:p-2 rounded-ui">
                     {['ALL', 'SENT', 'RECEIVED'].map((t) => (
                         <button
                             key={t}
                             onClick={() => { setTab(t); setPage(1); }}
-                            className={`px-6 py-2.5 rounded-ui font-semibold text-sm transition-all ${
-                                tab === t ? "bg-baseBg text-brandNavy shadow-chat" : "text-baseMuted hover:text-baseText"
+                            className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-ui font-semibold text-xs sm:text-sm transition-all flex-1 ${
+                                tab === t ? "bg-baseBg text-brandNavy shadow-ui" : "text-baseMuted hover:text-baseText"
                             }`}
                         >
                             {t === 'ALL' ? '전체' : t === 'SENT' ? '발신' : '수신'}
@@ -105,12 +105,12 @@ const FileBoxComponent = () => {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-3 flex-grow">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow">
                     {/* 정렬 선택 */}
                     <select
                         value={sort}
                         onChange={(e) => { setSort(e.target.value); setPage(1); }}
-                        className="ui-select w-36"
+                        className="ui-select w-full sm:w-36"
                     >
                         <option value="createdAt,desc">최신순</option>
                         <option value="createdAt,asc">오래된순</option>
@@ -124,14 +124,14 @@ const FileBoxComponent = () => {
                             value={searchTemp}
                             onChange={(e) => setSearchTemp(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            className="ui-input"
+                            className="ui-input w-full"
                         />
                     </div>
 
                     {/* 검색 버튼 */}
                     <button
                         onClick={handleSearch}
-                        className="ui-btn-primary"
+                        className="ui-btn-primary w-full sm:w-auto whitespace-nowrap"
                     >
                         검색
                     </button>

@@ -14,6 +14,14 @@ const ChatPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 페이지 스크롤 막기
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   // 채팅방 정보 로드
   useEffect(() => {
     const loadChatRoom = async () => {
@@ -71,21 +79,21 @@ const ChatPage = () => {
     : null;
 
   return (
-    <div className="chat-shell w-full bg-chatBg min-h-screen">
+    <div className="chat-shell w-full bg-baseBg min-h-screen">
       <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-6 lg:py-8">
         {!currentUserId ? (
           <div className="min-h-[600px] flex items-center justify-center">
-            <div className="text-chatMuted">로그인이 필요합니다.</div>
+            <div className="text-baseMuted">로그인이 필요합니다.</div>
           </div>
         ) : loading ? (
           <div className="min-h-[600px] flex items-center justify-center">
-            <div className="text-chatMuted">로딩 중...</div>
+            <div className="text-baseMuted">로딩 중...</div>
           </div>
         ) : error || !chatRoomInfo ? (
           <div className="min-h-[600px] flex items-center justify-center flex-col gap-4">
-            <div className="text-chatMuted">{error || "존재하지 않는 채팅방입니다."}</div>
+            <div className="text-baseMuted">{error || "존재하지 않는 채팅방입니다."}</div>
             <button
-              className="bg-chatNavy text-white px-6 py-3 rounded-chat font-semibold hover:opacity-90 transition-all shadow-chat"
+              className="bg-brandNavy text-white px-6 py-3 rounded-ui font-semibold hover:opacity-90 transition-all shadow-ui"
               onClick={() => navigate("/chat")}
             >
               목록으로

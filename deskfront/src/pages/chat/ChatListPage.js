@@ -8,6 +8,14 @@ const ChatListPage = () => {
   const currentUserId = loginState?.email || '';
   const navigate = useNavigate();
 
+  // 페이지 스크롤 막기
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
  useEffect(() => {
     if (!loginState.email) {
       alert("로그인이 필요한 서비스입니다.");
