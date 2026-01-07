@@ -280,7 +280,7 @@ const AIChatWidget = ({ onClose }) => {
                 📎
               </button>
 
-              {/* 마이크 버튼 (새로 추가) */}
+
               <button
                 type="button"
                 style={{
