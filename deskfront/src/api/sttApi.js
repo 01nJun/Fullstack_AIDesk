@@ -1,7 +1,8 @@
 // import axios from "axios"; // 기존 axios 제거
 import jwtAxios from "../util/jwtUtil"; // 프로젝트의 jwtAxios 경로로 수정하세요
+const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
 
-const API_BASE_URL = "http://localhost:8080/api/stt";
+const API_BASE_URL = `${API_SERVER_HOST}/api/stt`;
 
 export const sttApi = {
   uploadAudio: async (file) => {

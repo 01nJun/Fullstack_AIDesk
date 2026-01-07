@@ -1,8 +1,8 @@
 import axios from "axios";
-import { API_SERVER_HOST } from "./memberApi";
+const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
 
-const rest_api_key = ``; // rest키값
-const redirect_uri = `http://localhost:3000/member/kakao`;
+const rest_api_key = process.env.REACT_APP_KAKAO_REST_API_KEY;
+const redirect_uri = process.env.REACT_APP_KAKAO_REDIRECT_URI;
 
 const auth_code_path = `https://kauth.kakao.com/oauth/authorize`;
 const access_token_url = `https://kauth.kakao.com/oauth/token`;

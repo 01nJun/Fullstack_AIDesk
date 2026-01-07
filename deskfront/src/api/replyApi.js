@@ -1,5 +1,6 @@
 import jwtAxios from "../util/jwtUtil"; // 커스텀 axios 임포트
-import { API_SERVER_HOST } from "./memberApi"; // 호스트 주소 임포트
+const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
+
 
 // 댓글 관련 API의 기본 경로
 const prefix = `${API_SERVER_HOST}/api/replies`;

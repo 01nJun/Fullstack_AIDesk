@@ -1,7 +1,8 @@
 import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 import { getCookie } from "../util/cookieUtil";
-import { API_SERVER_HOST } from "./memberApi";
+const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
+
 
 /**
  * WebSocket 채팅 클라이언트

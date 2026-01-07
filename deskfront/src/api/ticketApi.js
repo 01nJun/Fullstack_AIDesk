@@ -1,5 +1,6 @@
 import jwtAxios from "../util/jwtUtil";
-import { API_SERVER_HOST } from "./memberApi";
+const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
+
 
 const host = `${API_SERVER_HOST}/api/tickets`;
 

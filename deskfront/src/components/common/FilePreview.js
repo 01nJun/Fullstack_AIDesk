@@ -1,5 +1,5 @@
 import React from 'react';
-import { API_SERVER_HOST } from '../../api/memberApi';
+const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
 
 const FilePreview = ({ file, isLocal = false }) => {
     // 가공된 displayName이 있으면 사용, 없으면 원본 fileName 사용
