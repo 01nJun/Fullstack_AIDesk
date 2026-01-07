@@ -36,7 +36,13 @@ const JoinComponent = () => {
         }
       })
       .catch((err) => {
-        alert("회원가입 실패. 다시 시도해주세요.");
+          const errorCode = err?.response?.data?.code;
+
+          if (errorCode === "DELETED_ACCOUNT") {
+            alert("이미 존재하는 이메일 입니다");
+          } else {
+            alert("회원가입 실패. 다시 시도해주세요.");
+          }
       });
   };
 

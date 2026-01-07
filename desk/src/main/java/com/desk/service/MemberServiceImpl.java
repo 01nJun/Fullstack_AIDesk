@@ -9,7 +9,7 @@ import com.desk.dto.MemberModifyDTO;
 import com.desk.dto.PageRequestDTO;
 import com.desk.dto.PageResponseDTO;
 import com.desk.repository.MemberRepository;
-import com.desk.util.MemberExistException;
+import com.desk.util.DuplicateMemberException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -17,6 +17,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -173,8 +174,11 @@ public class MemberServiceImpl implements MemberService {
         String email = memberJoinDTO.getEmail();
 
         // 1. 이메일 중복 검사
-        if(memberRepository.existsById(email)){
-            throw new MemberExistException();
+//        if(memberRepository.existsById(email)){
+//            throw new BadCredentialsException("DELETED_ACCOUNT");
+//        }
+        if (memberRepository.existsById(email)) {
+            throw new DuplicateMemberException();
         }
 
         // 2. 회원 엔티티 생성
