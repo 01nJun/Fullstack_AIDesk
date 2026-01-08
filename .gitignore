@@ -1,6 +1,7 @@
 ### 1. 시스템 및 IDE 설정 (팀원과 공유 X) ###
 .idea/
 .vscode/
+.cursor/
 .DS_Store
 Thumbs.db
 
