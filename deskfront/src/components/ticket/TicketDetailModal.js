@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { getTicketDetailByTno } from "../../api/ticketApi";
 import { downloadFile } from "../../api/fileApi";
@@ -7,15 +7,73 @@ import { getGradeBadge, getStateLabel, formatDate } from "../../util/ticketUtils
 import FilePreview from "../common/FilePreview";
 import useCustomPin from "../../hooks/useCustomPin";
 
+// 모달 애니메이션 스타일
+const modalStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideUpScale {
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+`;
+
+// 스타일 태그 추가
+if (typeof document !== 'undefined' && !document.getElementById('ticket-detail-modal-animations')) {
+  const style = document.createElement('style');
+  style.id = 'ticket-detail-modal-animations';
+  style.textContent = modalStyles;
+  document.head.appendChild(style);
+}
+
 const TicketDetailModal = ({ tno, onClose, onDelete }) => {
   const loginState = useSelector((state) => state.loginSlice);
   const currentEmail = loginState.email;
   const { togglePin, isPinned } = useCustomPin();
+  const modalRef = useRef(null);
 
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isWriter, setIsWriter] = useState(false);
   const [isReceiver, setIsReceiver] = useState(false);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+
+  // ESC 키로 닫기
+  useEffect(() => {
+    if (!tno) {
+      setShouldAnimate(false);
+      return;
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // 모달이 열릴 때 약간의 지연 후 애니메이션 적용
+    // 먼저 초기 상태에 설정한 후, 다음 프레임에서 애니메이션 시작
+    setShouldAnimate(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setShouldAnimate(true);
+      });
+    });
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [tno, onClose]);
 
   // TicketDetailModal.js 내부의 useEffect 수정
   useEffect(() => {
@@ -89,16 +147,40 @@ const TicketDetailModal = ({ tno, onClose, onDelete }) => {
     }
   };
 
-  if (loading || !ticket)
+  if (loading || !ticket) {
+    if (!tno) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 text-white font-black">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 text-white font-black transition-opacity duration-200 ease-out"
+        style={{ opacity: 1, animation: 'fadeIn 0.2s ease-out' }}
+      >
         로딩 중...
       </div>
     );
+  }
+
+  if (!tno) return null;
 
   return (
-    <div className="ui-modal-overlay p-4" onClick={onClose}>
-      <div className="ui-modal-panel w-full max-w-[80%] max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className="ui-modal-overlay p-4 transition-opacity duration-200 ease-out" 
+      onClick={onClose}
+      style={{ 
+        opacity: shouldAnimate ? 1 : 0,
+        animation: shouldAnimate ? 'fadeIn 0.2s ease-out' : 'none'
+      }}
+    >
+      <div 
+        ref={modalRef}
+        className="ui-modal-panel w-full max-w-[80%] max-h-[90vh] overflow-hidden flex flex-col transition-transform duration-200 ease-out" 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          animation: shouldAnimate ? 'slideUpScale 0.2s ease-out' : 'none',
+          willChange: 'transform, opacity',
+          opacity: shouldAnimate ? 1 : 0,
+          transform: shouldAnimate ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)'
+        }}
+      >
         <div className="ui-modal-header flex items-center justify-between">
           <div className="flex items-center flex-1 gap-3">
             <button onClick={onClose} className="text-baseMuted hover:text-baseText text-xl font-bold transition-all">←</button>

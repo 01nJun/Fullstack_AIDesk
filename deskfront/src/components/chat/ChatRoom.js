@@ -87,19 +87,24 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
       // 백엔드 응답을 프론트엔드 형식으로 변환 (최신순이므로 reverse)
       const transformedMessages = response.dtoList
         .reverse()
-        .map((msg) => ({
-          id: msg.id,
-          chatRoomId: msg.chatRoomId,
-          senderId: msg.senderId,
-          senderNickname: msg.senderNickname || msg.senderId,
-          receiverId: chatRoomInfo?.isGroup ? null : (msg.senderId === currentUserId ? otherUserId : currentUserId),
-          content: msg.content,
-          createdAt: msg.createdAt,
-          isRead: true,
-          isTicketPreview: msg.messageType === "TICKET_PREVIEW",
-          ticketId: msg.ticketId,
-          messageSeq: msg.messageSeq,
-        }));
+        .map((msg) => {
+          const isTicketPreview = msg.messageType === "TICKET_PREVIEW" || 
+                                  String(msg.messageType).toUpperCase() === "TICKET_PREVIEW";
+          return {
+            id: msg.id,
+            chatRoomId: msg.chatRoomId,
+            senderId: msg.senderId,
+            senderNickname: msg.senderNickname || msg.senderId,
+            receiverId: chatRoomInfo?.isGroup ? null : (msg.senderId === currentUserId ? otherUserId : currentUserId),
+            content: msg.content,
+            createdAt: msg.createdAt,
+            isRead: msg.senderId === currentUserId ? (msg.unreadCount === 0) : true, // 내 메시지는 unreadCount로 판단
+            isTicketPreview: isTicketPreview,
+            ticketId: msg.ticketId,
+            messageSeq: msg.messageSeq,
+            unreadCount: msg.unreadCount, // 추가
+          };
+        });
 
       // 스크롤 위치 보정을 위해 현재 스크롤 위치 저장
       const container = chatContainerRef.current;
@@ -151,19 +156,24 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
         // 백엔드 응답을 프론트엔드 형식으로 변환 (최신순이므로 reverse)
         const transformedMessages = (response.dtoList || [])
           .reverse()
-          .map((msg) => ({
-            id: msg.id,
-            chatRoomId: msg.chatRoomId,
-            senderId: msg.senderId,
-            senderNickname: msg.senderNickname || msg.senderId,
-            receiverId: chatRoomInfo?.isGroup ? null : (msg.senderId === currentUserId ? otherUserId : currentUserId),
-            content: msg.content,
-            createdAt: msg.createdAt,
-            isRead: true, // 서버에서 이미 읽음 처리된 것으로 간주
-            isTicketPreview: msg.messageType === "TICKET_PREVIEW",
-            ticketId: msg.ticketId,
-            messageSeq: msg.messageSeq,
-          }));
+          .map((msg) => {
+            const isTicketPreview = msg.messageType === "TICKET_PREVIEW" || 
+                                    String(msg.messageType).toUpperCase() === "TICKET_PREVIEW";
+            return {
+              id: msg.id,
+              chatRoomId: msg.chatRoomId,
+              senderId: msg.senderId,
+              senderNickname: msg.senderNickname || msg.senderId,
+              receiverId: chatRoomInfo?.isGroup ? null : (msg.senderId === currentUserId ? otherUserId : currentUserId),
+              content: msg.content,
+              createdAt: msg.createdAt,
+              isRead: msg.isRead != null ? msg.isRead : (msg.senderId === currentUserId ? (msg.unreadCount === 0) : true), // 서버에서 받은 isRead 우선 사용
+              isTicketPreview: isTicketPreview,
+              ticketId: msg.ticketId,
+              messageSeq: msg.messageSeq,
+              unreadCount: msg.unreadCount, // 추가
+            };
+          });
         setMessages(transformedMessages);
         setHasMore(response.totalCount > transformedMessages.length);
         setCurrentPage(1);
@@ -194,6 +204,10 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
     chatWsClient.connect(
       chatRoomId,
       (newMessage) => {
+        // 티켓 미리보기 메시지 확인
+        const isTicketPreview = newMessage.messageType === "TICKET_PREVIEW" || 
+                                String(newMessage.messageType).toUpperCase() === "TICKET_PREVIEW";
+        
         // 백엔드 응답을 프론트엔드 형식으로 변환
         const transformedMessage = {
           id: newMessage.id,
@@ -203,11 +217,19 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           receiverId: chatRoomInfo?.isGroup ? null : (newMessage.senderId === currentUserId ? otherUserId : currentUserId),
           content: newMessage.content,
           createdAt: newMessage.createdAt,
-          isRead: newMessage.senderId === currentUserId, // 내가 보낸 메시지는 읽음
-          isTicketPreview: newMessage.messageType === "TICKET_PREVIEW",
+          isRead: newMessage.senderId === currentUserId ? (newMessage.unreadCount === 0) : true, // 내가 보낸 메시지는 unreadCount로 판단
+          isTicketPreview: isTicketPreview,
           ticketId: newMessage.ticketId,
           messageSeq: newMessage.messageSeq,
+          unreadCount: newMessage.unreadCount, // 추가
         };
+
+        // 티켓 트리거만 있고 실제 메시지가 없는 경우(id가 null) 메시지 목록에 추가하지 않음
+        if (newMessage.ticketTrigger && !newMessage.id) {
+          // 티켓 생성 문맥 감지 시 확인 모달 띄우기
+          openConfirmModal();
+          return;
+        }
 
         setMessages((prev) => {
           // 중복 방지
@@ -299,6 +321,10 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           aiEnabled: aiEnabled,
         });
         
+        // 티켓 미리보기 메시지 확인
+        const isTicketPreview = newMessage.messageType === "TICKET_PREVIEW" || 
+                                String(newMessage.messageType).toUpperCase() === "TICKET_PREVIEW";
+        
         // 백엔드 응답을 프론트엔드 형식으로 변환
         const transformedMessage = {
           id: newMessage.id,
@@ -308,11 +334,19 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           receiverId: chatRoomInfo?.isGroup ? null : (newMessage.senderId === currentUserId ? otherUserId : currentUserId),
           content: newMessage.content,
           createdAt: newMessage.createdAt,
-          isRead: true,
-          isTicketPreview: newMessage.messageType === "TICKET_PREVIEW",
+          isRead: newMessage.senderId === currentUserId ? (newMessage.unreadCount === 0) : true, // 내가 보낸 메시지는 unreadCount로 판단
+          isTicketPreview: isTicketPreview,
           ticketId: newMessage.ticketId,
           messageSeq: newMessage.messageSeq,
+          unreadCount: newMessage.unreadCount, // 추가
         };
+
+        // 티켓 트리거만 있고 실제 메시지가 없는 경우(id가 null) 메시지 목록에 추가하지 않음
+        if (newMessage.ticketTrigger && !newMessage.id) {
+          // 티켓 생성 문맥 감지 시 확인 모달 띄우기
+          openConfirmModal();
+          return;
+        }
 
         setMessages((prev) => [...prev, transformedMessage]);
         
@@ -558,40 +592,57 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
                       </div>
                     )}
 
-                    <div
-                      className={`px-4 py-2.5 rounded-ui ${
-                        msg.senderId === currentUserId
-                          ? "bg-brandNavy text-white"
-                          : "bg-baseBg text-baseText border border-baseBorder"
-                      }`}
-                    >
-                      {msg.isTicketPreview ? (
-                        <div
-                          onClick={() => handleTicketPreviewClick(msg.ticketId)}
-                          className="cursor-pointer hover:opacity-80 transition-opacity"
-                        >
-                          <div className={`font-semibold mb-1 text-sm ${msg.senderId === currentUserId ? "text-white" : "text-baseText"}`}>
-                            🎫 티켓 미리보기
+                    {/* 메시지 컨테이너 - relative로 배지 위치 지정 */}
+                    <div className="relative inline-block">
+                      <div
+                        className={`px-4 py-2.5 rounded-ui ${
+                          msg.senderId === currentUserId
+                            ? "bg-brandNavy text-white"
+                            : "bg-baseBg text-baseText border border-baseBorder"
+                        }`}
+                      >
+                        {msg.isTicketPreview ? (
+                          <div
+                            onClick={() => handleTicketPreviewClick(msg.ticketId)}
+                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                          >
+                            <div className={`font-semibold mb-1 text-sm ${msg.senderId === currentUserId ? "text-white" : "text-baseText"}`}>
+                              🎫 티켓 미리보기
+                            </div>
+                            <div className={`text-xs ${msg.senderId === currentUserId ? "opacity-90" : "text-baseMuted"}`}>
+                              클릭하여 티켓 정보 확인
+                            </div>
                           </div>
-                          <div className={`text-xs ${msg.senderId === currentUserId ? "opacity-90" : "text-baseMuted"}`}>
-                            클릭하여 티켓 정보 확인
-                          </div>
+                        ) : (
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
+                        )}
+
+                        <div className={`text-xs mt-1.5 flex items-center gap-1.5 ${msg.senderId === currentUserId ? "text-white/80" : "text-baseMuted"}`}>
+                          <span>
+                            {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
                         </div>
-                      ) : (
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
+                      </div>
+
+                      {/* 보낸 사람(내가 보낸 메시지): 좌측 하단에 안 읽은 사람 수 표시 */}
+                      {msg.senderId === currentUserId && 
+                       msg.unreadCount != null && 
+                       msg.unreadCount > 0 && (
+                        <span className="absolute -left-3 bottom-0 text-brandNavy text-xs font-semibold">
+                          {msg.unreadCount}
+                        </span>
                       )}
 
-                      <div className={`text-xs mt-1.5 flex items-center gap-1.5 ${msg.senderId === currentUserId ? "text-white/80" : "text-baseMuted"}`}>
-                        <span>
-                          {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                      {/* 받은 사람(상대방이 보낸 메시지): 우측 하단에 읽지 않았으면 표시 */}
+                      {msg.senderId !== currentUserId && 
+                       msg.isRead === false && (
+                        <span className="absolute -right-3 bottom-0 text-brandNavy text-xs font-semibold">
+                          1
                         </span>
-                        {msg.senderId !== currentUserId && msg.isRead === false && (
-                          <span className="text-brandOrange">●</span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -4,6 +4,7 @@ import { aiSecretaryApi } from "../../api/aiSecretaryApi";
 import { aiFileApi } from "../../api/aiFileApi";
 import { sttApi } from "../../api/sttApi";
 import { sendMessageRest } from "../../api/chatApi";
+import chatWsClient from "../../api/chatWs";
 import { getMemberInfo } from "../../api/memberApi";
 import FilePreview from "../common/FilePreview";
 import AIFilePanel from "../file/AIFilePanel";
@@ -65,6 +66,39 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
   const [isSttLoading, setIsSttLoading] = useState(false);
   // 여러 명 담당자 정보를 위한 배열
   const [assigneesInfo, setAssigneesInfo] = useState([]);
+
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const overlayRef = useRef(null);
+  const containerRef = useRef(null);
+  const onCloseRef = useRef(onClose);
+
+  // onClose 함수 참조 업데이트
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  // ESC 키로 모달 닫기 및 애니메이션 초기화
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // 모달이 열릴 때 약간의 지연 후 애니메이션 적용 (마운트 시에만 실행)
+    setShouldAnimate(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setShouldAnimate(true);
+      });
+    });
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // 빈 배열로 변경 - 마운트 시에만 실행
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -445,14 +479,24 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
         currentUserEmail
       );
 
-      // 2. 티켓 저장 성공 시 채팅방에 티켓 미리보기 메시지 전송
+      // 2. 티켓 저장 성공 시 채팅방에 티켓 미리보기 메시지 실시간 전송 (WebSocket)
       if (chatRoomId && ticketResponse?.tno) {
         try {
-          await sendMessageRest(chatRoomId, {
+          // WebSocket을 통해 실시간 전송 시도
+          const wsSuccess = chatWsClient.send(chatRoomId, {
             content: `티켓이 생성되었습니다: ${currentTicket.title}`,
             messageType: "TICKET_PREVIEW",
             ticketId: ticketResponse.tno,
           });
+
+          // WebSocket 실패 시 REST API로 fallback
+          if (!wsSuccess) {
+            await sendMessageRest(chatRoomId, {
+              content: `티켓이 생성되었습니다: ${currentTicket.title}`,
+              messageType: "TICKET_PREVIEW",
+              ticketId: ticketResponse.tno,
+            });
+          }
         } catch (messageError) {
           console.error("채팅 메시지 전송 실패:", messageError);
           // 티켓은 저장되었지만 메시지 전송 실패 - 사용자에게 알림
@@ -495,8 +539,24 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
 
 
   return (
-    <div className="ai-widget-overlay">
-      <div className="ai-widget-container">
+    <div 
+      ref={overlayRef}
+      className="ai-widget-overlay"
+      style={{ 
+        opacity: shouldAnimate ? 1 : 0,
+        animation: shouldAnimate ? 'fadeInOverlay 0.2s ease-out' : 'none'
+      }}
+    >
+      <div 
+        ref={containerRef}
+        className="ai-widget-container"
+        style={{
+          opacity: shouldAnimate ? 1 : 0,
+          transform: shouldAnimate ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.96)',
+          animation: shouldAnimate ? 'slideUpScaleModal 0.2s ease-out' : 'none',
+          willChange: 'transform, opacity'
+        }}
+      >
         <div className="ai-widget-header">
           <h2>AI 업무 비서</h2>
           <button className="close-btn" onClick={onClose}>

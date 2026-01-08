@@ -18,7 +18,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -47,9 +49,23 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // 메시지 조회
         Page<ChatMessage> result = chatMessageRepository.findByChatRoomIdOrderByMessageSeqDesc(roomId, pageable);
         
-        // DTO 변환
+        // 채팅방 정보 및 참여자 정보 한 번에 조회 (N+1 방지)
+        ChatRoom room = chatRoomRepository.findById(roomId).orElse(null);
+        List<ChatParticipant> participants = room != null 
+                ? chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE)
+                : Collections.emptyList();
+        
+        // 각 참여자의 lastReadSeq를 Map으로 저장 (조회 최적화)
+        Map<String, Long> lastReadSeqMap = participants.stream()
+                .collect(Collectors.toMap(
+                        ChatParticipant::getUserId,
+                        ChatParticipant::getLastReadSeq,
+                        (a, b) -> a
+                ));
+        
+        // DTO 변환 (메모리에서 계산)
         List<ChatMessageDTO> dtoList = result.getContent().stream()
-                .map(this::toChatMessageDTO)
+                .map(msg -> toChatMessageDTOOptimized(msg, userId, room, lastReadSeqMap))
                 .collect(Collectors.toList());
         
         return PageResponseDTO.<ChatMessageDTO>withAll()
@@ -75,6 +91,19 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // ============================================================
         String originalContent = createDTO.getContent();
         String filteredContent = originalContent;
+        boolean ticketTrigger = false;
+        
+        // 티켓 미리보기 메시지(TICKET_PREVIEW)나 이미 ticketId가 있는 메시지는 티켓 트리거 체크를 건너뜀
+        boolean isTicketPreview = createDTO.getMessageType() == ChatMessageType.TICKET_PREVIEW 
+                || createDTO.getTicketId() != null;
+        
+        // 티켓 생성 트리거 체크 (하드코딩) - 티켓 미리보기가 아닌 경우에만
+        if (!isTicketPreview) {
+            String lowerContent = originalContent.toLowerCase();
+            if (lowerContent.contains("티켓") || lowerContent.contains("업무")) {
+                ticketTrigger = true;
+            }
+        }
         
         // 매핑 1
         if (originalContent.contains("아 김도현 진짜 채팅 화면 파일 첨부 아이콘 위치 이거 뭐냐?") 
@@ -108,19 +137,56 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // 시연용 AI 필터링 끝
         // ============================================================
 
-        // AI 메시지 처리 (선택적)
+        // AI 메시지 처리 (선택적) - 티켓 미리보기가 아닌 경우에만
         String finalContent = filteredContent;
-        boolean ticketTrigger = false;
 
-        if (createDTO.getAiEnabled() != null && createDTO.getAiEnabled()) {
+        if (!isTicketPreview && createDTO.getAiEnabled() != null && createDTO.getAiEnabled()) {
             AiMessageProcessor.ProcessResult aiResult = aiMessageProcessor.processMessage(
                     createDTO.getContent(),
                     createDTO.getAiEnabled()
             );
             finalContent = aiResult.getProcessedContent();
-            ticketTrigger = aiResult.isTicketTrigger();
+            // 하드코딩된 트리거 또는 AI 트리거 중 하나라도 true면 티켓 트리거
+            ticketTrigger = ticketTrigger || aiResult.isTicketTrigger();
         }
 
+        // 티켓 트리거가 감지되고 티켓 미리보기가 아닌 경우에만 메시지를 DB에 저장하지 않고 티켓 트리거만 반환
+        if (ticketTrigger && !isTicketPreview) {
+            log.info("[Chat] 티켓 트리거 감지 - 메시지 저장 건너뜀 | roomId={} | senderId={}", roomId, senderId);
+            
+            // 채팅방 정보 및 참여자 정보 조회 (unreadCount 계산용)
+            List<ChatParticipant> participants = chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE);
+            Map<String, Long> lastReadSeqMap = participants.stream()
+                    .collect(Collectors.toMap(
+                            ChatParticipant::getUserId,
+                            ChatParticipant::getLastReadSeq,
+                            (a, b) -> a
+                    ));
+            
+            // 티켓 트리거만 포함한 DTO 생성 (실제 메시지는 저장하지 않음)
+            String nickname = memberRepository.findById(senderId)
+                    .map(m -> m.getNickname())
+                    .orElse(senderId);
+            
+            ChatMessageDTO dto = ChatMessageDTO.builder()
+                    .id(null) // DB에 저장되지 않았으므로 null
+                    .chatRoomId(roomId)
+                    .messageSeq(null) // DB에 저장되지 않았으므로 null
+                    .senderId(senderId)
+                    .senderNickname(nickname)
+                    .messageType(createDTO.getMessageType() != null ? createDTO.getMessageType() : ChatMessageType.TEXT)
+                    .content(finalContent) // 필터링된 내용은 포함하되 DB에는 저장하지 않음
+                    .ticketId(null)
+                    .createdAt(null) // DB에 저장되지 않았으므로 null
+                    .ticketTrigger(true) // 티켓 트리거 설정
+                    .unreadCount(null)
+                    .isRead(null)
+                    .build();
+
+            return dto;
+        }
+
+        // 티켓 트리거가 아닌 경우에만 메시지 저장
         // messageSeq 생성
         Long maxSeq = chatMessageRepository.findMaxMessageSeqByChatRoomId(roomId);
         Long newSeq = maxSeq + 1;
@@ -151,8 +217,17 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                     roomId, senderId, newSeq);
         }
 
+        // 채팅방 정보 및 참여자 정보 조회 (unreadCount 계산용)
+        List<ChatParticipant> participants = chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE);
+        Map<String, Long> lastReadSeqMap = participants.stream()
+                .collect(Collectors.toMap(
+                        ChatParticipant::getUserId,
+                        ChatParticipant::getLastReadSeq,
+                        (a, b) -> a
+                ));
+        
         // DTO 생성 시 ticketTrigger 포함
-        ChatMessageDTO dto = toChatMessageDTO(message);
+        ChatMessageDTO dto = toChatMessageDTOOptimized(message, senderId, room, lastReadSeqMap);
         dto.setTicketTrigger(ticketTrigger);
 
         return dto;
@@ -193,9 +268,21 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // 채팅방의 lastMsg 업데이트
         room.updateLastMessage(newSeq, content);
         
-        return toChatMessageDTO(message);
+        // 참여자 정보 조회 (unreadCount 계산용)
+        List<ChatParticipant> participants = chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE);
+        Map<String, Long> lastReadSeqMap = participants.stream()
+                .collect(Collectors.toMap(
+                        ChatParticipant::getUserId,
+                        ChatParticipant::getLastReadSeq,
+                        (a, b) -> a
+                ));
+        
+        return toChatMessageDTOOptimized(message, actorId != null ? actorId : "SYSTEM", room, lastReadSeqMap);
     }
     
+    /**
+     * ChatMessage를 DTO로 변환 (unreadCount 미포함, 호환성을 위해 유지)
+     */
     private ChatMessageDTO toChatMessageDTO(ChatMessage message) {
         // Member 정보에서 nickname 가져오기
         String nickname = memberRepository.findById(message.getSenderId())
@@ -213,6 +300,75 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .ticketId(message.getTicketId())
                 .createdAt(message.getCreatedAt())
                 .ticketTrigger(false) // 기본값은 false, sendMessage에서 설정됨
+                .unreadCount(null) // unreadCount는 별도 계산 필요
+                .build();
+    }
+    
+    /**
+     * ChatMessage를 DTO로 변환 (unreadCount 포함, 최적화된 버전)
+     * @param message 변환할 메시지
+     * @param currentUserId 현재 사용자 ID
+     * @param room 채팅방 정보
+     * @param lastReadSeqMap 참여자별 lastReadSeq 맵 (N+1 방지용)
+     */
+    private ChatMessageDTO toChatMessageDTOOptimized(
+            ChatMessage message, 
+            String currentUserId, 
+            ChatRoom room,
+            Map<String, Long> lastReadSeqMap
+    ) {
+        // Member 정보에서 nickname 가져오기
+        String nickname = memberRepository.findById(message.getSenderId())
+                .map(m -> m.getNickname())
+                .orElse(message.getSenderId());
+        
+        Integer unreadCount = null;
+        Boolean isRead = null;
+        
+        Long messageSeq = message.getMessageSeq();
+        Long currentUserLastReadSeq = lastReadSeqMap.getOrDefault(currentUserId, 0L);
+        
+        // 내가 보낸 메시지인 경우: unreadCount 계산
+        if (message.getSenderId().equals(currentUserId)) {
+            if (room.getRoomType() == ChatRoomType.DIRECT) {
+                // 1:1 채팅: 상대방이 읽지 않았으면 1, 읽었으면 0
+                String otherUserId = lastReadSeqMap.keySet().stream()
+                        .filter(id -> !id.equals(currentUserId))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (otherUserId != null) {
+                    Long otherLastReadSeq = lastReadSeqMap.getOrDefault(otherUserId, 0L);
+                    unreadCount = (otherLastReadSeq < messageSeq) ? 1 : 0;
+                } else {
+                    unreadCount = 0;
+                }
+            } else {
+                // 그룹 채팅: 읽지 않은 참여자 수 계산 (발신자 제외)
+                long unreadCountLong = lastReadSeqMap.entrySet().stream()
+                        .filter(entry -> !entry.getKey().equals(currentUserId))
+                        .filter(entry -> entry.getValue() < messageSeq)
+                        .count();
+                unreadCount = (int) unreadCountLong;
+            }
+        } else {
+            // 받은 메시지인 경우: 내가 읽었는지 여부 계산
+            isRead = currentUserLastReadSeq >= messageSeq;
+        }
+        
+        return ChatMessageDTO.builder()
+                .id(message.getId())
+                .chatRoomId(message.getChatRoom().getId())
+                .messageSeq(message.getMessageSeq())
+                .senderId(message.getSenderId())
+                .senderNickname(nickname)
+                .messageType(message.getMessageType())
+                .content(message.getContent())
+                .ticketId(message.getTicketId())
+                .createdAt(message.getCreatedAt())
+                .ticketTrigger(false) // 기본값은 false, sendMessage에서 설정됨
+                .unreadCount(unreadCount)
+                .isRead(isRead)
                 .build();
     }
 }
