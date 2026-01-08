@@ -2,6 +2,8 @@ package com.desk.service;
 
 import com.desk.config.OllamaConfig;
 import com.desk.dto.MeetingMinutesDTO;
+import com.desk.domain.Member;
+import com.desk.repository.MemberRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.kernel.font.PdfFont;
@@ -9,10 +11,8 @@ import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
-// ... (기타 import 유지) ...
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -20,8 +20,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -49,7 +52,7 @@ public class OllamaServiceImpl implements OllamaService {
 
     private final ObjectMapper objectMapper;
     private final OllamaConfig ollamaConfig;
-
+    private final MemberRepository memberRepository; // 담당자
     // [수정] 파일과 텍스트를 받아서 AI에게 요청
     @Override
     public MeetingMinutesDTO getMeetingInfoFromAi(MultipartFile file, String title, String content, String purpose, String requirement) {
@@ -176,7 +179,29 @@ public class OllamaServiceImpl implements OllamaService {
 
             JsonNode root = objectMapper.readTree(response.getBody());
             String jsonStr = root.path("response").asText();
-            return objectMapper.readValue(jsonStr, MeetingMinutesDTO.class);
+            MeetingMinutesDTO result = objectMapper.readValue(jsonStr, MeetingMinutesDTO.class);
+
+            // [추가] attendees의 nickname을 email로 변환
+            if (result.getAttendees() != null && !result.getAttendees().isEmpty()) {
+                List<String> emailList = new ArrayList<>();
+                for (String attendee : result.getAttendees()) {
+                    if (attendee == null || attendee.trim().isEmpty()) continue;
+
+                    // nickname으로 DB 조회
+                    Optional<Member> foundMember = memberRepository.findByNickname(attendee.trim());
+                    if (foundMember.isPresent()) {
+                        String email = foundMember.get().getEmail();
+                        emailList.add(email);
+                        log.info("담당자 변환: {} -> {}", attendee, email);
+                    } else {
+                        // 찾지 못한 경우 로그만 남기고 제외
+                        log.warn("담당자를 찾을 수 없음: {}", attendee);
+                    }
+                }
+                result.setAttendees(emailList);
+            }
+
+            return result;
 
         } catch (Exception e) {
             log.error("AI 요청 실패", e);

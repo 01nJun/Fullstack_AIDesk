@@ -4,6 +4,7 @@ import { aiSecretaryApi } from "../../api/aiSecretaryApi";
 import { aiFileApi } from "../../api/aiFileApi";
 import { sttApi } from "../../api/sttApi";
 import { sendMessageRest } from "../../api/chatApi";
+import { getMemberInfo } from "../../api/memberApi";
 import FilePreview from "../common/FilePreview";
 import AIFilePanel from "../file/AIFilePanel";
 import "./AIChatWidget.css";
@@ -63,10 +64,45 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [isSttLoading, setIsSttLoading] = useState(false);
+  // 여러 명 담당자 정보를 위한 배열
+  const [assigneesInfo, setAssigneesInfo] = useState([]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 담당자 정보 조회 (receivers 변경 시) - 여러 명 지원
+  useEffect(() => {
+    const fetchAssigneesInfo = async () => {
+      if (!currentTicket.receivers || currentTicket.receivers.length === 0) {
+        setAssigneesInfo([]);
+        return;
+      }
+
+      try {
+        const promises = currentTicket.receivers
+          .filter((email) => !!email)
+          .map((email) => getMemberInfo(email).catch(() => null));
+
+        const results = await Promise.all(promises);
+
+        const cleaned = results
+          .map((info, idx) =>
+            info
+              ? { ...info, email: currentTicket.receivers[idx] }
+              : { email: currentTicket.receivers[idx] }
+          )
+          .filter(Boolean);
+
+        setAssigneesInfo(cleaned);
+      } catch (error) {
+        console.error("담당자 정보 조회 실패:", error);
+        setAssigneesInfo([]);
+      }
+    };
+
+    fetchAssigneesInfo();
+  }, [currentTicket.receivers]);
 
   const handleManualChange = (e) => {
     const { name, value } = e.target;
@@ -129,12 +165,19 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
       .join("\n\n");
     const purpose = compressText(s?.overview || "", 120);
     const requirement = compressList(s?.details || "", 5, 520);
-    let singleReceiver = "";
-    if (Array.isArray(s?.attendees) && s.attendees.length > 0)
-      singleReceiver = s.attendees[0];
-    else if (typeof s?.attendees === "string")
-      singleReceiver = s.attendees.split(",")[0].trim();
-    return { title, content, purpose, requirement, singleReceiver };
+
+    // 참석자 전체를 receivers로 사용 (여러 명 지원)
+    let receivers = [];
+    if (Array.isArray(s?.attendees)) {
+      receivers = s.attendees.filter((v) => !!v);
+    } else if (typeof s?.attendees === "string") {
+      receivers = s.attendees
+        .split(",")
+        .map((v) => v.trim())
+        .filter((v) => !!v);
+    }
+
+    return { title, content, purpose, requirement, receivers };
   };
 
   const cleanSttText = (text) => {
@@ -201,7 +244,7 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
       //   setAiSummary(summaryData);
 
       // 3. 우측 입력 폼 자동 채우기
-      const { title, content, purpose, requirement, singleReceiver } =
+      const { title, content, purpose, requirement, receivers } =
         buildInputFromSummary(summaryData);
 
       setCurrentTicket((prev) => ({
@@ -211,10 +254,8 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
         purpose: purpose || prev.purpose,
         requirement: requirement || prev.requirement,
         deadline: getDefaultDeadline(),
-        //   summaryData.deadline && summaryData.deadline.length >= 10
-        //     ? summaryData.deadline
-        //     : prev.deadline,
-        receivers: singleReceiver ? [singleReceiver] : prev.receivers,
+
+        receivers: receivers && receivers.length ? receivers : prev.receivers,
       }));
 
       // 4. PDF 생성 및 자동 첨부
@@ -517,99 +558,6 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
     }
   };
 
-  // const openPreviewAndDownloadPdf = (arrayBuffer, fileName = "report.pdf") => {
-  //   const bytes = new Uint8Array(arrayBuffer);
-  //   const sig = String.fromCharCode(...bytes.slice(0, 5));
-  //   if (sig !== "%PDF-") {
-  //     const text = new TextDecoder("utf-8").decode(bytes);
-  //     throw new Error(text || "서버가 PDF가 아닌 데이터를 반환했습니다.");
-  //   }
-  //   const blob = new Blob([bytes], { type: "application/pdf" });
-  //   const url = URL.createObjectURL(blob);
-  //   window.open(url, "_blank", "noopener,noreferrer");
-  //   const a = document.createElement("a");
-  //   a.href = url;
-  //   a.download = fileName;
-  //   document.body.appendChild(a);
-  //   a.click();
-  //   a.remove();
-  //   setTimeout(() => URL.revokeObjectURL(url), 30000);
-  // };
-
-  // ✅ 수동 버튼용 요약 핸들러 (기존 로직 유지)
-  // const handleAiSummary = async () => {
-  //   setIsLoading(true);
-  //   setAiSummary("⏳ 내용을 분석하여 회의록을 작성 중입니다...");
-  //   try {
-  //     const fileToSend = selectedFiles.length > 0 ? selectedFiles[0] : null;
-  //     const data = await aiSecretaryApi.getSummary(currentTicket, fileToSend);
-  //     setAiSummary(data);
-
-  //     const { title, content, purpose, requirement, singleReceiver } =
-  //       buildInputFromSummary(data);
-  //     setCurrentTicket((prev) => ({
-  //       ...prev,
-  //       title: title || prev.title,
-  //       content: content || prev.content,
-  //       purpose: purpose || prev.purpose,
-  //       requirement: requirement || prev.requirement,
-  //       deadline:
-  //         data.deadline && data.deadline.length >= 10
-  //           ? data.deadline
-  //           : prev.deadline,
-  //       receivers: singleReceiver ? [singleReceiver] : prev.receivers,
-  //     }));
-  //   } catch (error) {
-  //     console.error(error);
-  //     setAiSummary("오류가 발생했습니다.");
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  // ✅ 수동 버튼용 PDF 다운로드 핸들러
-  // const handleDownloadPdf = async () => {
-  //   setIsLoading(true);
-  //   try {
-  //     let res;
-  //     if (aiSummary && typeof aiSummary === "object") {
-  //       res = await aiSecretaryApi.downloadSummaryPdf(aiSummary);
-  //     } else {
-  //       const fileToSend = selectedFiles.length > 0 ? selectedFiles[0] : null;
-  //       const raw = await aiSecretaryApi.downloadPdf(currentTicket, fileToSend);
-  //       res = {
-  //         status: 200,
-  //         headers: { "content-type": "application/pdf" },
-  //         data: raw,
-  //       };
-  //     }
-  //     const ct = res.headers?.["content-type"] || "";
-  //     if (res.status !== 200 || !ct.includes("application/pdf")) {
-  //       const text = new TextDecoder("utf-8").decode(res.data);
-  //       throw new Error(text);
-  //     }
-  //     const blob = new Blob([new Uint8Array(res.data)], {
-  //       type: "application/pdf",
-  //     });
-  //     const url = window.URL.createObjectURL(blob);
-  //     const link = document.createElement("a");
-  //     link.href = url;
-  //     const fileName = `${
-  //       aiSummary?.title || currentTicket.title || "회의록"
-  //     }_AI_Report.pdf`;
-
-  //     openPreviewAndDownloadPdf(res.data, fileName);
-
-  //     document.body.appendChild(link);
-  //     link.click();
-  //     link.remove();
-  //     window.URL.revokeObjectURL(url);
-  //   } catch (e) {
-  //     alert(e?.message || "PDF 다운로드에 실패했어요.");
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   return (
     <div className="ai-widget-overlay">
@@ -709,57 +657,102 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
           </div>
 
           <div className="ai-ticket-section">
-            {mode === "file" ? (
-              <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 10px 0 10px",
-                  }}
-                >
-                  <div style={{ fontWeight: 800 }}>파일조회</div>
-                  <button
-                    className="reset-btn"
-                    onClick={handleReset}
-                    style={{ padding: "5px 10px", borderRadius: "4px", fontSize: "13px" }}
-                  >
-                    초기화
-                  </button>
-                </div>
-                <div style={{ flex: 1, minHeight: 0 }}>
-                  <AIFilePanel results={aiFileResults} />
-                </div>
-              </div>
-            ) : (
-              <>
-                <div
-                  className="ticket-header-row"
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <span className="dept-badge">To: {targetDept || "(미지정)"}</span>
-                  <div style={{ display: "flex", gap: "5px" }}>
-                    <button
-                      className="reset-btn"
-                      onClick={handleReset}
-                      style={{
-                        padding: "5px 10px",
-                        borderRadius: "4px",
-                        fontSize: "13px",
-                      }}
-                    >
-                      초기화
-                    </button>
-                  </div>
-                </div>
+                      {mode === "file" ? (
+                        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: "10px 10px 0 10px",
+                            }}
+                          >
+                            <div style={{ fontWeight: 800 }}>파일조회</div>
+                            <button
+                              className="reset-btn"
+                              onClick={handleReset}
+                              style={{ padding: "5px 10px", borderRadius: "4px", fontSize: "13px" }}
+                            >
+                              초기화
+                            </button>
+                          </div>
+                          <div style={{ flex: 1, minHeight: 0 }}>
+                            <AIFilePanel results={aiFileResults} />
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+            <div
+              className="ticket-header-row"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "10px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontWeight: "600", fontSize: "12px" }}>To:</span>
 
-                <div className="ticket-preview-box" ref={pdfRef}>
+                {assigneesInfo && assigneesInfo.length > 0 ? (
+                  assigneesInfo.length === 1 ? (
+                    <>
+                      <span className="dept-badge">
+                        {assigneesInfo[0].department ||
+                          targetDept ||
+                          "부서 미지정"}
+                      </span>
+                      <span className="dept-badge">
+                        {assigneesInfo[0].nickname ||
+                          assigneesInfo[0].email ||
+                          "담당자 미지정"}
+                      </span>
+                    </>
+                  ) : (
+                    assigneesInfo.map((info, idx) => (
+                      <span
+                        key={info.email || idx}
+                        className="dept-badge"
+                        title={info.department || targetDept || "부서 미지정"}
+                      >
+                        {info.nickname || info.email || "담당자 미지정"}
+                      </span>
+                    ))
+                  )
+                ) : currentTicket.receivers &&
+                  currentTicket.receivers.length > 0 ? (
+                  // 백엔드 정보가 아직 없을 때 fallback
+                  currentTicket.receivers.map((email, idx) => (
+                    <span
+                      key={email || idx}
+                      className="dept-badge"
+                      title={targetDept || "부서 미지정"}
+                    >
+                      {email}
+                    </span>
+                  ))
+                ) : (
+                  <span className="dept-badge">담당자 미지정</span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: "5px" }}>
+
+                <button
+                  className="reset-btn"
+                  onClick={handleReset}
+                  style={{
+                    padding: "5px 10px",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                  }}
+                >
+                  초기화
+                </button>
+              </div>
+            </div>
+
+            <div className="ticket-preview-box" ref={pdfRef}>
+
 
               <div className="form-group">
                 <label>
@@ -872,21 +865,21 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
             </div>
 
             {submitSuccess ? (
-              <div className="success-box">✅ 티켓 전송 완료</div>
-            ) : (
-              (isCompleted || isFormValid()) && (
-                <button
-                  className="submit-btn"
-                  onClick={handleSubmitTicket}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "전송 중..." : "🚀 업무 티켓 전송"}
-                </button>
-              )
-            )}
-              </>
-            )}
-          </div>
+                    <div className="success-box">✅ 티켓 전송 완료</div>
+                  ) : (
+                    (isCompleted || isFormValid()) && (
+                      <button
+                        className="submit-btn"
+                        onClick={handleSubmitTicket}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? "전송 중..." : "🚀 업무 티켓 전송"}
+                      </button>
+                    )
+                  )}
+                </>
+              )}
+            </div>
         </div>
       </div>
     </div>

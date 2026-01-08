@@ -73,3 +73,9 @@ export const searchMembers = async (keyword, page = 1, size = 20, department = n
   const res = await jwtAxios.get(`${host}/search`, { params });
   return res.data;
 };
+
+// 담당자 정보 조회 (email로 부서, 닉네임 조회)
+export const getMemberInfo = async (email) => {
+  const res = await jwtAxios.get(`${host}/info/${email}`);
+  return res.data;
+};

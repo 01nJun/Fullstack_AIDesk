@@ -8,12 +8,18 @@ import com.desk.dto.PageResponseDTO;
 import com.desk.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import com.desk.domain.Member;
+import com.desk.repository.MemberRepository;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,6 +29,7 @@ public class MemberController {
 
     private final MemberService memberService;
     private final FaceService faceService;
+    private final MemberRepository memberRepository;
 
     @PostMapping("/join")
     public Map<String, String> join(@RequestBody MemberJoinDTO memberJoinDTO) {
@@ -53,5 +60,21 @@ public class MemberController {
             @RequestParam(value = "department", required = false) String department) {
         log.info("member search - keyword: {}, department: {}", keyword, department);
         return memberService.searchActiveMembers(pageRequestDTO, keyword, department);
+    }
+
+    // 담당자 정보 조회 API (email로 부서, 닉네임 조회)
+    @GetMapping("/info/{email}")
+    public ResponseEntity<Map<String, String>> getMemberInfo(@PathVariable String email) {
+        log.info("담당자 정보 조회 요청: {}", email);
+        Optional<Member> member = memberRepository.findById(email);
+        if (member.isPresent()) {
+            Member m = member.get();
+            Map<String, String> info = new HashMap<>();
+            info.put("email", m.getEmail());
+            info.put("nickname", m.getNickname() != null ? m.getNickname() : "");
+            info.put("department", m.getDepartment() != null ? m.getDepartment().name() : "");
+            return ResponseEntity.ok(info);
+        }
+        return ResponseEntity.notFound().build();
     }
 }

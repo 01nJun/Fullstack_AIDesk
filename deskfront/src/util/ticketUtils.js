@@ -6,7 +6,7 @@ export const getGradeBadge = (grade) => {
     LOW: { text: "낮음", className: "ui-badge-grade-low" },
     MIDDLE: { text: "보통", className: "ui-badge-grade-middle" },
     HIGH: { text: "높음", className: "ui-badge-grade-high" },
-    URGENT: { text: "중요도", className: "ui-badge-grade-urgent" },
+    URGENT: { text: "긴급", className: "ui-badge-grade-urgent" },
   };
   const gradeInfo = gradeMap[grade] || gradeMap.MIDDLE;
   return (
