@@ -10,9 +10,11 @@ import com.desk.repository.MemberRepository;
 import com.desk.repository.chat.ChatMessageRepository;
 import com.desk.repository.chat.ChatParticipantRepository;
 import com.desk.repository.chat.ChatRoomRepository;
+import com.desk.service.chat.ai.AiChatWordGuard;
 import com.desk.service.chat.ai.AiMessageProcessor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,15 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final MemberRepository memberRepository;
     private final AiMessageProcessor aiMessageProcessor;
+    private final AiChatWordGuard aiChatWordGuard;
+
+    /**
+     * [TEST MODE]
+     * - true이면 욕설 감지 케이스에서 "느린 AI 정제" 대신 테스트 대본(JSON)으로 즉시 치환
+     * - 운영에서는 false 유지 권장
+     */
+    @Value("${aichat.testMode:false}")
+    private boolean aiChatTestMode;
     
     @Override
     @Transactional(readOnly = true)
@@ -108,17 +119,46 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // 시연용 AI 필터링 끝
         // ============================================================
 
-        // AI 메시지 처리 (선택적)
+        // 금칙어 감지 (공백/특수문자/줄바꿈 무시)
+        boolean profanityDetected = aiChatWordGuard.containsProfanity(originalContent);
+        
+        // effectiveAiEnabled 결정: 사용자 토글 ON OR 금칙어 감지됨
+        boolean effectiveAiEnabled = (createDTO.getAiEnabled() != null && createDTO.getAiEnabled())
+                || profanityDetected;
+
+        if (profanityDetected) {
+            log.warn("[Chat] 금칙어 감지 | roomId={} | senderId={} | 언어 순화 처리 시작", roomId, senderId);
+        }
+
+        // AI 메시지 처리 (사용자 ON 또는 금칙어 감지 시)
         String finalContent = filteredContent;
         boolean ticketTrigger = false;
 
-        if (createDTO.getAiEnabled() != null && createDTO.getAiEnabled()) {
-            AiMessageProcessor.ProcessResult aiResult = aiMessageProcessor.processMessage(
-                    createDTO.getContent(),
-                    createDTO.getAiEnabled()
-            );
-            finalContent = aiResult.getProcessedContent();
-            ticketTrigger = aiResult.isTicketTrigger();
+        if (effectiveAiEnabled) {
+            // ===========================
+            // [TEST MODE] 빠른 대본 치환
+            // ===========================
+            if (aiChatTestMode && profanityDetected) {
+                String testFiltered = aiChatWordGuard.applyTestFilter(filteredContent);
+                if (testFiltered != null && !testFiltered.isBlank()) {
+                    finalContent = testFiltered;
+                    log.info("[Chat][TEST] 욕설 감지 → 테스트 대본 치환 적용 | roomId={} | senderId={}", roomId, senderId);
+                } else {
+                    // 매칭 없으면 안전하게 기본값으로 치환 (욕이 그대로 저장/전파되는 것 방지)
+                    finalContent = "ㅎㅎ";
+                    log.info("[Chat][TEST] 욕설 감지 → 테스트 대본 미매칭(기본값 적용) | roomId={} | senderId={}", roomId, senderId);
+                }
+            } else {
+                // ===========================
+                // [NORMAL] 기존 AI 정제 로직
+                // ===========================
+                AiMessageProcessor.ProcessResult aiResult = aiMessageProcessor.processMessage(
+                        originalContent,  // ✅ 기존 ON 로직 유지: 원문 기반 AI 처리
+                        true
+                );
+                finalContent = aiResult.getProcessedContent();
+                ticketTrigger = aiResult.isTicketTrigger();
+            }
         }
 
         // messageSeq 생성
@@ -151,9 +191,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                     roomId, senderId, newSeq);
         }
 
-        // DTO 생성 시 ticketTrigger 포함
+        // DTO 생성 시 ticketTrigger, profanityDetected 포함
         ChatMessageDTO dto = toChatMessageDTO(message);
         dto.setTicketTrigger(ticketTrigger);
+        dto.setProfanityDetected(profanityDetected);
 
         return dto;
     }
@@ -213,6 +254,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .ticketId(message.getTicketId())
                 .createdAt(message.getCreatedAt())
                 .ticketTrigger(false) // 기본값은 false, sendMessage에서 설정됨
+                .profanityDetected(false) // 기본값은 false, sendMessage에서 설정됨
                 .build();
     }
 }

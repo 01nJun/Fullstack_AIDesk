@@ -27,5 +27,6 @@ public class ChatMessageDTO {
     private Long ticketId; // TICKET_PREVIEW 타입일 때만 사용
     private LocalDateTime createdAt;
     private Boolean ticketTrigger; // 티켓 생성 문맥 감지 여부 (AI 처리 시)
+    private Boolean profanityDetected; // 금칙어 감지 여부 (자동 AI 적용)
 }
 

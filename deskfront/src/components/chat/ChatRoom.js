@@ -6,6 +6,8 @@ import MemberPickerModal from "./MemberPickerModal";
 import TicketConfirmModal from "./TicketConfirmModal";
 import AIChatWidget from "../menu/AIChatWidget";
 import TicketDetailModal from "../ticket/TicketDetailModal";
+import AiWarningModal from "./AiWarningModal";
+import AiForceModal from "./AiForceModal";
 import { searchMembers } from "../../api/memberApi";
 import { getMessages, sendMessageRest, markRead, leaveRoom, inviteUsers } from "../../api/chatApi";
 import chatWsClient from "../../api/chatWs";
@@ -24,6 +26,20 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
   const currentPageRef = useRef(1); // currentPage의 최신 값을 추적
   const pageSize = 20;
   const [aiEnabled, setAiEnabled] = useState(false); // AI 메시지 처리 ON/OFF
+  
+  // 욕설 감지 관련 상태
+  const [profanityCount, setProfanityCount] = useState(0); // 10초 내 욕설 감지 횟수
+  const profanityCountRef = useRef(0); // ✅ 빠른 연속 호출에서도 최신 카운트 추적용
+  const profanityTimerRef = useRef(null); // 10초 윈도우 타이머
+  const [showWarningModal, setShowWarningModal] = useState(false); // 1단계 모달
+  const [showForceModal, setShowForceModal] = useState(false); // 2단계 모달
+  const [warningModalShown, setWarningModalShown] = useState(false); // 1단계 모달을 보여준 적 있는지
+  const [userChoseOffAfterWarning, setUserChoseOffAfterWarning] = useState(false); // 1단계 모달에서 OFF를 선택했는지
+  const [forceOnRemaining, setForceOnRemaining] = useState(0); // 강제 ON 남은 시간(초)
+  const forceOnTimerRef = useRef(null); // 강제 ON 타이머
+  const [showReleaseToast, setShowReleaseToast] = useState(false); // 해제 토스트
+  const blinkTimeoutRef = useRef(null); // 깜빡임 타이머
+  const handleProfanityDetectedRef = useRef(null); // ✅ WS 콜백에서 최신 핸들러 호출용
 
   // 사용자 초대 모달 관련 상태
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -222,6 +238,14 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           markRead(chatRoomId, { messageSeq: transformedMessage.messageSeq }).catch(console.error);
         }
         
+        // 욕설 감지 시 처리 (내가 보낸 메시지인 경우)
+        if (transformedMessage.senderId === currentUserId && newMessage.profanityDetected) {
+          // ✅ stale closure 방지: 항상 최신 핸들러 실행
+          if (handleProfanityDetectedRef.current) {
+            handleProfanityDetectedRef.current();
+          }
+        }
+        
         // 티켓 생성 문맥 감지 시 확인 모달 띄우기
         if (newMessage.ticketTrigger) {
           openConfirmModal();
@@ -246,6 +270,162 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
       setConnected(false);
     };
   }, [chatRoomId, currentUserId]);
+
+  // ✅ 욕설 감지 시 깜빡임 처리 (OFF → ON → OFF)
+  const handleProfanityBlink = useCallback(() => {
+    if (aiEnabled) return; // 이미 ON이면 깜빡일 필요 없음
+    
+    // 기존 타이머 정리
+    if (blinkTimeoutRef.current) {
+      clearTimeout(blinkTimeoutRef.current);
+    }
+    
+    // ON으로 깜빡
+    setAiEnabled(true);
+    
+    // 0.8초 후 OFF로 복귀
+    blinkTimeoutRef.current = setTimeout(() => {
+      setAiEnabled(false);
+      blinkTimeoutRef.current = null;
+    }, 800);
+  }, [aiEnabled]);
+
+  // ✅ 욕설 감지 처리
+  const handleProfanityDetected = useCallback(() => {
+    // ✅ 이미 AI가 ON이면(사용자가 켠 상태/강제 ON 포함) 팝업/강제모드 트리거하지 않음
+    if (aiEnabled) {
+      return;
+    }
+
+    // 강제 ON 중이면 무시
+    if (forceOnRemaining > 0) {
+      return;
+    }
+
+    // ✅ 1단계에서 OFF를 다시 선택한 뒤면: 다음 욕설 1번만으로 바로 2단계(강제)로 이동
+    if (userChoseOffAfterWarning) {
+      setShowForceModal(true);
+      // 카운트/타이머 정리
+      setProfanityCount(0);
+      profanityCountRef.current = 0;
+      if (profanityTimerRef.current) {
+        clearTimeout(profanityTimerRef.current);
+        profanityTimerRef.current = null;
+      }
+      return;
+    }
+
+    // 깜빡임 효과
+    handleProfanityBlink();
+
+    // ✅ ref로 즉시 카운트 증가 (빠른 연속 호출에서도 정확히 추적)
+    profanityCountRef.current += 1;
+    const newCount = profanityCountRef.current;
+    setProfanityCount(newCount);
+
+    // 기존 10초 타이머 정리 후 재시작
+    if (profanityTimerRef.current) {
+      clearTimeout(profanityTimerRef.current);
+    }
+    profanityTimerRef.current = setTimeout(() => {
+      setProfanityCount(0);
+      profanityCountRef.current = 0;
+    }, 10000);
+
+    // 10초 내 2회 감지
+    if (newCount >= 2) {
+      if (!warningModalShown) {
+        // 1단계: 선택 모달
+        setShowWarningModal(true);
+        setWarningModalShown(true);
+      }
+
+      // 카운트/타이머 리셋
+      setProfanityCount(0);
+      profanityCountRef.current = 0;
+      if (profanityTimerRef.current) {
+        clearTimeout(profanityTimerRef.current);
+        profanityTimerRef.current = null;
+      }
+    }
+  }, [aiEnabled, warningModalShown, userChoseOffAfterWarning, forceOnRemaining, handleProfanityBlink]);
+
+  // ✅ WS 콜백이 항상 최신 handleProfanityDetected를 쓰도록 ref 동기화
+  useEffect(() => {
+    handleProfanityDetectedRef.current = handleProfanityDetected;
+  }, [handleProfanityDetected]);
+
+  // ✅ 1단계 모달 - AI ON 선택
+  const handleWarningSelectOn = useCallback(() => {
+    setShowWarningModal(false);
+    setAiEnabled(true);
+    // ✅ 사용자가 ON 선택했으면 경고 플로우 초기화 (ON 상태에서는 팝업/강제모드 금지)
+    setUserChoseOffAfterWarning(false);
+    setWarningModalShown(false);
+    setProfanityCount(0);
+    profanityCountRef.current = 0;
+    if (profanityTimerRef.current) {
+      clearTimeout(profanityTimerRef.current);
+      profanityTimerRef.current = null;
+    }
+  }, []);
+
+  // ✅ 1단계 모달 - OFF 유지 선택
+  const handleWarningSelectOff = useCallback(() => {
+    setShowWarningModal(false);
+    setAiEnabled(false);
+    // ✅ 경고를 보고도 OFF를 선택한 상태로 기록 → 다음 욕설 1번에 바로 강제모드
+    setUserChoseOffAfterWarning(true);
+    setProfanityCount(0);
+    profanityCountRef.current = 0;
+    if (profanityTimerRef.current) {
+      clearTimeout(profanityTimerRef.current);
+      profanityTimerRef.current = null;
+    }
+  }, []);
+
+  // ✅ 2단계 모달 - 강제 ON 확인
+  const handleForceConfirm = useCallback(() => {
+    setShowForceModal(false);
+    setAiEnabled(true);
+    setForceOnRemaining(60); // 1분(60초)
+    // 강제 모드 시작 시, OFF 선택 상태는 해제 (강제 종료 후 다시 초기화됨)
+    setUserChoseOffAfterWarning(false);
+
+    // 1초마다 카운트다운
+    if (forceOnTimerRef.current) {
+      clearInterval(forceOnTimerRef.current);
+    }
+    
+    forceOnTimerRef.current = setInterval(() => {
+      setForceOnRemaining((prev) => {
+        if (prev <= 1) {
+          // 타이머 종료
+          clearInterval(forceOnTimerRef.current);
+          forceOnTimerRef.current = null;
+          setAiEnabled(false);
+          setWarningModalShown(false); // 초기화
+          setUserChoseOffAfterWarning(false); // 초기화
+          
+          // 해제 토스트 표시
+          setShowReleaseToast(true);
+          setTimeout(() => setShowReleaseToast(false), 3000);
+          
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // ✅ 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (profanityTimerRef.current) clearTimeout(profanityTimerRef.current);
+      if (forceOnTimerRef.current) clearInterval(forceOnTimerRef.current);
+      if (blinkTimeoutRef.current) clearTimeout(blinkTimeoutRef.current);
+    };
+  }, []);
 
   // ✅ 새 메시지 추가 시 맨 아래로 스크롤 (이전 메시지 로드 시에는 제외)
   // useInfiniteChat 훅에서 이미 처리하므로 여기서는 제거
@@ -279,6 +459,8 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
   // 메시지 전송
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
+    // 경고/강제 모달이 떠있을 땐 전송 막기 (요구사항: 선택 전까지 채팅 못침)
+    if (showWarningModal || showForceModal) return;
 
     const content = inputMessage.trim();
     setInputMessage("");
@@ -315,6 +497,13 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
         };
 
         setMessages((prev) => [...prev, transformedMessage]);
+        
+        // 욕설 감지 시 처리
+        if (newMessage.profanityDetected) {
+          if (handleProfanityDetectedRef.current) {
+            handleProfanityDetectedRef.current();
+          }
+        }
         
         // 티켓 생성 문맥 감지 시 확인 모달 띄우기
         if (newMessage.ticketTrigger) {
@@ -613,26 +802,56 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
               onKeyPress={handleKeyPress}
               placeholder="메시지를 입력하세요..."
               className="flex-1 px-4 py-2.5 border border-baseBorder rounded-ui bg-baseBg text-baseText placeholder-baseMuted focus:outline-none focus:ring-2 focus:ring-brandNavy focus:border-brandNavy text-sm"
-              disabled={!connected}
+              disabled={!connected || showWarningModal || showForceModal}
             />
             {/* AI 메시지 처리 토글 버튼 */}
-            <button
-              type="button"
-              onClick={() => setAiEnabled(!aiEnabled)}
-              className={`px-4 py-2.5 rounded-ui font-semibold text-xs transition-all ${
-                aiEnabled
-                  ? "bg-brandNavy text-white hover:opacity-90 shadow-ui"
-                  : "bg-white border border-baseBorder text-baseText hover:border-brandNavy shadow-ui"
-              } focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2`}
-              title={aiEnabled ? "AI 메시지 처리 ON" : "AI 메시지 처리 OFF"}
-            >
-              AI {aiEnabled ? "ON" : "OFF"}
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  if (forceOnRemaining > 0) return; // 강제 ON 중에는 토글 불가
+                  // ✅ 사용자가 수동으로 토글하면 경고 플로우 상태도 리셋
+                  setAiEnabled(!aiEnabled);
+                  setUserChoseOffAfterWarning(false);
+                  setWarningModalShown(false);
+                  setProfanityCount(0);
+                  profanityCountRef.current = 0;
+                  if (profanityTimerRef.current) {
+                    clearTimeout(profanityTimerRef.current);
+                    profanityTimerRef.current = null;
+                  }
+                }}
+                className={`px-4 py-2.5 rounded-ui font-semibold text-xs transition-all ${
+                  aiEnabled
+                    ? "bg-brandNavy text-white hover:opacity-90 shadow-ui"
+                    : "bg-white border border-baseBorder text-baseText hover:border-brandNavy shadow-ui"
+                } ${forceOnRemaining > 0 ? "cursor-not-allowed opacity-75" : ""} focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2`}
+                title={
+                  forceOnRemaining > 0
+                    ? `AI 강제 활성화 중 (${forceOnRemaining}초)`
+                    : aiEnabled
+                    ? "AI 메시지 처리 ON"
+                    : "AI 메시지 처리 OFF"
+                }
+              >
+                AI {aiEnabled ? "ON" : "OFF"}
+                {forceOnRemaining > 0 && (
+                  <span className="ml-1 text-xs">({forceOnRemaining})</span>
+                )}
+              </button>
+              
+              {/* 해제 토스트 */}
+              {showReleaseToast && (
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-2 rounded shadow-lg whitespace-nowrap animate-fade-in">
+                  해제되었습니다
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <button
               onClick={handleSendMessage}
-              disabled={!connected || !inputMessage.trim()}
+              disabled={!connected || !inputMessage.trim() || showWarningModal || showForceModal}
               className="bg-brandNavy text-white px-6 py-2.5 rounded-ui font-semibold text-sm hover:opacity-90 disabled:bg-baseMuted disabled:cursor-not-allowed transition-all shadow-ui focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2 disabled:opacity-50"
             >
               전송
@@ -699,6 +918,19 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           onDelete={handleCloseTicketDetailModal}
         />
       )}
+
+      {/* AI 경고 모달 (1단계) */}
+      <AiWarningModal
+        isOpen={showWarningModal}
+        onSelectOn={handleWarningSelectOn}
+        onSelectOff={handleWarningSelectOff}
+      />
+
+      {/* AI 강제 모달 (2단계) */}
+      <AiForceModal
+        isOpen={showForceModal}
+        onConfirm={handleForceConfirm}
+      />
     </div>
   );
 };

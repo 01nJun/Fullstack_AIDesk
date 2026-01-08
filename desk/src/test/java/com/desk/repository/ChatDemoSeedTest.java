@@ -5,6 +5,7 @@ import com.desk.repository.chat.ChatMessageRepository;
 import com.desk.repository.chat.ChatParticipantRepository;
 import com.desk.repository.chat.ChatRoomRepository;
 import lombok.extern.log4j.Log4j2;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @SpringBootTest
 @Log4j2
+@Disabled("팀 공용 DB에 채팅/멤버 더미 데이터가 들어가는 것을 방지하기 위해 기본 비활성화. 필요 시 주석 해제 후 실행하세요.")
 public class ChatDemoSeedTest {
 
     @Autowired

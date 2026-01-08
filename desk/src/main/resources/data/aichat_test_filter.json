@@ -1,0 +1,40 @@
+{
+  "mappings": [
+    { "key": "ㅅㅂ", "output": "ㅎㅎ" },
+    { "key": "ㅆㅂ", "output": "ㅎㅎ" },
+    { "key": "시발", "output": "ㅎㅎ" },
+    { "key": "씨발", "output": "ㅎㅎ" },
+    { "key": "씨방", "output": "ㅎㅎ" },
+    { "key": "씨뻘", "output": "ㅎㅎ" },
+    { "key": "씨빨", "output": "ㅎㅎ" },
+    { "key": "씨불", "output": "ㅎㅎ" },
+    { "key": "씨볼", "output": "ㅎㅎ" },
+    { "key": "씨뿔", "output": "ㅎㅎ" },
+
+    { "key": "ㅂㅅ", "output": "화이팅" },
+    { "key": "ㅄ", "output": "화이팅" },
+    { "key": "병신", "output": "화이팅" },
+    { "key": "븅신", "output": "화이팅" },
+    { "key": "뵹신", "output": "화이팅" },
+
+    { "key": "좆", "output": "오케이" },
+    { "key": "줫", "output": "오케이" },
+    { "key": "줮", "output": "오케이" },
+    { "key": "즂", "output": "오케이" },
+
+    { "key": "개새끼", "output": "좋아요" },
+    { "key": "ㄳㄲ", "output": "좋아요" },
+    { "key": "씹", "output": "좋아요" },
+    { "key": "씹새", "output": "좋아요" },
+    { "key": "씹세", "output": "좋아요" },
+
+    { "key": "뒤질", "output": "알겠습니다" },
+    { "key": "뒤지고", "output": "알겠습니다" },
+    { "key": "뒤저", "output": "알겠습니다" },
+
+    { "key": "닥쳐", "output": "알겠습니다" },
+    { "key": "닥처", "output": "알겠습니다" },
+    { "key": "닥치라고", "output": "알겠습니다" }
+  ]
+}
+
