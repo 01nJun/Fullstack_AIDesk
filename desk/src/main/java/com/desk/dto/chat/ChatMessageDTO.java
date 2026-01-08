@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 채팅 메시지 DTO
@@ -29,5 +31,9 @@ public class ChatMessageDTO {
     private Boolean ticketTrigger; // 티켓 생성 문맥 감지 여부 (AI 처리 시)
     private Integer unreadCount; // 해당 메시지를 읽지 않은 참여자 수 (1:1 채팅은 0 또는 1, 그룹 채팅은 0 이상)
     private Boolean isRead; // 현재 사용자가 해당 메시지를 읽었는지 여부 (받은 메시지에만 해당)
+    
+    // 파일 첨부 정보 (FILE 타입 메시지일 때만 사용)
+    @Builder.Default
+    private List<ChatFileDTO> files = new ArrayList<>();
 }
 

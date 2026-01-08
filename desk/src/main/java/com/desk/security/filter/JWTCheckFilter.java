@@ -45,6 +45,14 @@ public class JWTCheckFilter extends OncePerRequestFilter{
             return true;
         }
 
+        // 채팅 파일 조회 경로는 체크하지 않음 (이미지 프리뷰용)
+        // /api/chat/files/로 시작하는 모든 경로에서 /view 또는 /download가 포함된 경우
+        if (path.startsWith("/api/chat/files/")) {
+            if (path.contains("/view") || path.contains("/download")) {
+                return true;
+            }
+        }
+
         return false;
     }
     @Override // 실제 JWT 검증 처리를 수행. 성공 → SecurityContext에 인증 정보 설정, 실패 → JSON 에러 응답

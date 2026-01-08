@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
-public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
+public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long>, ChatMessageSearch {
     
     /**
      * 채팅방의 메시지 목록 조회 (messageSeq 기준 내림차순)
@@ -36,6 +36,15 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Query("SELECT COUNT(m) FROM ChatMessage m " +
            "WHERE m.chatRoom.id = :roomId AND m.messageSeq > :lastReadSeq")
     Long countUnreadMessages(@Param("roomId") Long roomId, @Param("lastReadSeq") Long lastReadSeq);
+    
+    /**
+     * 채팅방의 메시지 목록 조회 (chatFiles 포함, N+1 방지)
+     * QueryDSL 구현체에서 처리 (ChatMessageSearchImpl)
+     */
+    Page<ChatMessage> findByChatRoomIdOrderByMessageSeqDescWithFiles(
+            Long chatRoomId, 
+            Pageable pageable
+    );
 }
 
 

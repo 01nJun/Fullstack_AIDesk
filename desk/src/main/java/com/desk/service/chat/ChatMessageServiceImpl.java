@@ -3,6 +3,7 @@ package com.desk.service.chat;
 import com.desk.domain.*;
 import com.desk.dto.PageRequestDTO;
 import com.desk.dto.PageResponseDTO;
+import com.desk.dto.chat.ChatFileDTO;
 import com.desk.dto.chat.ChatMessageCreateDTO;
 import com.desk.dto.chat.ChatMessageDTO;
 import com.desk.dto.chat.ChatReadUpdateDTO;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +36,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final MemberRepository memberRepository;
     private final AiMessageProcessor aiMessageProcessor;
+    private final ChatFileService chatFileService;
     
     @Override
     @Transactional(readOnly = true)
@@ -46,8 +49,8 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // 페이징 설정 (messageSeq 기준 내림차순)
         Pageable pageable = pageRequestDTO.getPageable("messageSeq");
         
-        // 메시지 조회
-        Page<ChatMessage> result = chatMessageRepository.findByChatRoomIdOrderByMessageSeqDesc(roomId, pageable);
+        // 메시지 조회 (chatFiles 포함, N+1 방지)
+        Page<ChatMessage> result = chatMessageRepository.findByChatRoomIdOrderByMessageSeqDescWithFiles(roomId, pageable);
         
         // 채팅방 정보 및 참여자 정보 한 번에 조회 (N+1 방지)
         ChatRoom room = chatRoomRepository.findById(roomId).orElse(null);
@@ -203,6 +206,21 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
         message = chatMessageRepository.save(message);
 
+        // 파일 첨부 처리 (FILE 타입 메시지인 경우)
+        List<ChatFileDTO> fileDTOs = new ArrayList<>();
+        if (createDTO.getMessageType() == ChatMessageType.FILE 
+                && createDTO.getFileUuids() != null 
+                && !createDTO.getFileUuids().isEmpty()) {
+            
+            // 파일들을 메시지에 바인딩 (TEMP -> BOUND)
+            fileDTOs = chatFileService.bindFilesToMessage(
+                    createDTO.getFileUuids(), 
+                    roomId, 
+                    senderId, 
+                    message  // message 객체를 직접 전달
+            );
+        }
+
         // 채팅방의 lastMsg 업데이트
         room.updateLastMessage(newSeq, finalContent);
 
@@ -226,9 +244,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                         (a, b) -> a
                 ));
         
-        // DTO 생성 시 ticketTrigger 포함
+        // DTO 생성 시 ticketTrigger 및 files 포함
         ChatMessageDTO dto = toChatMessageDTOOptimized(message, senderId, room, lastReadSeqMap);
         dto.setTicketTrigger(ticketTrigger);
+        dto.setFiles(fileDTOs); // 파일 정보 추가
 
         return dto;
     }
@@ -356,7 +375,7 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             isRead = currentUserLastReadSeq >= messageSeq;
         }
         
-        return ChatMessageDTO.builder()
+        ChatMessageDTO dto = ChatMessageDTO.builder()
                 .id(message.getId())
                 .chatRoomId(message.getChatRoom().getId())
                 .messageSeq(message.getMessageSeq())
@@ -370,6 +389,16 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .unreadCount(unreadCount)
                 .isRead(isRead)
                 .build();
+
+        // 파일 정보 추가 (FILE 타입 메시지인 경우)
+        if (message.getMessageType() == ChatMessageType.FILE && message.getChatFiles() != null) {
+            List<ChatFileDTO> fileDTOs = message.getChatFiles().stream()
+                    .map(chatFileService::toDTO)
+                    .collect(Collectors.toList());
+            dto.setFiles(fileDTOs);
+        }
+
+        return dto;
     }
 }
 

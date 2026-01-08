@@ -117,4 +117,25 @@ public class CustomFileUtil {
             throw new RuntimeException("파일 삭제 실패: " + fileName);
         }
     }
+
+    /**
+     * 파일을 inline으로 반환 (이미지 프리뷰용)
+     * @param fileName 저장된 파일명
+     * @param mimeType MIME 타입 (null이면 자동 감지)
+     * @return ResponseEntity<Resource>
+     */
+    public ResponseEntity<Resource> getFileInline(String fileName, String mimeType) {
+        Resource resource = new FileSystemResource(uploadPath + File.separator + fileName);
+        if (!resource.isReadable()) return ResponseEntity.notFound().build();
+
+        HttpHeaders headers = new HttpHeaders();
+        try {
+            String contentType = mimeType != null ? mimeType : Files.probeContentType(resource.getFile().toPath());
+            headers.add("Content-Type", contentType);
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline");
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+        return ResponseEntity.ok().headers(headers).body(resource);
+    }
 }
