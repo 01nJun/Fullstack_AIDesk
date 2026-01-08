@@ -7,8 +7,53 @@ import TicketConfirmModal from "./TicketConfirmModal";
 import AIChatWidget from "../menu/AIChatWidget";
 import TicketDetailModal from "../ticket/TicketDetailModal";
 import { searchMembers } from "../../api/memberApi";
-import { getMessages, sendMessageRest, markRead, leaveRoom, inviteUsers } from "../../api/chatApi";
+import { 
+  getMessages, 
+  sendMessageRest, 
+  markRead, 
+  leaveRoom, 
+  inviteUsers,
+  uploadChatFile,
+  downloadChatFile,
+  getChatFileViewUrl
+} from "../../api/chatApi";
 import chatWsClient from "../../api/chatWs";
+
+// 이미지 프리뷰 컴포넌트 (최적화: 직접 URL 사용)
+const ImagePreviewComponent = ({ file, senderId, currentUserId, onImageClick }) => {
+  const [error, setError] = useState(false);
+  const imageUrl = getChatFileViewUrl(file.uuid);
+
+  const handleImageError = () => {
+    setError(true);
+  };
+
+  const handleImageClick = () => {
+    // 클릭 시 원본 이미지 URL 전달
+    onImageClick(imageUrl);
+  };
+
+  if (error) {
+    return (
+      <div className={`text-xs ${senderId === currentUserId ? "opacity-80" : "text-baseMuted"}`}>
+        {file.fileName}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-full">
+      <img
+        src={imageUrl}
+        alt={file.fileName}
+        className="max-w-full max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain"
+        onError={handleImageError}
+        onClick={handleImageClick}
+        loading="lazy"
+      />
+    </div>
+  );
+};
 
 const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
   const navigate = useNavigate();
@@ -42,6 +87,15 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
   // 티켓 상세 모달 관련 상태
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [isTicketDetailModalOpen, setIsTicketDetailModalOpen] = useState(false);
+
+  // 이미지 모달 관련 상태
+  const [selectedImageUrl, setSelectedImageUrl] = useState(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+  // 파일 업로드 관련 상태
+  const [uploadingFiles, setUploadingFiles] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -103,6 +157,8 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
             ticketId: msg.ticketId,
             messageSeq: msg.messageSeq,
             unreadCount: msg.unreadCount, // 추가
+            files: msg.files || [], // 파일 정보 추가
+            messageType: msg.messageType, // 메시지 타입 추가
           };
         });
 
@@ -172,6 +228,8 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
               ticketId: msg.ticketId,
               messageSeq: msg.messageSeq,
               unreadCount: msg.unreadCount, // 추가
+              files: msg.files || [], // 파일 정보 추가
+              messageType: msg.messageType, // 메시지 타입 추가
             };
           });
         setMessages(transformedMessages);
@@ -222,6 +280,8 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           ticketId: newMessage.ticketId,
           messageSeq: newMessage.messageSeq,
           unreadCount: newMessage.unreadCount, // 추가
+          files: newMessage.files || [], // 파일 정보 추가
+          messageType: newMessage.messageType, // 메시지 타입 추가
         };
 
         // 티켓 트리거만 있고 실제 메시지가 없는 경우(id가 null) 메시지 목록에 추가하지 않음
@@ -383,6 +443,116 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
     }
   };
 
+  // 파일 선택 핸들러
+  const handleFileSelect = async (files) => {
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    for (const file of fileArray) {
+      await handleFileUpload(file);
+    }
+  };
+
+  // 파일 업로드 및 메시지 전송
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+
+    const fileId = Date.now() + Math.random();
+    setUploadingFiles((prev) => [...prev, { id: fileId, name: file.name }]);
+
+    try {
+      // 1. 파일 업로드 (TEMP 상태)
+      const fileDTO = await uploadChatFile(chatRoomId, file);
+
+      // 2. 파일 메시지 전송 (바인딩)
+      const newMessage = await sendMessageRest(chatRoomId, {
+        content: file.name, // 파일명
+        messageType: "FILE",
+        fileUuids: [fileDTO.uuid],
+      });
+
+      // 메시지 목록에 추가
+      const transformedMessage = {
+        id: newMessage.id,
+        chatRoomId: newMessage.chatRoomId,
+        senderId: newMessage.senderId,
+        senderNickname: newMessage.senderNickname || newMessage.senderId,
+        receiverId: chatRoomInfo?.isGroup 
+          ? null 
+          : (newMessage.senderId === currentUserId ? otherUserId : currentUserId),
+        content: newMessage.content,
+        createdAt: newMessage.createdAt,
+        isRead: newMessage.senderId === currentUserId 
+          ? (newMessage.unreadCount === 0) 
+          : true,
+        isTicketPreview: false,
+        ticketId: null,
+        messageSeq: newMessage.messageSeq,
+        unreadCount: newMessage.unreadCount,
+        files: newMessage.files || [],
+        messageType: newMessage.messageType,
+      };
+
+      setMessages((prev) => [...prev, transformedMessage]);
+    } catch (err) {
+      console.error("파일 업로드 실패:", err);
+      alert("파일 업로드에 실패했습니다: " + (err.response?.data?.message || err.message));
+    } finally {
+      setUploadingFiles((prev) => prev.filter((f) => f.id !== fileId));
+    }
+  };
+
+  // Drag & Drop 핸들러
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFileSelect(files);
+    }
+  };
+
+  const handleFileButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 파일 크기 포맷팅
+  const formatFileSize = (bytes) => {
+    if (!bytes) return "0 B";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  // 이미지인지 확인
+  const isImageFile = (mimeType) => {
+    return mimeType && mimeType.startsWith("image/");
+  };
+
+  // 파일 다운로드 핸들러
+  const handleFileDownload = async (file) => {
+    try {
+      await downloadChatFile(file.uuid, file.fileName);
+    } catch (err) {
+      console.error("파일 다운로드 실패:", err);
+      alert("파일 다운로드에 실패했습니다.");
+    }
+  };
+
   // 채팅방 나가기
   const handleLeaveRoom = async () => {
     if (!window.confirm("정말 채팅방을 나가시겠습니까?")) {
@@ -507,7 +677,12 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
     : otherUserName;
 
   return (
-    <div className="h-[calc(100vh-120px)] lg:h-[calc(100vh-160px)] overflow-hidden flex flex-col bg-baseBg">
+    <div 
+      className="h-[calc(100vh-120px)] lg:h-[calc(100vh-160px)] overflow-hidden flex flex-col bg-baseBg"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Header */}
       <div className="shrink-0 w-full px-4 lg:px-6 py-4 lg:py-6 border-b border-baseBorder bg-baseBg">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -558,7 +733,7 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
 
       {/* Messages (scroll) */}
       <div className="flex-1 overflow-hidden w-full">
-        <div className="h-full bg-baseSurface overflow-hidden flex flex-col">
+        <div className={`h-full bg-baseSurface overflow-hidden flex flex-col ${dragOver ? "ring-2 ring-brandNavy" : ""}`}>
           <div
             ref={chatContainerRef}
             onScroll={handleScroll}
@@ -584,7 +759,7 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
             {Array.isArray(visibleMessages) &&
               visibleMessages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.senderId === currentUserId ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] sm:max-w-md ${msg.senderId !== currentUserId ? "flex flex-col" : ""}`}>
+                  <div className={`max-w-[75%] sm:max-w-md min-w-0 ${msg.senderId !== currentUserId ? "flex flex-col" : ""}`}>
                     {/* 그룹 채팅: 발신자 표시 */}
                     {chatRoomInfo?.isGroup && msg.senderId !== currentUserId && (
                       <div className="text-xs text-baseMuted mb-1 px-2 font-medium">
@@ -593,15 +768,98 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
                     )}
 
                     {/* 메시지 컨테이너 - relative로 배지 위치 지정 */}
-                    <div className="relative inline-block">
-                      <div
-                        className={`px-4 py-2.5 rounded-ui ${
-                          msg.senderId === currentUserId
-                            ? "bg-brandNavy text-white"
-                            : "bg-baseBg text-baseText border border-baseBorder"
-                        }`}
-                      >
-                        {msg.isTicketPreview ? (
+                    <div className="relative inline-block max-w-full">
+                      {(() => {
+                        // 이미지 파일만 있는지 확인
+                        const isImageOnlyMessage = msg.messageType === "FILE" && 
+                          msg.files && 
+                          msg.files.length > 0 && 
+                          msg.files.every(file => isImageFile(file.mimeType));
+                        
+                        // 이미지만 있는 경우 배경 없이 표시
+                        if (isImageOnlyMessage) {
+                          return (
+                            <>
+                              <div className="space-y-2">
+                                {msg.files.map((file) => (
+                                  <div key={file.uuid} className="max-w-full">
+                                    <ImagePreviewComponent 
+                                      file={file}
+                                      senderId={msg.senderId}
+                                      currentUserId={currentUserId}
+                                      onImageClick={(url) => {
+                                        setSelectedImageUrl(url);
+                                        setIsImageModalOpen(true);
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className={`text-xs mt-1.5 flex items-center gap-1.5 ${msg.senderId === currentUserId ? "text-baseMuted" : "text-baseMuted"}`}>
+                                <span>
+                                  {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            </>
+                          );
+                        }
+                        
+                        // 일반 메시지 또는 파일이 포함된 경우 기존 스타일 적용
+                        return (
+                          <div
+                            className={`px-4 py-2.5 rounded-ui ${
+                              msg.senderId === currentUserId
+                                ? "bg-brandNavy text-white"
+                                : "bg-baseBg text-baseText border border-baseBorder"
+                            }`}
+                          >
+                            {msg.messageType === "FILE" && msg.files && msg.files.length > 0 ? (
+                              // 파일 메시지 렌더링
+                              <div className="space-y-2">
+                                {msg.files.map((file) => (
+                                  <div key={file.uuid} className="max-w-full">
+                                    {isImageFile(file.mimeType) ? (
+                                      // 이미지 파일: 프리뷰
+                                      <ImagePreviewComponent 
+                                        file={file}
+                                        senderId={msg.senderId}
+                                        currentUserId={currentUserId}
+                                        onImageClick={(url) => {
+                                          setSelectedImageUrl(url);
+                                          setIsImageModalOpen(true);
+                                        }}
+                                      />
+                                    ) : (
+                                      // 일반 파일: 아이콘 + 다운로드
+                                      <div className="flex items-center gap-2 max-w-full">
+                                        <div className="text-2xl shrink-0">📎</div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className={`text-sm font-medium break-words ${msg.senderId === currentUserId ? "text-white" : "text-baseText"}`}>
+                                            {file.fileName}
+                                          </div>
+                                          <div className={`text-xs ${msg.senderId === currentUserId ? "opacity-80" : "text-baseMuted"}`}>
+                                            {formatFileSize(file.fileSize)}
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={() => handleFileDownload(file)}
+                                          className={`px-3 py-1 rounded text-xs transition-colors whitespace-nowrap shrink-0 ${
+                                            msg.senderId === currentUserId 
+                                              ? "bg-white/20 hover:bg-white/30 text-white" 
+                                              : "bg-baseSurface hover:bg-baseBorder text-baseText"
+                                          }`}
+                                        >
+                                          다운로드
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : msg.isTicketPreview ? (
                           <div
                             onClick={() => handleTicketPreviewClick(msg.ticketId)}
                             className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -614,7 +872,7 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
                             </div>
                           </div>
                         ) : (
-                          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
+                          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words max-w-full">{msg.content}</div>
                         )}
 
                         <div className={`text-xs mt-1.5 flex items-center gap-1.5 ${msg.senderId === currentUserId ? "text-white/80" : "text-baseMuted"}`}>
@@ -626,6 +884,8 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
                           </span>
                         </div>
                       </div>
+                        );
+                      })()}
 
                       {/* 보낸 사람(내가 보낸 메시지): 좌측 하단에 안 읽은 사람 수 표시 */}
                       {msg.senderId === currentUserId && 
@@ -655,8 +915,35 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
 
       {/* Input */}
       <div className="shrink-0 w-full px-4 lg:px-6 py-4 border-t border-baseBorder bg-baseBg">
+        {/* 업로드 중 표시 */}
+        {uploadingFiles.length > 0 && (
+          <div className="mb-2 text-xs text-baseMuted">
+            업로드 중: {uploadingFiles.map((f) => f.name).join(", ")}
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex-1 flex gap-2">
+            {/* 파일 선택 버튼 */}
+            <button
+              type="button"
+              onClick={handleFileButtonClick}
+              className="px-4 py-2.5 border border-baseBorder rounded-ui bg-white text-baseText hover:border-brandNavy transition-all shadow-ui focus:outline-none focus:ring-2 focus:ring-brandNavy focus:ring-offset-2"
+              title="파일 첨부"
+            >
+              📎
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                handleFileSelect(e.target.files);
+                e.target.value = ""; // 같은 파일 재선택 가능하도록
+              }}
+              className="hidden"
+              multiple
+            />
+
             <input
               type="text"
               value={inputMessage}
@@ -749,6 +1036,38 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
           onClose={handleCloseTicketDetailModal}
           onDelete={handleCloseTicketDetailModal}
         />
+      )}
+
+      {/* 이미지 모달 */}
+      {isImageModalOpen && selectedImageUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4"
+          onClick={() => {
+            setIsImageModalOpen(false);
+            setSelectedImageUrl(null);
+          }}
+        >
+          <div
+            className="relative max-w-full max-h-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                setIsImageModalOpen(false);
+                setSelectedImageUrl(null);
+              }}
+              className="absolute -top-10 right-0 text-white text-2xl font-bold hover:opacity-70 transition-opacity"
+              aria-label="닫기"
+            >
+              ×
+            </button>
+            <img
+              src={selectedImageUrl}
+              alt="원본 이미지"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            />
+          </div>
+        </div>
       )}
     </div>
   );

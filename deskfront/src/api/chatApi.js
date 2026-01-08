@@ -59,14 +59,15 @@ export const getMessages = async (roomId, { page = 1, size = 20 } = {}) => {
 /**
  * 메시지 전송 (REST API)
  * @param {number} roomId
- * @param {Object} params - { content: string, ticketId?: number, messageType?: string, aiEnabled?: boolean }
+ * @param {Object} params - { content: string, ticketId?: number, messageType?: string, aiEnabled?: boolean, fileUuids?: string[] }
  */
-export const sendMessageRest = async (roomId, { content, ticketId, messageType = "TEXT", aiEnabled = false }) => {
+export const sendMessageRest = async (roomId, { content, ticketId, messageType = "TEXT", aiEnabled = false, fileUuids = [] }) => {
   const res = await jwtAxios.post(`${host}/rooms/${roomId}/messages`, {
     content,
     ticketId,
     messageType,
     aiEnabled,
+    fileUuids,
   });
   return res.data;
 };
@@ -102,4 +103,56 @@ export const inviteUsers = async (roomId, { inviteeEmails }) => {
     userIds: inviteeEmails,
   });
   return res.data;
+};
+
+/**
+ * 파일 업로드
+ * @param {number} chatRoomId
+ * @param {File} file
+ */
+export const uploadChatFile = async (chatRoomId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("chatRoomId", chatRoomId);
+
+  const res = await jwtAxios.post(`${host}/files`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return res.data;
+};
+
+/**
+ * 파일 다운로드 (blob 방식)
+ * @param {string} uuid
+ * @param {string} fileName
+ */
+export const downloadChatFile = async (uuid, fileName) => {
+  try {
+    const res = await jwtAxios.get(`${host}/files/${uuid}/download`, {
+      responseType: "blob",
+    });
+
+    // Blob을 URL로 변환
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("파일 다운로드 실패:", err);
+    throw err;
+  }
+};
+
+/**
+ * 파일 보기 URL 생성 (이미지 프리뷰용)
+ * @param {string} uuid
+ */
+export const getChatFileViewUrl = (uuid) => {
+  return `${process.env.REACT_APP_API_SERVER_HOST}/api/chat/files/${uuid}/view`;
 };
