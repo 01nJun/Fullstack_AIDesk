@@ -262,9 +262,32 @@ public class OllamaServiceImpl implements OllamaService {
             table.addCell(createValueCell(deadline, 1, 1));
 
             // [3행] 참석자 (큰 박스, 4칸 합치기)
-            String attendees = (summary.getAttendees() != null) ? summary.getAttendees().toString() : "";
-            table.addCell(createBigCell("참석자:\n" + attendees, 60)); // 높이 60
+//            String attendees = (summary.getAttendees() != null) ? summary.getAttendees().toString() : "";
+//            table.addCell(createBigCell("참석자:\n" + attendees, 60)); // 높이 60
+            StringBuilder attendeesNames = new StringBuilder();
 
+            if (summary.getAttendees() != null) {
+                for (int i = 0; i < summary.getAttendees().size(); i++) {
+                    String email = summary.getAttendees().get(i);
+
+                    // DB에서 이메일(ID)로 멤버 조회 -> 닉네임 가져오기
+                    // (memberRepository는 위쪽에서 주입받고 있어야 합니다)
+                    String displayName = memberRepository.findById(email)
+                            .map(com.desk.domain.Member::getNickname) // 찾으면 닉네임
+                            .orElse(email); // 못 찾으면 그냥 이메일 표시 (외부인 등)
+
+                    attendeesNames.append(displayName);
+
+                    // 마지막 사람이 아니면 쉼표 추가
+                    if (i < summary.getAttendees().size() - 1) {
+                        attendeesNames.append(", ");
+                    }
+                }
+            }
+
+            // PDF 표에는 변환된 한글 이름들(attendeesNames)을 넣음
+            table.addCell(createBigCell("참석자:\n" + attendeesNames.toString(), 60));
+            //
             // [4행] 회의 개요 및 목적 (큰 박스)
             String overview = (summary.getOverview() != null) ? summary.getOverview() : "";
             table.addCell(createBigCell("회의 개요 및 목적:\n" + overview, 80)); // 높이 80
