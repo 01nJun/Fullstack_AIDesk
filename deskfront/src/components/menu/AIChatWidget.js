@@ -154,7 +154,15 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
       .filter(Boolean)
       .join("\n\n");
     const purpose = compressText(s?.overview || "", 120);
+    // #region agent log
+    const detailsOriginal = s?.details || "";
+    const detailsLengthBefore = detailsOriginal.length;
+    // #endregion
     const requirement = compressList(s?.details || "", 5, 520);
+    // #region agent log
+    const requirementLength = requirement.length;
+    fetch('http://127.0.0.1:7242/ingest/620b754d-d694-47b8-92aa-a869cb5fe6c6',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AIChatWidget.js:157',message:'requirement after compression',data:{detailsLengthBefore,requirementLength,detailsPreview:detailsOriginal.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H2,H3'})}).catch(()=>{});
+    // #endregion
 
     // 참석자 전체를 receivers로 사용 (여러 명 지원)
     let receivers = [];
@@ -512,32 +520,16 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
                 <span style={{ fontWeight: "600", fontSize: "12px" }}>To:</span>
 
                 {assigneesInfo && assigneesInfo.length > 0 ? (
-                  assigneesInfo.length === 1 ? (
-                    // ✅ 한 명일 때: 부서 + 이름 네모 두 개 (기존처럼 표시)
-                    <>
-                      <span className="dept-badge">
-                        {assigneesInfo[0].department ||
-                          targetDept ||
-                          "부서 미지정"}
-                      </span>
-                      <span className="dept-badge">
-                        {assigneesInfo[0].nickname ||
-                          assigneesInfo[0].email ||
-                          "담당자 미지정"}
-                      </span>
-                    </>
-                  ) : (
-                    // ✅ 여러 명일 때: 이름만 네모, 부서는 hover 시 title로 표시
-                    assigneesInfo.map((info, idx) => (
-                      <span
-                        key={info.email || idx}
-                        className="dept-badge"
-                        title={info.department || targetDept || "부서 미지정"}
-                      >
-                        {info.nickname || info.email || "담당자 미지정"}
-                      </span>
-                    ))
-                  )
+                  // ✅ 모든 경우: 이름만 표시, 부서는 hover 시 title로 표시
+                  assigneesInfo.map((info, idx) => (
+                    <span
+                      key={info.email || idx}
+                      className="dept-badge"
+                      title={info.department || targetDept || "부서 미지정"}
+                    >
+                      {info.nickname || info.email || "담당자 미지정"}
+                    </span>
+                  ))
                 ) : currentTicket.receivers &&
                   currentTicket.receivers.length > 0 ? (
                   // 백엔드 정보가 아직 없을 때 fallback

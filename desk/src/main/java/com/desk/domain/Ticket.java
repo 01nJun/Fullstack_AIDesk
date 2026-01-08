@@ -22,8 +22,14 @@ public class Ticket {
     private Long tno;
 
     private String title;
+    
+    @Column(columnDefinition = "TEXT")
     private String content;
+    
+    @Column(columnDefinition = "TEXT")
     private String purpose;
+    
+    @Column(columnDefinition = "TEXT")
     private String requirement;
 
     @Enumerated(EnumType.STRING)

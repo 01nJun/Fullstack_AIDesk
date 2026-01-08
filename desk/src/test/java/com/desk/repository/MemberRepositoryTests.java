@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.reflect.Field;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 @SpringBootTest
@@ -58,6 +60,52 @@ public class MemberRepositoryTests {
         });
 
         log.info("더미 데이터 생성 완료");
+    }
+
+    @Test
+    @Transactional
+    @Commit // 실제 DB에 반영하기 위해 추가
+    public void updateNicknamesAndDepartments() {
+        String[] names = {"김도현", "박지민", "이서연", "정우석", "최민지", "한승호"};
+        Department[] depts = {
+                Department.DEVELOPMENT,
+                Department.PLANNING,
+                Department.DESIGN,
+                Department.SALES,
+                Department.HR,
+                Department.FINANCE
+        };
+
+        IntStream.rangeClosed(1, 6).forEach(i -> {
+            Optional<Member> memberOpt = memberRepository.findById("user" + i + "@desk.com");
+
+            if (memberOpt.isPresent()) {
+                Member member = memberOpt.get();
+
+                try {
+                    // 닉네임 변경
+                    Field nicknameField = Member.class.getDeclaredField("nickname");
+                    nicknameField.setAccessible(true);
+                    nicknameField.set(member, names[i - 1]);
+
+                    // 부서 변경
+                    Field deptField = Member.class.getDeclaredField("department");
+                    deptField.setAccessible(true);
+                    deptField.set(member, depts[i - 1]);
+
+                    memberRepository.save(member);
+
+                    log.info("회원 {} 업데이트 완료: 닉네임={}, 부서={}",
+                            "user" + i + "@desk.com", names[i - 1], depts[i - 1]);
+                } catch (Exception e) {
+                    log.error("회원 {} 업데이트 실패", "user" + i + "@desk.com", e);
+                }
+            } else {
+                log.warn("회원을 찾을 수 없습니다: user{}@desk.com", i);
+            }
+        });
+
+        log.info("닉네임 및 부서 업데이트 완료");
     }
 
     @Test
