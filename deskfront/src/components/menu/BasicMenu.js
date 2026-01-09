@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../../slices/loginSlice";
+import { useSelector } from "react-redux";
 import CommonModal from "../common/CommonModal";
 import useCustomLogin from "../../hooks/useCustomLogin";
 import AIChatWidget from "./AIChatWidget"; // 같은 폴더 내 위치
@@ -9,9 +8,8 @@ import useCustomPin from "../../hooks/useCustomPin";
 
 const BasicMenu = () => {
   const loginState = useSelector((state) => state.loginSlice);
-  const dispatch = useDispatch();
   const location = useLocation();
-  const { moveToPath } = useCustomLogin();
+  const { moveToPath, doLogout } = useCustomLogin();
   const { resetPins } = useCustomPin();
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -25,15 +23,15 @@ const BasicMenu = () => {
     setIsLogoutModalOpen(true);
     setIsMobileMenuOpen(false);
   };
-  const handleConfirmLogout = () => {
-    dispatch(logout());
+  const handleConfirmLogout = async () => {
+    await doLogout();
     resetPins();
     setIsLogoutModalOpen(false);
     setIsMobileMenuOpen(false);
     moveToPath("/");
   };
   const handleCloseModal = () => setIsLogoutModalOpen(false);
-  
+
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -57,8 +55,8 @@ const BasicMenu = () => {
       location.pathname === path ||
       (path !== "/" && location.pathname.startsWith(path));
 
-    return isActive 
-      ? baseClass + "bg-baseSurface text-brandNavy font-semibold" 
+    return isActive
+      ? baseClass + "bg-baseSurface text-brandNavy font-semibold"
       : baseClass + "text-baseText hover:bg-baseSurface";
   };
 
@@ -67,7 +65,7 @@ const BasicMenu = () => {
     setIsMobileMenuOpen(false);
   };
   const closeAIWidget = () => setIsAIWidgetOpen(false);
-  
+
   const handleMobileMenuClick = (callback) => {
     if (callback) callback();
     closeMobileMenu();
@@ -208,10 +206,10 @@ const BasicMenu = () => {
         </div>
 
         {/* 모바일 드롭다운 메뉴 */}
-        <div 
+        <div
           className={`lg:hidden absolute top-16 left-0 right-0 bg-baseBg border-b border-baseBorder shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
-            isMobileMenuOpen 
-              ? "max-h-[600px] opacity-100" 
+            isMobileMenuOpen
+              ? "max-h-[600px] opacity-100"
               : "max-h-0 opacity-0"
           }`}
         >

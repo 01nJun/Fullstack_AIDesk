@@ -6,6 +6,8 @@ import com.desk.security.filter.FaceAuthenticationProvider;
 import com.desk.security.filter.JWTCheckFilter;
 import com.desk.security.handler.APILoginFailHandler;
 import com.desk.security.handler.APILoginSuccessHandler;
+import com.desk.security.token.RefreshTokenService;
+import com.desk.security.token.LoginLockService;
 import com.desk.security.handler.CustomAccessDeniedHandler;
 import com.desk.service.FaceService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,6 +42,10 @@ public class CustomSecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final FaceService faceService; // 주입
     private final FaceAuthenticationProvider faceAuthenticationProvider; // 주입
+    
+    // application.properties의 refresh.token.storage 설정에 따라 자동으로 Redis 또는 DB가 주입됨
+    private final RefreshTokenService refreshTokenService;
+    private final LoginLockService loginLockService;
 
     @Bean // 비밀번호 암호화(BCrypt 해시 방식으로 암호화), (@Bean)스프링 전역에서 사용가능
     public PasswordEncoder passwordEncoder(){
@@ -59,7 +65,8 @@ public class CustomSecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json;charset=UTF-8");
+                            response.setContentType("application/json; charset=UTF-8");
+                            response.setCharacterEncoding("UTF-8");
                             response.getWriter().write("{\"error\":\"UNAUTHORIZED\"}");
                         })
                 );
@@ -77,8 +84,8 @@ public class CustomSecurityConfig {
         // 로그인 설정 (JWT 발급 지점)
         http.formLogin(config ->{
             config.loginPage("/api/member/login");
-            config.successHandler(new APILoginSuccessHandler());
-            config.failureHandler(new APILoginFailHandler());
+            config.successHandler(apiLoginSuccessHandler());
+            config.failureHandler(new APILoginFailHandler(loginLockService));
         });
 
         // JWT 검증 필터 등록 (요청마다 실행)
@@ -96,13 +103,18 @@ public class CustomSecurityConfig {
         // 얼굴 인식 필터 설정
         FaceAuthenticationFilter faceFilter = new FaceAuthenticationFilter("/api/member/login/face", faceService);
         faceFilter.setAuthenticationManager(authenticationManager);
-        faceFilter.setAuthenticationSuccessHandler(new APILoginSuccessHandler()); // 성공 시 JWT 발급
-        faceFilter.setAuthenticationFailureHandler(new APILoginFailHandler());
+        faceFilter.setAuthenticationSuccessHandler(apiLoginSuccessHandler()); // 성공 시 JWT 발급 (+ refresh 쿠키)
+        faceFilter.setAuthenticationFailureHandler(new APILoginFailHandler(loginLockService));
 
         // 필터 순서 등록
         http.addFilterBefore(faceFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public APILoginSuccessHandler apiLoginSuccessHandler() {
+        return new APILoginSuccessHandler(refreshTokenService, loginLockService);
     }
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

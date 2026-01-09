@@ -9,7 +9,9 @@ import com.desk.dto.MemberModifyDTO;
 import com.desk.dto.PageRequestDTO;
 import com.desk.dto.PageResponseDTO;
 import com.desk.repository.MemberRepository;
-import com.desk.util.MemberExistException;
+import com.desk.security.token.RefreshTokenService;
+import com.desk.util.DuplicateMemberException;
+import com.desk.util.PasswordPolicyValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -37,6 +39,8 @@ public class MemberServiceImpl implements MemberService {
     private final MemberRepository memberRepository;
     // 비밀번호 암호화 처리
     private final PasswordEncoder passwordEncoder;
+    // Refresh Token 서비스 (비밀번호 변경 시 토큰 폐기에 사용)
+    private final RefreshTokenService refreshTokenService;
 
     @Override // 카카오 회원 정보 조회
     public MemberDTO getKakaoMember(String accessToken) {
@@ -156,7 +160,16 @@ public class MemberServiceImpl implements MemberService {
         Optional<Member> result = memberRepository.findById(memberModifyDTO.getEmail());
         Member member = result.orElseThrow();
 
-        member.changePw(passwordEncoder.encode(memberModifyDTO.getPw()));
+        // 비밀번호 변경 여부 확인
+        boolean isPasswordChanged = false;
+        if (memberModifyDTO.getPw() != null && !memberModifyDTO.getPw().trim().isEmpty()) {
+            // 비밀번호 정책 검증
+            PasswordPolicyValidator.validate(memberModifyDTO.getPw());
+            
+            member.changePw(passwordEncoder.encode(memberModifyDTO.getPw()));
+            isPasswordChanged = true;
+        }
+
         member.changeSocial(false); // 소셜 연동 해제 여부는 정책에 따라 결정 (여기서는 일반회원 전환)
         member.changeNickname(memberModifyDTO.getNickname());
 
@@ -166,6 +179,13 @@ public class MemberServiceImpl implements MemberService {
         }
 
         memberRepository.save(member);
+
+        // 비밀번호 변경 시 모든 Refresh Token Family 폐기 (보안 강화)
+        // 모든 기기에서 자동 로그아웃 처리
+        if (isPasswordChanged) {
+            refreshTokenService.revokeAllFamiliesForUser(memberModifyDTO.getEmail());
+            log.info("Password changed - all refresh tokens revoked for user: email={}", memberModifyDTO.getEmail());
+        }
     }
     @Override // 회원 가입
     public void join(MemberJoinDTO memberJoinDTO) {
@@ -173,11 +193,17 @@ public class MemberServiceImpl implements MemberService {
         String email = memberJoinDTO.getEmail();
 
         // 1. 이메일 중복 검사
-        if(memberRepository.existsById(email)){
-            throw new MemberExistException();
+//        if(memberRepository.existsById(email)){
+//            throw new BadCredentialsException("DELETED_ACCOUNT");
+//        }
+        if (memberRepository.existsById(email)) {
+            throw new DuplicateMemberException();
         }
 
-        // 2. 회원 엔티티 생성
+        // 2. 비밀번호 정책 검증
+        PasswordPolicyValidator.validate(memberJoinDTO.getPw());
+
+        // 3. 회원 엔티티 생성
         Department dept = Department.valueOf(memberJoinDTO.getDepartment());
 
         Member member = Member.builder()
@@ -190,10 +216,10 @@ public class MemberServiceImpl implements MemberService {
                 .isDeleted(false)
                 .build();
 
-        // 3. 기본 권한 설정 (USER)
+        // 4. 기본 권한 설정 (USER)
         member.addRole(MemberRole.USER);
 
-        // 4. 저장
+        // 5. 저장
         memberRepository.save(member);
     }
 

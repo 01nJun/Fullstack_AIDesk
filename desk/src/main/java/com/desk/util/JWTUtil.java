@@ -22,7 +22,11 @@ public class JWTUtil {
 
     // JWT 생성, valueMap → JWT payload(claims)에 담길 정보 (예: email, role), min → 토큰 만료 시간 (분 단위)
     public static String generateToken(Map<String, Object> valueMap, int min){
+        return generateToken(valueMap, min * 60L);
+    }
 
+    // JWT 생성 (초 단위) - 테스트용
+    public static String generateToken(Map<String, Object> valueMap, long seconds){
         SecretKey key = null;
 
         try{ // HMAC SHA256 방식으로 서명용 키 객체 생성, key.getBytes("UTF-8") → 문자열 키를 바이트로 변환
@@ -37,7 +41,7 @@ public class JWTUtil {
             .setHeader(Map.of("typ","JWT"))
             .setClaims(valueMap)
             .setIssuedAt(Date.from(ZonedDateTime.now().toInstant()))
-            .setExpiration(Date.from(ZonedDateTime.now().plusMinutes(min).toInstant()))
+            .setExpiration(Date.from(ZonedDateTime.now().plusSeconds(seconds).toInstant()))
             .signWith(key)
             .compact();
 
@@ -70,6 +74,33 @@ public class JWTUtil {
         throw new CustomJWTException("Error");
     }
     return claim;
+  }
+
+  /**
+   * 만료된 토큰도 Claims를 반환 (refresh 시 기존 access claims 재사용 용도)
+   * - 서명 검증은 수행
+   * - 만료(Expired)인 경우에도 claims를 반환
+   */
+  public static Map<String, Object> getClaimsAllowExpired(String token) {
+      try {
+          SecretKey key = Keys.hmacShaKeyFor(JWTUtil.key.getBytes("UTF-8"));
+          return Jwts.parserBuilder()
+                  .setSigningKey(key)
+                  .build()
+                  .parseClaimsJws(token)
+                  .getBody();
+      } catch (ExpiredJwtException e) {
+          // 만료되어도 claims는 반환
+          return e.getClaims();
+      } catch(MalformedJwtException malformedJwtException){
+          throw new CustomJWTException("MalFormed");
+      } catch(InvalidClaimException invalidClaimException){
+          throw new CustomJWTException("Invalid");
+      } catch(JwtException jwtException){
+          throw new CustomJWTException("JWTError");
+      } catch(Exception e){
+          throw new CustomJWTException("Error");
+      }
   }
 
     // 토큰이 만료되었는지 확인하는 로직 (Refresh 로직에서 AccessToken 만료 확인용)

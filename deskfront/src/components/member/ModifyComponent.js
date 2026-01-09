@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { modifyMember, registerFaceApi, updateFaceStatusApi } from "../../api/memberApi"; // API 추가 확인
-import { logout } from "../../slices/loginSlice";
 import useCustomLogin from "../../hooks/useCustomLogin";
+import { validatePassword, getPasswordPolicyText } from "../../util/passwordValidator";
+import LoadingModal from "../common/LoadingModal";
 
 const initState = {
   email: "",
@@ -14,9 +15,10 @@ const initState = {
 
 const ModifyComponent = () => {
   const [member, setMember] = useState({ ...initState });
+  const [passwordError, setPasswordError] = useState(null);
+  const [isRecognizing, setIsRecognizing] = useState(false);
   const loginInfo = useSelector((state) => state.loginSlice);
-  const { moveToLogin } = useCustomLogin();
-  const dispatch = useDispatch();
+  const { moveToLogin, doLogout } = useCustomLogin();
 
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef(null);
@@ -34,7 +36,18 @@ const ModifyComponent = () => {
   }, [loginInfo]);
 
   const handleChange = (e) => {
-    setMember({ ...member, [e.target.name]: e.target.value });
+    const newValue = e.target.value;
+    setMember({ ...member, [e.target.name]: newValue });
+
+    // 비밀번호 실시간 검증 (입력 중)
+    if (e.target.name === "pw") {
+      if (newValue && newValue.trim() !== "") {
+        const validation = validatePassword(newValue);
+        setPasswordError(validation.valid ? null : validation.message);
+      } else {
+        setPasswordError(null);
+      }
+    }
   };
 
   const handleClickModify = (e) => {
@@ -44,6 +57,14 @@ const ModifyComponent = () => {
       alert("비밀번호를 입력해야 정보 수정이 가능합니다.");
       return;
     }
+
+    // 비밀번호 정책 검증
+    const passwordValidation = validatePassword(member.pw);
+    if (!passwordValidation.valid) {
+      alert(passwordValidation.message);
+      return;
+    }
+
     if (!member.nickname) {
       alert("닉네임은 필수 입력 항목입니다.");
       return;
@@ -51,9 +72,9 @@ const ModifyComponent = () => {
     const memberToSend = { ...member, department: member.department || "DEVELOPMENT" };
 
     modifyMember(memberToSend)
-      .then((result) => {
-        alert("정보 수정이 완료되었습니다.");
-        dispatch(logout());
+      .then(async (result) => {
+        alert("정보 수정이 완료되었습니다.\n비밀번호가 변경되어 모든 기기에서 로그아웃됩니다.");
+        await doLogout();
         moveToLogin();
       })
       .catch((err) => {
@@ -88,10 +109,13 @@ const ModifyComponent = () => {
   };
 
   //  캡처 및 등록 로직
-  const captureAndRegister = () => {
+  const captureAndRegister = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
+
+    // 로딩 상태 시작
+    setIsRecognizing(true);
 
     const context = canvas.getContext("2d");
     canvas.width = video.videoWidth;
@@ -113,6 +137,9 @@ const ModifyComponent = () => {
         setMember({ ...member, faceEnabled: true });
       } catch (err) {
         alert("얼굴 등록 중 오류가 발생했습니다.");
+      } finally {
+        // 로딩 상태 종료
+        setIsRecognizing(false);
       }
     }, "image/jpeg");
   };
@@ -137,10 +164,16 @@ const ModifyComponent = () => {
         <div>
           <label className="block text-xs font-semibold text-baseMuted mb-2">새 비밀번호</label>
           <input
-            className="ui-input"
+            className={`ui-input ${passwordError ? "border-red-500" : ""}`}
             name="pw" type="password" value={member.pw} onChange={handleChange} placeholder="새 비밀번호를 입력하세요"
           />
-          <p className="text-xs text-baseMuted mt-1">* 선택사항: 직접 로그인을 위한 비밀번호 설정</p>
+          {passwordError && (
+            <p className="text-xs text-red-500 mt-1">{passwordError}</p>
+          )}
+          {!passwordError && member.pw && (
+            <p className="text-xs text-green-600 mt-1">✓ 비밀번호 규칙을 만족합니다</p>
+          )}
+            <p className="text-xs text-baseMuted mt-1">{getPasswordPolicyText()}</p>
         </div>
 
         <div>
@@ -206,14 +239,16 @@ const ModifyComponent = () => {
                 <button
                   type="button"
                   onClick={captureAndRegister}
-                  className="flex-1 ui-btn-primary"
+                  disabled={isRecognizing}
+                  className={`flex-1 ui-btn-primary ${isRecognizing ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   캡처 및 저장
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowCamera(false)}
-                  className="ui-btn-secondary"
+                  disabled={isRecognizing}
+                  className={`ui-btn-secondary ${isRecognizing ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   취소
                 </button>
@@ -231,6 +266,9 @@ const ModifyComponent = () => {
           업데이트 및 재승인
         </button>
       </form>
+
+      {/* 얼굴 인식 로딩 모달 */}
+      <LoadingModal isOpen={isRecognizing} />
     </div>
   );
 };
