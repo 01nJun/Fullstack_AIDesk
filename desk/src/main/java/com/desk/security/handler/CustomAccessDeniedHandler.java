@@ -23,13 +23,15 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler{
         // Gson 라이브러리를 사용해 Map → JSON 변환
         String jsonStr = gson.toJson(Map.of("error", "ERROR_ACCESSDENIED"));
 
-        // Content-Type → JSON
-        response.setContentType("application/json");
+        // Content-Type → JSON with UTF-8 charset
+        response.setContentType("application/json; charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
         // HTTP 상태 코드 → 403 (권한 없음)
         response.setStatus(HttpStatus.FORBIDDEN.value());
         // JSON 문자열을 클라이언트에 전달
         PrintWriter printWriter = response.getWriter();
-        printWriter.println(jsonStr);
+        printWriter.print(jsonStr);
+        printWriter.flush();
         printWriter.close();
 
     }

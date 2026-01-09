@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.desk.dto.MemberDTO;
 import com.desk.util.CustomJWTException;
 import com.desk.util.JWTUtil;
+import com.desk.security.token.TokenType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.lang.NonNull;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -23,7 +25,7 @@ public class JWTCheckFilter extends OncePerRequestFilter{
     // shouldNotFilter()가 false면 필터 로직(doFilterInternal)이 실행되어 JWT 검증 등 인증 처리가 수행되고, 
     // true면 필터를 건너뛰고 다음 필터로 넘어간다.
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException{
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) throws ServletException{
 
         // Preflight(안전하지 않은)요청은 체크하지 않음
         if(request.getMethod().equals("OPTIONS")){
@@ -34,13 +36,16 @@ public class JWTCheckFilter extends OncePerRequestFilter{
 
         log.info("check uri......................."+path);
 
-        // “로그인 안 한 사용자도 접근 가능한 API”는 JWT 체크 안 함
-        // api/member/ 경로의 호출은 체크하지 않음
-        if(path.startsWith("/api/member/")) {
+        // “로그인 안 한 사용자도 접근 가능한 API”만 JWT 체크 안 함 (최소 예외)
+        if (path.equals("/api/member/login") ||
+                path.equals("/api/member/join") ||
+                path.equals("/api/member/refresh") ||
+                path.equals("/api/member/kakao") ||
+                path.equals("/api/member/login/face")) {
             return true;
         }
 
-        // 이미지 조회 경로는 체크하지 않음
+        // (기존 동작 유지) 이미지/파일 뷰/다운로드는 JWT 체크 제외
         if (path.startsWith("/api/files/view/") || path.startsWith("/api/files/download/")) {
             return true;
         }
@@ -48,7 +53,7 @@ public class JWTCheckFilter extends OncePerRequestFilter{
         return false;
     }
     @Override // 실제 JWT 검증 처리를 수행. 성공 → SecurityContext에 인증 정보 설정, 실패 → JSON 에러 응답
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException{
 
         log.info("------------------------JWTCheckFilter------------------");
@@ -71,9 +76,11 @@ public class JWTCheckFilter extends OncePerRequestFilter{
             }
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
             PrintWriter printWriter = response.getWriter();
-            printWriter.println(new Gson().toJson(Map.of("error", "UNAUTHORIZED")));
+            printWriter.print(new Gson().toJson(Map.of("error", "UNAUTHORIZED")));
+            printWriter.flush();
             printWriter.close();
             return;
         }
@@ -84,7 +91,11 @@ public class JWTCheckFilter extends OncePerRequestFilter{
             // JWT 서명 확인 + payload(claims) 반환, 실패 시 예외 → catch 블록으로 이동
             Map<String, Object> claims = JWTUtil.validateToken(accessToken);
 
-            log.info("JWT claims: " + claims);
+            // tokenType 구분(Refresh를 Access처럼 쓰는 우회 차단)
+            Object tokenType = claims.get("tokenType");
+            if (tokenType != null && !TokenType.ACCESS.name().equals(tokenType.toString())) {
+                throw new CustomJWTException("INVALID_TOKEN_TYPE");
+            }
 
             String email = (String) claims.get("email");
 //      String pw = (String) claims.get("pw");
@@ -106,6 +117,11 @@ public class JWTCheckFilter extends OncePerRequestFilter{
 
             UsernamePasswordAuthenticationToken authenticationToken
                     = new UsernamePasswordAuthenticationToken(memberDTO, pw, memberDTO.getAuthorities());
+            // 민감행위 재확인(auth_time) 등에 사용할 수 있도록 최소 컨텍스트를 details로 부착
+            authenticationToken.setDetails(Map.of(
+                    "auth_time", claims.get("auth_time"),
+                    "amr", claims.get("amr")
+            ));
 
             // 지금 로그인한 사용자의 인증 정보(사용자 정보, 비밀번호, 권한 등)를 SecurityContext에 저장
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
@@ -124,9 +140,11 @@ public class JWTCheckFilter extends OncePerRequestFilter{
             Gson gson = new Gson();
             String msg = gson.toJson(Map.of("error", "ERROR_ACCESS_TOKEN"));
 
-            response.setContentType("application/json");
+            response.setContentType("application/json; charset=UTF-8");
+            response.setCharacterEncoding("UTF-8");
             PrintWriter printWriter = response.getWriter();
-            printWriter.println(msg);
+            printWriter.print(msg);
+            printWriter.flush();
             printWriter.close();
             return; // JWT 검증 실패 시 여기서 종료
 

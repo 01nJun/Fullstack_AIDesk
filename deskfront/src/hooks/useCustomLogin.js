@@ -15,14 +15,20 @@ const useCustomLogin = () => {
     //----------로그인 함수
 
     const action = await dispatch(loginPostAsync(loginParam)); // 비동기 로그인 처리 (일반 로그인)
+    
+    // fulfilled 또는 rejected 모두 action.payload에 데이터가 있음
+    // rejected인 경우 action.type에 "rejected"가 포함됨
+    if (action.type.includes("rejected")) {
+      // rejected인 경우 예외를 던져서 catch로 처리되도록 함
+      throw action.payload;
+    }
 
     return action.payload;
   };
 
-  const doLogout = () => {
-    //---------------로그아웃 함수
-
-    dispatch(logout());
+  const doLogout = async () => {
+    //---------------로그아웃 함수 (비동기 - logoutPostAsync 호출)
+    await dispatch(logout());
   };
 
   const moveToPath = (path) => {

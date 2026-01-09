@@ -22,6 +22,7 @@ public class FaceAuthenticationFilter extends AbstractAuthenticationProcessingFi
     }
 
     @Override
+    @SuppressWarnings("null")
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
             throws AuthenticationException {
 
@@ -49,6 +50,8 @@ public class FaceAuthenticationFilter extends AbstractAuthenticationProcessingFi
             }
 
             // 5. 토큰 생성 및 인증 매니저에게 전달
+            // 성공 시 발급되는 JWT에 인증수단(amr)을 표기할 수 있도록 요청에 힌트 부착
+            request.setAttribute("amr", "face");
             FaceAuthenticationToken authRequest = new FaceAuthenticationToken(identifiedEmail);
             return this.getAuthenticationManager().authenticate(authRequest);
 

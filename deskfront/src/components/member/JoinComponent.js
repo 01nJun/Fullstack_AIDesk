@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { joinPost } from "../../api/memberApi";
 import useCustomLogin from "../../hooks/useCustomLogin";
+import { validatePassword, getPasswordPolicyText } from "../../util/passwordValidator";
 
 const initState = {
   email: "",
@@ -11,14 +12,26 @@ const initState = {
 
 const JoinComponent = () => {
   const [joinParam, setJoinParam] = useState({ ...initState });
+  const [passwordError, setPasswordError] = useState(null);
   const { moveToLogin } = useCustomLogin();
 
   const handleChange = (e) => {
     // 상태 업데이트 방식 개선 (직접 변경 대신 setState 사용)
+    const newValue = e.target.value;
     setJoinParam({
       ...joinParam,
-      [e.target.name]: e.target.value
+      [e.target.name]: newValue
     });
+
+    // 비밀번호 실시간 검증 (입력 중)
+    if (e.target.name === "pw") {
+      if (newValue && newValue.trim() !== "") {
+        const validation = validatePassword(newValue);
+        setPasswordError(validation.valid ? null : validation.message);
+      } else {
+        setPasswordError(null);
+      }
+    }
   };
 
   const handleClickJoin = (e) => {
@@ -28,6 +41,14 @@ const JoinComponent = () => {
       alert("모든 정보를 입력해주세요.");
       return;
     }
+
+    // 비밀번호 정책 검증
+    const passwordValidation = validatePassword(joinParam.pw);
+    if (!passwordValidation.valid) {
+      alert(passwordValidation.message);
+      return;
+    }
+
     joinPost(joinParam)
       .then((result) => {
         if (result.result === "success") {
@@ -36,7 +57,13 @@ const JoinComponent = () => {
         }
       })
       .catch((err) => {
-        alert("회원가입 실패. 다시 시도해주세요.");
+          const errorCode = err?.response?.data?.code;
+
+          if (errorCode === "DELETED_ACCOUNT") {
+            alert("이미 존재하는 이메일 입니다");
+          } else {
+            alert("회원가입 실패. 다시 시도해주세요.");
+          }
       });
   };
 
@@ -60,9 +87,18 @@ const JoinComponent = () => {
         <div>
           <label className="block text-xs font-semibold text-baseMuted mb-2">비밀번호</label>
           <input
-            className="ui-input"
-            name="pw" type="password" onChange={handleChange} placeholder="••••••••"
+            className={`ui-input ${passwordError ? "border-red-500" : ""}`}
+            name="pw" type="password" onChange={handleChange} placeholder="비밀번호를 입력하세요"
           />
+          {passwordError && (
+            <p className="text-xs text-red-500 mt-1">{passwordError}</p>
+          )}
+          {!passwordError && joinParam.pw && (
+            <p className="text-xs text-green-600 mt-1">✓ 비밀번호 규칙을 만족합니다</p>
+          )}
+          {!joinParam.pw && (
+            <p className="text-xs text-baseMuted mt-1">{getPasswordPolicyText()}</p>
+          )}
         </div>
 
         <div>

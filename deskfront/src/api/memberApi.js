@@ -15,9 +15,18 @@ export const loginPost = async (loginParam) => {
   form.append("username", loginParam.email);
   form.append("password", loginParam.pw);
 
-  const res = await axios.post(`${host}/login`, form, header);
-
-  return res.data;
+  try {
+    const res = await axios.post(`${host}/login`, form, { ...header, withCredentials: true });
+    // 백엔드가 HTTP 200으로 에러 응답을 보낼 수 있음 (error 필드 포함)
+    return res.data;
+  } catch (err) {
+    // HTTP 에러 상태 코드를 받은 경우 (4xx, 5xx)
+    if (err.response && err.response.data) {
+      return err.response.data; // 에러 응답 body를 반환
+    }
+    // 네트워크 에러 등
+    throw err;
+  }
 };
 
 export const modifyMember = async (member) => {
@@ -41,7 +50,7 @@ export const registerFaceApi = async (email, file) => {
     formData.append("email", email);
     formData.append("faceFile", file);
 
-    const res = await axios.post(`${host}/face-register`, formData, {
+    const res = await jwtAxios.post(`${host}/face-register`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
     });
     return res.data;
@@ -49,7 +58,7 @@ export const registerFaceApi = async (email, file) => {
 
 // 얼굴 로그인 활성화/비활성화 토글
 export const updateFaceStatusApi = async (email, status) => {
-    const res = await axios.put(`${host}/update-face-status`, { email, status });
+    const res = await jwtAxios.put(`${host}/update-face-status`, { email, status });
     return res.data;
 };
 // 얼굴 로그인 요청 (FaceAuthenticationFilter가 가로채는 URL)
@@ -57,7 +66,8 @@ export const loginFace = async (file) => {
     const formData = new FormData();
     formData.append("faceFile", file);
     const res = await axios.post(`${host}/login/face`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true
     });
     return res.data;
 }
@@ -71,6 +81,12 @@ export const searchMembers = async (keyword, page = 1, size = 20, department = n
   };
 
   const res = await jwtAxios.get(`${host}/search`, { params });
+  return res.data;
+};
+
+// 로그아웃 API - Refresh Token 삭제
+export const logoutPost = async () => {
+  const res = await jwtAxios.post(`${host}/logout`);
   return res.data;
 };
 

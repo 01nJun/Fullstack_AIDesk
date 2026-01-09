@@ -3,16 +3,15 @@ package com.desk.security;
 import com.desk.domain.Member;
 import com.desk.dto.MemberDTO;
 import com.desk.repository.MemberRepository;
+import com.desk.security.token.LoginLockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.stream.Collectors;
-
 
 @Service
 @Log4j2
@@ -20,12 +19,18 @@ import java.util.stream.Collectors;
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final MemberRepository memberRepository;
+    private final LoginLockService loginLockService;
 
-    // Spring Security가 로그인 처리 시 자동 호출, username → 로그인 시 사용자가 입력한 email 혹은 아이디
     @Override
     public UserDetails loadUserByUsername(String username) throws BadCredentialsException {
+        log.info("loadUserByUsername: {}", username);
 
-        log.info("----------------loadUserByUsername-----------------------------");
+        // 로그인 잠금 체크
+        if (loginLockService.isLocked(username)) {
+            int remainingMinutes = loginLockService.getRemainingLockMinutes(username);
+            String message = String.format("로그인이 잠겨 있습니다. 남은 시간: %d분", remainingMinutes);
+            throw new BadCredentialsException(message);
+        }
 
         Member member = memberRepository.getWithRoles(username);
 
@@ -49,14 +54,11 @@ public class CustomUserDetailsService implements UserDetailsService {
                 member.getPw(),
                 member.getNickname(),
                 member.isSocial(),
-                member.getDepartment() != null ? member.getDepartment().name() : "", // Enum -> String
+                member.getDepartment() != null ? member.getDepartment().name() : "",
                 member.isApproved(),
                 member.getRoleList().stream().map(Enum::name).collect(Collectors.toList()),
                 member.isFaceEnabled());
 
-        // DTO에도 부서 정보 등을 담고 싶다면 MemberDTO 필드 추가 필요
         return memberDTO;
-        // 사용자 정보를 DB에서 조회해서 UserDetails로 반환
-        // 비밀번호 비교 → Spring Security 내부(DaoAuthenticationProvider + PasswordEncoder)에서 자동으로 처리
     }
 }

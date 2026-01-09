@@ -88,6 +88,11 @@ dependencies {
 
 //    PDF 의존성 주입
     implementation 'org.apache.pdfbox:pdfbox:2.0.30'
+
+    // Redis 사용
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    // Redis 연결 풀을 위한 commons-pool2 (Lettuce Connection Pool 활성화 필수)
+    implementation 'org.apache.commons:commons-pool2:2.11.1'
 }
 
 // Spring AI BOM 추가

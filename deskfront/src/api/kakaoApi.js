@@ -37,9 +37,10 @@ export const getAccessToken = async (authCode) => {
 };
 // 백엔드 Spring Controller (SocialController) 호출 - 전달: 카카오 accessToken
 export const getMemberWithAccessToken = async (accessToken) => {
-  const res = await axios.get(
-    `${API_SERVER_HOST}/api/member/kakao?accessToken=${accessToken}`
-  );
+  const res = await axios.get(`${API_SERVER_HOST}/api/member/kakao`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    withCredentials: true,
+  });
 
   return res.data; // claims 반환
 };
