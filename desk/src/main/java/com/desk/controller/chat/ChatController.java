@@ -7,10 +7,14 @@ import com.desk.service.chat.ChatMessageService;
 import com.desk.service.chat.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +29,7 @@ public class ChatController {
     
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
+    private final SimpMessagingTemplate messagingTemplate;
     
     /**
      * GET /api/chat/rooms
@@ -75,7 +80,7 @@ public class ChatController {
      */
     @GetMapping("/rooms/{roomId}")
     public ResponseEntity<ChatRoomDTO> getRoom(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             Principal principal) {
         String userId = principal.getName();
         log.info("[Chat] 채팅방 상세 조회 | roomId={} | userId={}", roomId, userId);
@@ -90,7 +95,7 @@ public class ChatController {
      */
     @PostMapping("/rooms/{roomId}/leave")
     public ResponseEntity<Map<String, String>> leaveRoom(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             Principal principal) {
         String userId = principal.getName();
         log.info("[Chat] 채팅방 나가기 | roomId={} | userId={}", roomId, userId);
@@ -105,7 +110,7 @@ public class ChatController {
      */
     @PostMapping("/rooms/{roomId}/invite")
     public ResponseEntity<Map<String, String>> inviteUsers(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @RequestBody ChatInviteDTO inviteDTO,
             Principal principal) {
         String userId = principal.getName();
@@ -122,7 +127,7 @@ public class ChatController {
      */
     @GetMapping("/rooms/{roomId}/messages")
     public ResponseEntity<PageResponseDTO<ChatMessageDTO>> getMessages(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @ModelAttribute PageRequestDTO pageRequestDTO,
             Principal principal) {
         String userId = principal.getName();
@@ -139,7 +144,7 @@ public class ChatController {
      */
     @PostMapping("/rooms/{roomId}/messages")
     public ResponseEntity<ChatMessageDTO> sendMessage(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @RequestBody ChatMessageCreateDTO createDTO,
             Principal principal) {
         String userId = principal.getName();
@@ -147,6 +152,31 @@ public class ChatController {
                 roomId, userId, createDTO.getMessageType());
         
         ChatMessageDTO message = chatMessageService.sendMessage(roomId, createDTO, userId);
+        // ✅ REST 전송이어도 구독자에게 브로드캐스트(첨부 전송/WS 불안정 대비)
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, message);
+        return ResponseEntity.ok(message);
+    }
+
+    /**
+     * POST /api/chat/rooms/{roomId}/messages/files
+     * 메시지 전송 + 파일 첨부 (multipart/form-data)
+     *
+     * - WS로는 multipart를 못 보내므로 첨부가 있을 때만 이 엔드포인트를 사용
+     * - 저장 후 /topic/chat/{roomId}로 브로드캐스트
+     */
+    @PostMapping(value = "/rooms/{roomId}/messages/files", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<ChatMessageDTO> sendMessageWithFiles(
+            @PathVariable("roomId") Long roomId,
+            @RequestPart("message") ChatMessageCreateDTO createDTO,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            Principal principal
+    ) {
+        String userId = principal.getName();
+        List<MultipartFile> safeFiles = (files == null) ? Collections.emptyList() : files;
+        log.info("[Chat] 메시지+파일 전송 | roomId={} | senderId={} | fileCount={}", roomId, userId, safeFiles.size());
+
+        ChatMessageDTO message = chatMessageService.sendMessageWithFiles(roomId, createDTO, safeFiles, userId);
+        messagingTemplate.convertAndSend("/topic/chat/" + roomId, message);
         return ResponseEntity.ok(message);
     }
     
@@ -156,7 +186,7 @@ public class ChatController {
      */
     @PutMapping("/rooms/{roomId}/read")
     public ResponseEntity<Map<String, String>> markAsRead(
-            @PathVariable Long roomId,
+            @PathVariable("roomId") Long roomId,
             @RequestBody ChatReadUpdateDTO readDTO,
             Principal principal) {
         String userId = principal.getName();

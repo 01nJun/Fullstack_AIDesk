@@ -21,7 +21,7 @@ public class TicketPinController {
     }
 
     @PostMapping("/toggle/{tno}")
-    public List<TicketPinResponseDTO> toggle(@PathVariable Long tno, Principal principal) {
+    public List<TicketPinResponseDTO> toggle(@PathVariable("tno") Long tno, Principal principal) {
         return pinService.togglePin(principal.getName(), tno);
     }
 }

@@ -64,7 +64,10 @@ public class MemberController {
 
     // 담당자 정보 조회 API (email로 부서, 닉네임 조회)
     @GetMapping("/info/{email}")
-    public ResponseEntity<Map<String, String>> getMemberInfo(@PathVariable String email) {
+    public ResponseEntity<Map<String, String>> getMemberInfo(@PathVariable("email") String email) {
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
         log.info("담당자 정보 조회 요청: {}", email);
         Optional<Member> member = memberRepository.findById(email);
         if (member.isPresent()) {

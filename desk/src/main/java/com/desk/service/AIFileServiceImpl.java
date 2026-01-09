@@ -3,20 +3,25 @@ package com.desk.service;
 import com.desk.domain.Department;
 import com.desk.domain.Member;
 import com.desk.domain.TicketFile;
+import com.desk.domain.ChatFile;
 import com.desk.dto.AIFileRequestDTO;
 import com.desk.dto.AIFileResponseDTO;
 import com.desk.dto.AIFileResultDTO;
 import com.desk.repository.MemberRepository;
 import com.desk.repository.TicketFileRepository;
+import com.desk.repository.chat.ChatFileRepository;
 import com.desk.util.AIFilePromptUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import kr.co.shineware.nlp.komoran.constant.DEFAULT_MODEL;
+import kr.co.shineware.nlp.komoran.core.Komoran;
+import kr.co.shineware.nlp.komoran.model.Token;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,27 +29,66 @@ import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.desk.util.text.TextSimilarityUtil;
+
 @Service
 @Log4j2
-@RequiredArgsConstructor
 public class AIFileServiceImpl implements AIFileService {
 
     private final TicketFileRepository ticketFileRepository;
+    private final ChatFileRepository chatFileRepository;
     private final MemberRepository memberRepository;
     private final AITicketClientService aiClient; // AI 클라이언트 추가
     private final ObjectMapper objectMapper; // JSON 파싱용
+
+    // 한국어 형태소 분석기 (Komoran) - 자연어에서 명사만 추출
+    private Komoran komoran;
+
+    public AIFileServiceImpl(TicketFileRepository ticketFileRepository,
+                             ChatFileRepository chatFileRepository,
+                             MemberRepository memberRepository,
+                             AITicketClientService aiClient,
+                             ObjectMapper objectMapper) {
+        this.ticketFileRepository = ticketFileRepository;
+        this.chatFileRepository = chatFileRepository;
+        this.memberRepository = memberRepository;
+        this.aiClient = aiClient;
+        this.objectMapper = objectMapper;
+    }
+
+    @PostConstruct
+    public void initKomoran() {
+        try {
+            this.komoran = new Komoran(DEFAULT_MODEL.LIGHT); // LIGHT 모델 사용 (빠름)
+            log.info("[Komoran] 형태소 분석기 초기화 완료");
+        } catch (Exception e) {
+            log.warn("[Komoran] 초기화 실패, 기본 토큰화 사용: {}", e.getMessage());
+            this.komoran = null;
+        }
+    }
 
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}");
 
     // 불용어(검색 의미가 약한 단어) - 키워드 오염 방지용
     private static final Pattern KEYWORD_NOISE_PATTERN = Pattern.compile(
-            "(관련|파일|자료|내역|건|주고받은|주고 받은|주고받기|주고 받기|대화|대화한|얘기|얘기한|전송|전송한|전달|전달한|수신|수신한|" +
+            "(관련|파일|자료|내역|건|주고받은|주고 받은|주고받기|주고 받기|건네받은|건네 받은|내가준|내가 준|" +
+            "사진|이미지|그림|문서|자료|대화|대화한|얘기|얘기한|전송|전송한|전달|전달한|수신|수신한|" +
+            "채팅방|단톡방|단톡|톡방|나눈|나눈거|나눈파일|공유|공유한|" +
+            // 자연어에서 자주 붙는 '꼬리말' (의미 없는 토큰으로 AND 필터를 망치는 케이스 방지)
+            "관련한|관련한거|관련한것|관련한\\s*건|관련된|관련된거|관련된것|관련된\\s*건|관련해서|관련해서는|관련해서도|" +
+            "한거|한것|한\\s*건|했던거|했던것|했던\\s*건|그거|그것|그\\s*건|이거|이것|이\\s*건|" +
+            "내용|내용들|내용\\s*정리|정리|정리한|정리본|요약|요약본|" +
             "찾아|찾아줘|찾아주세요|조회|조회해|조회해줘|조회해주세요|" +
             "입니다|이에요|해줘|해주세요|좀|그거|이거)"
     );
@@ -63,6 +107,24 @@ public class AIFileServiceImpl implements AIFileService {
         DateRange range = parseDateRange(base);
         String withoutDate = stripDateTokens(base).trim();
         NaturalFilter filter = parseNaturalFilter(withoutDate);
+
+        // ✅ 디버그: 자연어 → (기간/상대/부서/키워드) 파싱 결과를 로그로 남겨서
+        // "왜 자연어로 치면 0건인지"를 실제 값 기준으로 추적 가능하게 한다.
+        try {
+            List<String> dbgTokens = extractKeywordTokens(filter.keyword);
+            String dbgKw = dbgTokens.isEmpty() ? "" : dbgTokens.get(0);
+            log.info("[AI File Parse] input='{}' | range={} | counter={} | dept={} | keyword='{}' | tokens={} | kw='{}'",
+                    base,
+                    range == null ? null : (range.from + " ~ " + range.to),
+                    filter.counterEmail,
+                    filter.department,
+                    filter.keyword,
+                    dbgTokens,
+                    dbgKw
+            );
+        } catch (Exception e) {
+            log.warn("[AI File Parse] debug log failed: {}", e.getMessage());
+        }
 
         // [2단계] 자바 파싱 결과 검증 - 불완전하면 AI 파싱 시도
         boolean needsAIParsing = false;
@@ -162,64 +224,598 @@ public class AIFileServiceImpl implements AIFileService {
         }
 
         // 키워드 토큰화: 불용어 제거 후 핵심 토큰을 뽑는다.
+        // - 여기서 뽑힌 토큰은 "조건(내용)"으로 취급한다. (0건이라고 해서 몰래 제거하지 않는다)
         List<String> keywordTokens = extractKeywordTokens(filter.keyword);
-        // DB에는 가장 강한 토큰 1개로 먼저 좁혀서 조회 (성능)
-        String kw = keywordTokens.isEmpty() ? "" : keywordTokens.get(0);
 
-        PageRequest pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
+        // ticket/chat 각각에서 조금 넉넉히 가져와 merge-sort 후 top10
+        PageRequest pageable = PageRequest.of(0, 30, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        // "보낸" 파일만 조회
-        if (filter.senderOnly) {
-            Page<TicketFile> page = ticketFileRepository.findByWriterAndSearch(receiverEmail, kw, pageable);
-            return buildResponse(request, page);
-        }
-        
-        // "받은" 파일만 조회
-        if (filter.receiverOnly) {
-            Page<TicketFile> page = ticketFileRepository.findByReceiverAndSearch(receiverEmail, kw, pageable);
-            return buildResponse(request, page);
-        }
-
-        // 기본: 전체 조회 (기간/상대/부서 필터링)
-        Page<TicketFile> page = ticketFileRepository.searchAccessibleFilesForAI(
-                receiverEmail,
-                kw,
-                range != null ? range.from : null,
-                range != null ? range.to : null,
-                filter.counterEmail,
-                filter.department,
-                pageable
-        );
-
-        // 추가 토큰이 있으면 (AND)로 후처리 필터링 (DB에서 1개 토큰으로 좁힌 결과에 대해)
-        if (keywordTokens.size() > 1 && page != null) {
-            List<TicketFile> filtered = page.getContent().stream()
-                    .filter(f -> matchesAllTokens(f, keywordTokens))
-                    .toList();
-            Page<TicketFile> newPage = new org.springframework.data.domain.PageImpl<>(
-                    filtered, pageable, filtered.size()
-            );
-            return buildResponse(request, newPage);
-        }
-
-        return buildResponse(request, page);
+        // ✅ 최종 검색 전략:
+        // 1) 사용자가 준 조건(기간/상대/부서/키워드)을 모두 AND로 검색
+        // 2) 0건이면 AI가 "같은 조건"을 더 잘 해석(키워드 분해/정규화 중심)하여 다시 AND 검색
+        // 3) 그래도 0건이면 "겹치는 조건 개수"가 가장 큰 결과를 제시 (3개→2개→1개), 안내문에는 '맞춘 조건'만 표시
+        return searchWithAiAndOverlap(receiverEmail, request, base, range, filter, keywordTokens, pageable);
     }
-    
-    private AIFileResponseDTO buildResponse(AIFileRequestDTO request, Page<TicketFile> page) {
+
+    private enum Cond {
+        DATE, DEPT, COUNTER, KEYWORD
+    }
+
+    private static class SearchParams {
+        final LocalDateTime fromDt;
+        final LocalDateTime toDt;
+        final String counterEmail;
+        final Department dept;
+        final List<String> keywordTokens;
+
+        SearchParams(LocalDateTime fromDt, LocalDateTime toDt, String counterEmail, Department dept, List<String> keywordTokens) {
+            this.fromDt = fromDt;
+            this.toDt = toDt;
+            this.counterEmail = counterEmail;
+            this.dept = dept;
+            this.keywordTokens = keywordTokens == null ? List.of() : keywordTokens;
+        }
+    }
+
+    private static class SearchResult {
+        final List<TicketFile> ticketFiles;
+        final List<ChatFile> chatFiles;
+        SearchResult(List<TicketFile> ticketFiles, List<ChatFile> chatFiles) {
+            this.ticketFiles = ticketFiles == null ? List.of() : ticketFiles;
+            this.chatFiles = chatFiles == null ? List.of() : chatFiles;
+        }
+        boolean isEmpty() {
+            return (ticketFiles == null || ticketFiles.isEmpty()) && (chatFiles == null || chatFiles.isEmpty());
+        }
+    }
+
+    private static class AiParsed {
+        final DateRange range;
+        final NaturalFilter filter;
+        AiParsed(DateRange range, NaturalFilter filter) {
+            this.range = range;
+            this.filter = filter;
+        }
+    }
+
+    /**
+     * strict 0건일 때만 "AI 재파싱"을 한 번 시도한다.
+     * - 기존 chat()의 AI 파싱은 '거의 아무것도 못 뽑았을 때'만 돌도록 좁게 gating 되어 있음
+     * - 사용자가 조건을 줬는데도(기간/부서/키워드 등) 자바 파싱이 엇나가면 strict=0이 나올 수 있으니,
+     *   그때는 AI가 한 번 더 구조화해서 strict 재시도를 한다.
+     * - 성능/비용: 방어적으로 결과가 나올 때만 채택한다(결과 없으면 기존 파싱 유지).
+     */
+    private AiParsed tryAiParseAll(String originalInput, DateRange currentRange, NaturalFilter currentFilter) {
+        if (originalInput == null || originalInput.isBlank()) return null;
+        try {
+            String prompt = AIFilePromptUtil.getFileSearchParsePrompt(originalInput);
+            String jsonResult = aiClient.generateJson(prompt);
+            JsonNode rootNode = objectMapper.readTree(jsonResult);
+
+            DateRange nextRange = currentRange;
+            NaturalFilter nextFilter = currentFilter;
+
+            // 날짜 범위
+            JsonNode dateRangeNode = rootNode.path("dateRange");
+            if (!dateRangeNode.isMissingNode() && !dateRangeNode.isNull()) {
+                String fromStr = dateRangeNode.path("from").asText(null);
+                String toStr = dateRangeNode.path("to").asText(null);
+                if (fromStr != null && !fromStr.equals("null") && toStr != null && !toStr.equals("null")) {
+                    try {
+                        LocalDate fromDate = LocalDate.parse(fromStr);
+                        LocalDate toDate = LocalDate.parse(toStr);
+                        nextRange = new DateRange(fromDate.atStartOfDay(), toDate.atTime(LocalTime.MAX));
+                    } catch (Exception ignore) {
+                        // ignore
+                    }
+                }
+            }
+
+            // 상대(이메일/닉네임)
+            String counterEmailOrNickname = rootNode.path("counterEmail").asText(null);
+            if (counterEmailOrNickname != null && !counterEmailOrNickname.equals("null") && !counterEmailOrNickname.isBlank()) {
+                String counterEmail = null;
+                if (EMAIL_PATTERN.matcher(counterEmailOrNickname).matches()) {
+                    counterEmail = counterEmailOrNickname;
+                } else {
+                    try {
+                        Optional<Member> found = memberRepository.findByNickname(counterEmailOrNickname);
+                        if (found.isPresent()) counterEmail = found.get().getEmail();
+                    } catch (Exception ignore) {
+                        // ignore
+                    }
+                }
+                if (counterEmail != null && !counterEmail.isBlank()) {
+                    nextFilter = new NaturalFilter(counterEmail, nextFilter.department, nextFilter.keyword, nextFilter.senderOnly, nextFilter.receiverOnly);
+                }
+            }
+
+            // 부서
+            String deptStr = rootNode.path("department").asText(null);
+            if (deptStr != null && !deptStr.equals("null") && !deptStr.isBlank()) {
+                try {
+                    Department department = Department.valueOf(deptStr.toUpperCase(Locale.ROOT));
+                    nextFilter = new NaturalFilter(nextFilter.counterEmail, department, nextFilter.keyword, nextFilter.senderOnly, nextFilter.receiverOnly);
+                } catch (IllegalArgumentException ignore) {
+                    // ignore
+                }
+            }
+
+            // 키워드
+            String aiKeyword = rootNode.path("keyword").asText("").trim();
+            if (aiKeyword != null && !aiKeyword.isBlank()) {
+                // 결과 유도 목적: 길이가 더 길면 우선 사용, 아니면 기존 유지
+                if (nextFilter.keyword == null || nextFilter.keyword.isBlank() || aiKeyword.length() > nextFilter.keyword.length()) {
+                    nextFilter = new NaturalFilter(nextFilter.counterEmail, nextFilter.department, aiKeyword, nextFilter.senderOnly, nextFilter.receiverOnly);
+                }
+            }
+
+            // 보낸/받은 필터
+            boolean aiSenderOnly = rootNode.path("senderOnly").asBoolean(false);
+            boolean aiReceiverOnly = rootNode.path("receiverOnly").asBoolean(false);
+            if (aiSenderOnly != nextFilter.senderOnly || aiReceiverOnly != nextFilter.receiverOnly) {
+                nextFilter = new NaturalFilter(nextFilter.counterEmail, nextFilter.department, nextFilter.keyword, aiSenderOnly, aiReceiverOnly);
+            }
+
+            return new AiParsed(nextRange, nextFilter);
+        } catch (Exception e) {
+            log.warn("[AI File] ai parse-all failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private AIFileResponseDTO searchWithAiAndOverlap(String myEmail,
+                                                     AIFileRequestDTO request,
+                                                     String originalInput,
+                                                     DateRange range,
+                                                     NaturalFilter filter,
+                                                     List<String> keywordTokens,
+                                                     PageRequest pageable) {
+        LocalDateTime fromDt = range != null ? range.from : null;
+        LocalDateTime toDt = range != null ? range.to : null;
+
+        SearchParams params = new SearchParams(fromDt, toDt, filter.counterEmail, filter.department, keywordTokens);
+
+        // [1] strict AND search (all recognized conditions)
+        Set<Cond> strict = buildPresentConds(params);
+        SearchResult strictRes = runSearch(myEmail, params, filter, strict, pageable);
+        if (!strictRes.isEmpty()) {
+            AIFileResponseDTO resp = buildResponseMerged(request, strictRes.ticketFiles, strictRes.chatFiles, "", params.keywordTokens);
+            // buildResponseMerged가 기본 메시지를 세팅하므로 그대로 둔다.
+            return resp;
+        }
+
+        // [1.5] strict=0이면 AI가 한 번 더 "전체 파싱"을 시도해서 strict 재실행
+        // - 자바 파싱이 엇나간 경우(부서/상대/날짜/키워드) 회복용
+        AiParsed parsed = tryAiParseAll(originalInput, range, filter);
+        if (parsed != null) {
+            DateRange aiRange = parsed.range;
+            NaturalFilter aiFilter = parsed.filter;
+            LocalDateTime aiFrom = aiRange != null ? aiRange.from : null;
+            LocalDateTime aiTo = aiRange != null ? aiRange.to : null;
+            List<String> aiKeywordTokens = extractKeywordTokens(aiFilter.keyword);
+            SearchParams aiParamsAll = new SearchParams(aiFrom, aiTo, aiFilter.counterEmail, aiFilter.department, aiKeywordTokens);
+            Set<Cond> aiStrictAll = buildPresentConds(aiParamsAll);
+            SearchResult aiStrictAllRes = runSearch(myEmail, aiParamsAll, aiFilter, aiStrictAll, pageable);
+            if (!aiStrictAllRes.isEmpty()) {
+                AIFileResponseDTO resp = buildResponseMerged(request, aiStrictAllRes.ticketFiles, aiStrictAllRes.chatFiles, "", aiKeywordTokens);
+                return resp;
+            }
+            // 이후 단계에서도 "AI 파싱 결과"를 기반으로 진행 (겹치는 조건 계산 포함)
+            range = aiRange;
+            filter = aiFilter;
+            fromDt = aiFrom;
+            toDt = aiTo;
+            params = aiParamsAll;
+            strict = aiStrictAll;
+        }
+
+        // [2] AI 강개입(조건 유지): "키워드"가 난해한 경우에만 재해석/정규화해서 다시 AND 시도
+        // - 자바로 충분히 잡힐 수 있는 간단 키워드는 AI를 태우지 않는다(비용/지연/오해 방지)
+        if (shouldUseAiKeywordRefine(originalInput, filter.keyword)) {
+            List<String> aiTokens = tryAiRefineKeywordTokens(originalInput);
+            if (aiTokens != null && !aiTokens.isEmpty() && !aiTokens.equals(params.keywordTokens)) {
+                SearchParams aiParams = new SearchParams(fromDt, toDt, params.counterEmail, params.dept, aiTokens);
+                Set<Cond> aiStrict = buildPresentConds(aiParams);
+                SearchResult aiStrictRes = runSearch(myEmail, aiParams, filter, aiStrict, pageable);
+                if (!aiStrictRes.isEmpty()) {
+                    AIFileResponseDTO resp = buildResponseMerged(request, aiStrictRes.ticketFiles, aiStrictRes.chatFiles, "", aiTokens);
+                    return resp;
+                }
+                // 이후 overlap 단계에서도 AI 토큰을 우선 사용
+                params = aiParams;
+                strict = aiStrict;
+            }
+        }
+
+        // [3] overlap: 조건 개수(4→3→2→1) 순으로 "가장 많이 겹치는 조건 조합 1개"를 선택해서 그 결과만 보여준다.
+        // ✅ 중요: 여러 조합을 UNION으로 섞어버리면(예: {기간} + {키워드}) 사용자가 "파일명에 있는데 왜 못찾냐"로 체감한다.
+        SearchResult best = null;
+        Set<Cond> bestConds = null;
+        int bestScore = Integer.MIN_VALUE;
+        int maxK = strict.size();
+        for (int k = maxK - 1; k >= 1; k--) {
+            List<Set<Cond>> subsets = subsetsOfSize(strict, k);
+            for (Set<Cond> s : subsets) {
+                SearchResult r = runSearch(myEmail, params, filter, s, pageable);
+                if (r.isEmpty()) continue;
+                int score = subsetScore(s, r);
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = r;
+                    bestConds = s;
+                }
+            }
+            if (best != null) break; // 가장 큰 k에서 하나라도 찾으면 종료
+        }
+
+        if (best != null && bestConds != null && !best.isEmpty()) {
+            List<String> shownTokens = bestConds.contains(Cond.KEYWORD) ? params.keywordTokens : List.of();
+            AIFileResponseDTO resp = buildResponseMerged(request, best.ticketFiles, best.chatFiles, "", shownTokens);
+            resp.setAiMessage(buildMatchedOnlyMessage(bestConds, range, filter, shownTokens));
+            return resp;
+        }
+
+        // [4] still none → 안내문 + 입력 팁
         AIFileResponseDTO resp = AIFileResponseDTO.builder()
                 .conversationId(request != null ? request.getConversationId() : null)
-                .results(page.getContent().stream().map(this::toResultDTO).toList())
+                .results(new ArrayList<>())
                 .build();
-
-        int count = page.getNumberOfElements();
-        if (count == 0) {
-            resp.setAiMessage("검색 결과가 없습니다. 키워드/기간/상대 조건을 바꿔서 다시 시도해 주세요.");
-        } else {
-            resp.setAiMessage(String.format("검색 결과 %d건입니다. 우측 목록에서 다운로드할 파일을 선택하세요.", count));
-        }
+        resp.setAiMessage(buildNotFoundMessageWithTips());
         return resp;
     }
 
+    /**
+     * AI는 "자바로 충분히 잡힐 수 있는 간단 키워드"에는 태우지 않는다.
+     * - 붙여쓰기/복합어처럼 토큰 분해가 실패할 가능성이 높을 때만 사용
+     * - ✅ 추출된 토큰이 모두 짧으면(1-2글자) AI에 바로 넘김
+     */
+    private boolean shouldUseAiKeywordRefine(String originalInput, String rawKeyword) {
+        if (rawKeyword == null) return false;
+        String kw = rawKeyword.trim();
+        if (kw.isEmpty()) return false;
+
+        // 불용어/꼬리말 제거 후에도 의미 있는 길이가 남아야 함
+        String cleaned = KEYWORD_NOISE_PATTERN.matcher(kw).replaceAll(" ");
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+        
+        // ✅ 추출된 토큰 확인
+        List<String> tokens = extractKeywordTokens(cleaned);
+        
+        // 토큰이 없거나 모두 2글자 이하면 AI에 바로 넘김
+        if (tokens.isEmpty() || tokens.stream().allMatch(t -> t.length() <= 2)) {
+            log.info("[AI Refine] 짧은 토큰만 존재 → AI 개입 | keyword={}", kw);
+            return true;
+        }
+        
+        // 원본이 4글자 미만이면 AI 불필요 (이미 Komoran이 충분히 처리)
+        if (cleaned.length() < 4) return false;
+
+        // 공백 없는 한글 복합어(예: 배너디자인/신제품기획서/귀여운짤 등)에서만 AI 리파인
+        // (공백 있는 질의는 자바/유사도 검색으로 충분히 잡히는 경우가 많고, AI 오해도 잦음)
+        if (cleaned.contains(" ")) return false;
+        return containsHangul(cleaned);
+    }
+
+    private int subsetScore(Set<Cond> subset, SearchResult r) {
+        // 조건 우선순위: KEYWORD(가장 핵심) > COUNTER > DEPT > DATE
+        int w = 0;
+        if (subset.contains(Cond.KEYWORD)) w += 1000;
+        if (subset.contains(Cond.COUNTER)) w += 100;
+        if (subset.contains(Cond.DEPT)) w += 10;
+        if (subset.contains(Cond.DATE)) w += 1;
+
+        int count = (r.ticketFiles == null ? 0 : r.ticketFiles.size()) + (r.chatFiles == null ? 0 : r.chatFiles.size());
+        // 같은 subset 우선순위에서는 결과가 더 많은 쪽을 살짝 우대
+        return w * 1000 + Math.min(count, 999);
+    }
+
+    private Set<Cond> buildPresentConds(SearchParams p) {
+        LinkedHashSet<Cond> s = new LinkedHashSet<>();
+        if (p.fromDt != null || p.toDt != null) s.add(Cond.DATE);
+        if (p.dept != null) s.add(Cond.DEPT);
+        if (p.counterEmail != null && !p.counterEmail.isBlank()) s.add(Cond.COUNTER);
+        if (p.keywordTokens != null && !p.keywordTokens.isEmpty()) s.add(Cond.KEYWORD);
+        return s;
+    }
+
+    private List<Set<Cond>> subsetsOfSize(Set<Cond> base, int k) {
+        List<Cond> items = new ArrayList<>(base);
+        List<Set<Cond>> out = new ArrayList<>();
+        backtrackSubsets(items, 0, k, new LinkedHashSet<>(), out);
+        return out;
+    }
+
+    private void backtrackSubsets(List<Cond> items, int idx, int k, LinkedHashSet<Cond> cur, List<Set<Cond>> out) {
+        if (cur.size() == k) {
+            out.add(new LinkedHashSet<>(cur));
+            return;
+        }
+        if (idx >= items.size()) return;
+        // pick
+        cur.add(items.get(idx));
+        backtrackSubsets(items, idx + 1, k, cur, out);
+        cur.remove(items.get(idx));
+        // skip
+        backtrackSubsets(items, idx + 1, k, cur, out);
+    }
+
+    private SearchResult runSearch(String myEmail,
+                                   SearchParams params,
+                                   NaturalFilter filter,
+                                   Set<Cond> conds,
+                                   PageRequest pageable) {
+        LocalDateTime fromDt = conds.contains(Cond.DATE) ? params.fromDt : null;
+        LocalDateTime toDt = conds.contains(Cond.DATE) ? params.toDt : null;
+        String counter = conds.contains(Cond.COUNTER) ? params.counterEmail : null;
+        Department dept = conds.contains(Cond.DEPT) ? params.dept : null;
+        List<String> tokens = conds.contains(Cond.KEYWORD) ? params.keywordTokens : List.of();
+
+        // 1. 역발상 검색: 필터(기간/부서/상대)가 명확하면 키워드 없이 DB를 넓게 긁어온 뒤, Java에서 유사도 정렬
+        boolean hasFilter = (fromDt != null || toDt != null || counter != null || dept != null);
+        boolean hasKeyword = (tokens != null && !tokens.isEmpty());
+
+        // 키워드만 있고 필터가 없으면 DB LIKE가 훨씬 빠르므로 기존 방식 (전체 스캔 방지)
+        // 필터가 있으면 "후보군 Fetch -> 유사도 Scoring" 전략 사용
+        if (hasFilter && hasKeyword) {
+            return runSearchWithSimilarity(myEmail, fromDt, toDt, counter, dept, tokens, filter, pageable);
+        }
+
+        // 기존 로직 (키워드가 없거나, 필터 없이 키워드만 있는 경우)
+        // seed tokens: 대표 1개 고정 금지. (합성어/띄어쓰기 불일치 대비)
+        List<String> seeds = buildKeywordSeeds(tokens);
+
+        LinkedHashMap<String, TicketFile> ticketMap = new LinkedHashMap<>();
+        LinkedHashMap<String, ChatFile> chatMap = new LinkedHashMap<>();
+
+        if (seeds.isEmpty()) seeds = List.of("");
+
+        for (String seed : seeds) {
+            String kw = seed == null ? "" : seed.trim();
+            Page<TicketFile> ticketPage = ticketFileRepository.searchAccessibleFilesForAI(
+                    myEmail, kw, fromDt, toDt, counter, dept, pageable
+            );
+            Page<ChatFile> chatPage = chatFileRepository.searchAccessibleChatFilesForAI(
+                    myEmail, kw, fromDt, toDt, counter, dept, pageable
+            );
+
+            List<TicketFile> tf = ticketPage != null ? ticketPage.getContent() : List.of();
+            List<ChatFile> cf = chatPage != null ? chatPage.getContent() : List.of();
+
+            // AND 후처리 (내용 조건이 있을 때만)
+            if (tokens != null && !tokens.isEmpty()) {
+                tf = tf.stream().filter(f -> matchesAllTokens(f, tokens)).toList();
+                Map<String, String> emailToNickname = new HashMap<>();
+                cf = cf.stream().filter(f -> matchesAllTokensChat(f, tokens, emailToNickname)).toList();
+            }
+
+            // 보낸/받은 필터는 "항상" 적용 (사용자 입력에 기반)
+            if (filter.senderOnly) {
+                tf = tf.stream().filter(f -> myEmail.equalsIgnoreCase(f.getWriter())).toList();
+                cf = cf.stream().filter(f -> myEmail.equalsIgnoreCase(f.getWriter())).toList();
+            }
+            if (filter.receiverOnly) {
+                tf = tf.stream().filter(f -> myEmail.equalsIgnoreCase(f.getReceiver())).toList();
+                // chat은 writer != myEmail로 처리 (receiver는 group에서 null일 수 있음)
+                cf = cf.stream().filter(f -> f.getWriter() == null || !myEmail.equalsIgnoreCase(f.getWriter())).toList();
+            }
+
+            for (TicketFile f : tf) {
+                if (f == null || f.getUuid() == null) continue;
+                ticketMap.putIfAbsent(f.getUuid(), f);
+            }
+            for (ChatFile f : cf) {
+                if (f == null || f.getUuid() == null) continue;
+                chatMap.putIfAbsent(f.getUuid(), f);
+            }
+        }
+
+        return new SearchResult(new ArrayList<>(ticketMap.values()), new ArrayList<>(chatMap.values()));
+    }
+
+    /**
+     * [역발상 검색]
+     * 1. DB: 키워드 조건 없이(kw="") 필터(기간/부서/상대)만으로 최신 100건 조회
+     * 2. Java: 키워드와의 유사도(Similarity) 계산
+     * 3. 70점 이상만 남기고 정렬
+     */
+    private SearchResult runSearchWithSimilarity(String myEmail,
+                                                 LocalDateTime fromDt, LocalDateTime toDt,
+                                                 String counter, Department dept,
+                                                 List<String> tokens,
+                                                 NaturalFilter filter,
+                                                 PageRequest originalPageable) {
+        // DB Fetch용 페이징: 정렬은 최신순, 개수는 좀 넉넉하게 (예: 100개)
+        // 너무 많이 가져오면 느리니까 적당히 끊음.
+        PageRequest fetchPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // 1. DB Fetch (Keyword = "")
+        Page<TicketFile> ticketPage = ticketFileRepository.searchAccessibleFilesForAI(
+                myEmail, "", fromDt, toDt, counter, dept, fetchPageable
+        );
+        Page<ChatFile> chatPage = chatFileRepository.searchAccessibleChatFilesForAI(
+                myEmail, "", fromDt, toDt, counter, dept, fetchPageable
+        );
+
+        List<TicketFile> tf = ticketPage != null ? ticketPage.getContent() : new ArrayList<>();
+        List<ChatFile> cf = chatPage != null ? chatPage.getContent() : new ArrayList<>();
+
+        // 2. 보낸/받은 필터 적용
+        if (filter.senderOnly) {
+            tf = tf.stream().filter(f -> myEmail.equalsIgnoreCase(f.getWriter())).toList();
+            cf = cf.stream().filter(f -> myEmail.equalsIgnoreCase(f.getWriter())).toList();
+        }
+        if (filter.receiverOnly) {
+            tf = tf.stream().filter(f -> myEmail.equalsIgnoreCase(f.getReceiver())).toList();
+            cf = cf.stream().filter(f -> f.getWriter() == null || !myEmail.equalsIgnoreCase(f.getWriter())).toList();
+        }
+
+        // 3. Similarity Scoring & Filtering
+        // 사용자가 입력한 키워드 전체를 하나의 문장으로 보고 비교 (tokens join)
+        String userQuery = String.join(" ", tokens);
+
+        List<TicketFile> sortedTf = tf.stream()
+                .filter(f -> calculateMaxScore(f, userQuery) >= 0.7) // 70점 이상
+                .sorted((f1, f2) -> Double.compare(calculateMaxScore(f2, userQuery), calculateMaxScore(f1, userQuery)))
+                .toList();
+
+        Map<String, String> emailToNickname = new HashMap<>(); // 채팅방 닉네임 캐시
+        List<ChatFile> sortedCf = cf.stream()
+                .filter(f -> calculateMaxScoreChat(f, userQuery, emailToNickname) >= 0.7)
+                .sorted((f1, f2) -> Double.compare(calculateMaxScoreChat(f2, userQuery, emailToNickname), calculateMaxScoreChat(f1, userQuery, emailToNickname)))
+                .toList();
+
+        return new SearchResult(sortedTf, sortedCf);
+    }
+
+    private double calculateMaxScore(TicketFile f, String query) {
+        if (f == null) return 0.0;
+        double max = 0.0;
+        // 파일명
+        max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getFileName(), query));
+        // 티켓 제목/내용/요약
+        if (f.getTicket() != null) {
+            max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getTicket().getTitle(), query));
+            // 내용은 너무 길면 유사도가 떨어질 수 있으니, 부분 포함 가산점이 중요
+            max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getTicket().getContent(), query));
+            max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getTicket().getPurpose(), query));
+            max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getTicket().getRequirement(), query));
+        }
+        return max;
+    }
+
+    private double calculateMaxScoreChat(ChatFile f, String query, Map<String, String> emailToNickname) {
+        if (f == null) return 0.0;
+        double max = 0.0;
+        // 파일명
+        max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getFileName(), query));
+        
+        // 채팅방 이름
+        if (f.getChatRoom() != null) {
+            max = Math.max(max, TextSimilarityUtil.calculateSimilarity(f.getChatRoom().getName(), query));
+        }
+        
+        // 작성자 닉네임 (가끔 이름으로 파일을 기억하는 경우)
+        String writerEmail = f.getWriter();
+        if (writerEmail != null) {
+             String nick = emailToNickname.get(writerEmail);
+             if (nick == null) {
+                 try {
+                     nick = memberRepository.findById(writerEmail).map(Member::getNickname).orElse(null);
+                 } catch(Exception e) { nick = null; }
+                 if (nick != null) emailToNickname.put(writerEmail, nick);
+             }
+             if (nick != null) {
+                 max = Math.max(max, TextSimilarityUtil.calculateSimilarity(nick, query));
+             }
+        }
+        return max;
+    }
+
+    private List<String> buildKeywordSeeds(List<String> tokens) {
+        if (tokens == null || tokens.isEmpty()) return List.of("");
+        LinkedHashSet<String> seeds = new LinkedHashSet<>();
+        // 1) 가장 정보량 큰 토큰들
+        for (int i = 0; i < Math.min(3, tokens.size()); i++) {
+            String t = tokens.get(i);
+            if (t != null && !t.isBlank()) seeds.add(t.trim());
+        }
+        // 2) 너무 일반적인 토큰(예: "디자인")이 앞에 오는 것을 방지: 길이순 뒤쪽도 1개 추가
+        if (tokens.size() > 3) {
+            String last = tokens.get(tokens.size() - 1);
+            if (last != null && !last.isBlank()) seeds.add(last.trim());
+        }
+        return new ArrayList<>(seeds);
+    }
+
+    private List<String> tryAiRefineKeywordTokens(String originalInput) {
+        try {
+            // 기존 parse 프롬프트를 재활용하되, 목적은 keyword 정규화/분해다.
+            String prompt = AIFilePromptUtil.getFileSearchParsePrompt(originalInput == null ? "" : originalInput);
+            String jsonResult = aiClient.generateJson(prompt);
+            JsonNode rootNode = objectMapper.readTree(jsonResult);
+            String aiKeyword = rootNode.path("keyword").asText("").trim();
+            if (aiKeyword == null || aiKeyword.isBlank()) return List.of();
+            return extractKeywordTokens(aiKeyword);
+        } catch (Exception e) {
+            log.warn("[AI File] keyword refine failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private String buildMatchedOnlyMessage(Set<Cond> matched,
+                                          DateRange range,
+                                          NaturalFilter filter,
+                                          List<String> keywordTokens) {
+        List<String> parts = new ArrayList<>();
+        if (matched.contains(Cond.DATE) && range != null) {
+            // 날짜 포맷 자연스럽게 (예: 1월 1일 ~ 1월 31일, 혹은 연도 포함)
+            LocalDate f = range.from.toLocalDate();
+            LocalDate t = range.to.toLocalDate();
+            String dateStr;
+            if (f.getYear() == t.getYear()) {
+                if (f.getMonthValue() == t.getMonthValue() && f.getDayOfMonth() == 1 && t.getDayOfMonth() == t.lengthOfMonth()) {
+                    dateStr = f.getYear() + "년 " + f.getMonthValue() + "월";
+                } else if (f.equals(t)) {
+                    dateStr = f.getMonthValue() + "월 " + f.getDayOfMonth() + "일";
+                } else {
+                    dateStr = f.getMonthValue() + "월 " + f.getDayOfMonth() + "일 ~ " + t.getMonthValue() + "월 " + t.getDayOfMonth() + "일";
+                }
+            } else {
+                dateStr = f.toString() + " ~ " + t.toString();
+            }
+            parts.add(dateStr);
+        }
+        if (matched.contains(Cond.DEPT) && filter.department != null) {
+            // 부서명 한글화 (간단 매핑)
+            String dName = filter.department.name();
+            if (dName.equals("DESIGN")) dName = "디자인팀";
+            else if (dName.equals("DEVELOPMENT")) dName = "개발팀";
+            else if (dName.equals("SALES")) dName = "영업팀";
+            else if (dName.equals("HR")) dName = "인사팀";
+            else if (dName.equals("FINANCE")) dName = "재무팀";
+            else if (dName.equals("PLANNING")) dName = "기획팀";
+            parts.add(dName);
+        }
+        if (matched.contains(Cond.COUNTER) && filter.counterEmail != null) {
+            // 이메일 대신 닉네임이나 ID만
+            String display = filter.counterEmail;
+            try {
+                // 닉네임 조회 시도
+                Optional<Member> m = memberRepository.findById(filter.counterEmail);
+                if (m.isPresent()) display = m.get().getNickname() + "님";
+                else {
+                    int idx = display.indexOf("@");
+                    if (idx > 0) display = display.substring(0, idx) + "님";
+                }
+            } catch (Exception e) {
+                 int idx = display.indexOf("@");
+                 if (idx > 0) display = display.substring(0, idx) + "님";
+            }
+            parts.add(display);
+        }
+        if (matched.contains(Cond.KEYWORD) && keywordTokens != null && !keywordTokens.isEmpty()) {
+            // 너무 길게 노출하지 않도록 상위 3개만
+            List<String> top = keywordTokens.size() > 3 ? keywordTokens.subList(0, 3) : keywordTokens;
+            // 따옴표로 감싸서 키워드임을 명확히
+            List<String> quoted = top.stream().map(s -> "'" + s + "'").toList();
+            parts.add("내용 " + String.join(", ", quoted));
+        }
+
+        String joined = parts.isEmpty() ? "일부 조건" : String.join(", ", parts);
+        return "요청하신 조건에 모두 일치하는 파일을 찾지 못해, " + joined + " 기준으로 검색된 결과를 보여드릴게요.\n"
+                + "(" + buildSearchTipInline() + ")";
+    }
+
+    private String buildSearchTipInline() {
+        return "팁: 기간, 부서, 이름, 업무내용을 적어주세요. 예) 1월, 디자인팀, 김철수, 신제품 기획서";
+    }
+
+    private String buildNotFoundMessageWithTips() {
+        return "원하시는 조건에 모두 일치하는 파일을 찾지 못했습니다.\n"
+                + "(" + buildSearchTipInline() + ")";
+    }
+    
     private AIFileResultDTO toResultDTO(TicketFile f) {
         return AIFileResultDTO.builder()
                 .uuid(f.getUuid())
@@ -231,6 +827,53 @@ public class AIFileServiceImpl implements AIFileService {
                 .writerEmail(f.getWriter())
                 .receiverEmail(f.getReceiver())
                 .build();
+    }
+
+    private AIFileResultDTO toResultDTO(ChatFile f) {
+        return AIFileResultDTO.builder()
+                .uuid(f.getUuid())
+                .fileName(f.getFileName())
+                .fileSize(f.getFileSize())
+                .createdAt(f.getCreatedAt())
+                .tno(null)
+                .ticketTitle(null)
+                .writerEmail(f.getWriter())
+                .receiverEmail(f.getReceiver())
+                .build();
+    }
+
+    private AIFileResponseDTO buildResponseMerged(AIFileRequestDTO request,
+                                                  List<TicketFile> ticketFiles,
+                                                  List<ChatFile> chatFiles,
+                                                  String kw,
+                                                  List<String> keywordTokens) {
+        List<AIFileResultDTO> merged = new ArrayList<>(
+                (ticketFiles == null ? 0 : ticketFiles.size()) + (chatFiles == null ? 0 : chatFiles.size())
+        );
+        if (ticketFiles != null) merged.addAll(ticketFiles.stream().map(this::toResultDTO).toList());
+        if (chatFiles != null) merged.addAll(chatFiles.stream().map(this::toResultDTO).toList());
+
+        merged.sort(Comparator.comparing(AIFileResultDTO::getCreatedAt,
+                Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+
+        // 최종 top10
+        if (merged.size() > 10) {
+            merged = merged.subList(0, 10);
+        }
+
+        AIFileResponseDTO resp = AIFileResponseDTO.builder()
+                .conversationId(request != null ? request.getConversationId() : null)
+                .results(merged)
+                .build();
+
+        int count = merged.size();
+        if (count == 0) {
+            // ✅ 0건이면 항상 동일한 안내/팁 포맷 사용 (사용자 입장에서 일관성)
+            resp.setAiMessage(buildNotFoundMessageWithTips());
+        } else {
+            resp.setAiMessage(String.format("검색 결과 %d건입니다. 우측 목록에서 다운로드할 파일을 선택하세요.", count));
+        }
+        return resp;
     }
 
     // -------------------------
@@ -648,13 +1291,21 @@ public class AIFileServiceImpl implements AIFileService {
     private Department parseDepartment(String text) {
         if (text == null) return null;
         String u = text.toUpperCase(Locale.ROOT);
-        // "디자인팀", "디자인 부서", "디자인" 모두 인식
-        if (u.contains("DESIGN") || text.contains("디자인")) return Department.DESIGN;
-        if (u.contains("DEVELOPMENT") || text.contains("개발")) return Department.DEVELOPMENT;
-        if (u.contains("SALES") || text.contains("영업")) return Department.SALES;
-        if (u.contains("HR") || text.contains("인사")) return Department.HR;
-        if (u.contains("FINANCE") || text.contains("재무")) return Department.FINANCE;
-        if (u.contains("PLANNING") || text.contains("기획")) return Department.PLANNING;
+        // ✅ 합성어(예: "배너디자인")에서 "디자인"을 부서로 오인하지 않기 위해
+        // 부서는 "디자인팀/디자인 부서"처럼 접미(팀|부서)가 있을 때만 인식한다.
+        if (Pattern.compile("(?i)\\bDESIGN\\b").matcher(u).find()) return Department.DESIGN;
+        if (Pattern.compile("(?i)\\bDEVELOPMENT\\b").matcher(u).find()) return Department.DEVELOPMENT;
+        if (Pattern.compile("(?i)\\bSALES\\b").matcher(u).find()) return Department.SALES;
+        if (Pattern.compile("(?i)\\bHR\\b").matcher(u).find()) return Department.HR;
+        if (Pattern.compile("(?i)\\bFINANCE\\b").matcher(u).find()) return Department.FINANCE;
+        if (Pattern.compile("(?i)\\bPLANNING\\b").matcher(u).find()) return Department.PLANNING;
+
+        if (Pattern.compile("디자인\\s*(팀|부서)").matcher(text).find()) return Department.DESIGN;
+        if (Pattern.compile("개발\\s*(팀|부서)").matcher(text).find()) return Department.DEVELOPMENT;
+        if (Pattern.compile("영업\\s*(팀|부서)").matcher(text).find()) return Department.SALES;
+        if (Pattern.compile("인사\\s*(팀|부서)").matcher(text).find()) return Department.HR;
+        if (Pattern.compile("재무\\s*(팀|부서)").matcher(text).find()) return Department.FINANCE;
+        if (Pattern.compile("기획\\s*(팀|부서)").matcher(text).find()) return Department.PLANNING;
         return null;
     }
 
@@ -671,12 +1322,13 @@ public class AIFileServiceImpl implements AIFileService {
                 .replaceAll("(?i)\\bPLANNING\\b", " ");
 
         // 한글 부서 토큰 + 조사까지 같이 제거 (ex: "디자인팀이랑", "개발팀과")
-        t = t.replaceAll("디자인(팀|\\s*부서)?(이랑|랑|과|와)?", " ")
-                .replaceAll("개발(팀|\\s*부서)?(이랑|랑|과|와)?", " ")
-                .replaceAll("영업(팀|\\s*부서)?(이랑|랑|과|와)?", " ")
-                .replaceAll("인사(팀|\\s*부서)?(이랑|랑|과|와)?", " ")
-                .replaceAll("재무(팀|\\s*부서)?(이랑|랑|과|와)?", " ")
-                .replaceAll("기획(팀|\\s*부서)?(이랑|랑|과|와)?", " ");
+        // ✅ 접미(팀/부서)가 있을 때만 제거 (합성어 오인 제거 방지)
+        t = t.replaceAll("디자인(\\s*(팀|부서))(이랑|랑|과|와)?", " ")
+                .replaceAll("개발(\\s*(팀|부서))(이랑|랑|과|와)?", " ")
+                .replaceAll("영업(\\s*(팀|부서))(이랑|랑|과|와)?", " ")
+                .replaceAll("인사(\\s*(팀|부서))(이랑|랑|과|와)?", " ")
+                .replaceAll("재무(\\s*(팀|부서))(이랑|랑|과|와)?", " ")
+                .replaceAll("기획(\\s*(팀|부서))(이랑|랑|과|와)?", " ");
 
         return t.replaceAll("\\s+", " ").trim();
     }
@@ -691,41 +1343,145 @@ public class AIFileServiceImpl implements AIFileService {
         return t.replaceAll("\\s+", " ");
     }
 
+    /**
+     * Komoran 형태소 분석기를 사용해 명사 + 형용사 어간 추출.
+     * - "신제품관련해서" → ["신제품", "관련"]
+     * - "배너디자인" → ["배너", "디자인"]
+     * - "귀여운거" → ["귀여운", "귀여"] (형용사 어간 + 앞부분)
+     * - 자연어 검색을 위해 부분 매칭용 토큰도 생성
+     */
     private List<String> extractKeywordTokens(String keyword) {
         if (keyword == null) return List.of();
         String t = keyword.trim();
         if (t.isEmpty()) return List.of();
 
-        // 불용어 제거/정리
-        t = KEYWORD_NOISE_PATTERN.matcher(t).replaceAll(" ");
-        t = t.replaceAll("(님|씨)(이랑|랑|과|와|한테|에게)?", " ");
-        t = t.replaceAll("[^\\p{L}\\p{N}\\s._-]", " "); // 문자/숫자/공백/일부 기호만 유지
-        t = t.replaceAll("\\s+", " ").trim();
+        LinkedHashSet<String> allTokens = new LinkedHashSet<>();
 
-        if (t.isEmpty()) return List.of();
-
-        String[] parts = t.split("\\s+");
-        List<String> tokens = new ArrayList<>();
-        for (String p : parts) {
-            String s = p.trim();
-            if (s.isEmpty()) continue;
-            if (s.length() < 2) continue; // 너무 짧은 토큰 제외
-            tokens.add(s);
+        // Komoran 사용 가능하면 형태소 분석
+        if (komoran != null) {
+            try {
+                List<Token> tokens = komoran.analyze(t).getTokenList();
+                
+                for (Token token : tokens) {
+                    String pos = token.getPos(); // 품사 태그
+                    String morph = token.getMorph(); // 형태소
+                    
+                    // 명사 추출 (NNG: 일반명사, NNP: 고유명사, SL: 외국어)
+                    if ((pos.startsWith("NN") && !pos.equals("NNB")) || pos.equals("SL")) {
+                        if (!morph.equals("팀") && !morph.equals("부서") && !morph.equals("부") 
+                                && morph.length() >= 2) {
+                            allTokens.add(morph);
+                        }
+                    }
+                    // 형용사/동사 어간도 추출 (VA: 형용사, VV: 동사)
+                    // "귀엽" → "귀여운짤"에서 "귀여"로 매칭 가능
+                    if (pos.equals("VA") || pos.equals("VV")) {
+                        if (morph.length() >= 2) {
+                            allTokens.add(morph);
+                        }
+                    }
+                    // 숫자(SN)도 포함 (날짜 등)
+                    if (pos.equals("SN") && morph.length() >= 1) {
+                        allTokens.add(morph);
+                    }
+                }
+                
+                if (!allTokens.isEmpty()) {
+                    log.info("[Komoran] 토큰 추출: {} → {}", t, allTokens);
+                }
+            } catch (Exception e) {
+                log.warn("[Komoran] 분석 실패: {}", e.getMessage());
+            }
         }
-        // 긴 토큰 우선 (DB 1차 필터에 유리)
-        tokens.sort((a, b) -> Integer.compare(b.length(), a.length()));
-        return tokens;
+
+        // ✅ 원본 키워드에서 한글 부분 추출 (Komoran 결과와 병합)
+        // "귀여운거" → "귀여운", "귀여" 도 추가 (부분 매칭용)
+        String cleaned = KEYWORD_NOISE_PATTERN.matcher(t).replaceAll(" ");
+        cleaned = cleaned.replaceAll("(님|씨)(이랑|랑|과|와|한테|에게)?", " ");
+        cleaned = cleaned.replaceAll("[^\\p{L}\\p{N}\\s._-]", " ");
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+
+        if (!cleaned.isEmpty()) {
+            String[] parts = cleaned.split("\\s+");
+            for (String p : parts) {
+                String s = p.trim();
+                if (s.isEmpty() || s.length() < 2) continue;
+                
+                allTokens.add(s); // 원본 토큰
+                
+                // ✅ 한글 3글자 이상이면 앞부분도 추가 (부분 매칭용)
+                // "귀여운거" → "귀여운", "귀여" 추가
+                if (s.length() >= 3 && containsHangul(s)) {
+                    // 앞에서 3글자
+                    String prefix3 = s.substring(0, 3);
+                    if (prefix3.length() >= 2) allTokens.add(prefix3);
+                    
+                    // 앞에서 2글자
+                    String prefix2 = s.substring(0, 2);
+                    if (prefix2.length() >= 2) allTokens.add(prefix2);
+                }
+                
+                // ✅ 한글 4글자 이상이면 앞 4글자도 추가
+                if (s.length() >= 4 && containsHangul(s)) {
+                    String prefix4 = s.substring(0, 4);
+                    allTokens.add(prefix4);
+                }
+            }
+        }
+
+        if (allTokens.isEmpty()) return List.of();
+
+        List<String> result = new ArrayList<>(allTokens);
+        
+        // ✅ 1글자 토큰 제거 (노이즈 방지)
+        result.removeIf(token -> token.length() < 2);
+        
+        // ✅ 긴 토큰(3글자 이상)이 있으면 2글자 토큰 제거 (우선순위 조정)
+        // 예: "고양이짤" → "고양이"(3글자) + "짤"(2글자) → "고양이"만 사용
+        boolean hasLongToken = result.stream().anyMatch(token -> token.length() >= 3);
+        if (hasLongToken) {
+            result.removeIf(token -> token.length() <= 2);
+        }
+        
+        // 긴 토큰 우선 (정확한 매칭 우선, 부분 매칭은 후순위)
+        result.sort((a, b) -> Integer.compare(b.length(), a.length()));
+        
+        log.info("[KeywordTokens] 최종: {} → {}", t, result);
+        return result;
     }
 
     private boolean matchesAllTokens(TicketFile f, List<String> tokens) {
         if (f == null || tokens == null || tokens.isEmpty()) return true;
-        String haystack = (
-                (f.getFileName() == null ? "" : f.getFileName()) + " " +
-                (f.getWriter() == null ? "" : f.getWriter()) + " " +
-                (f.getReceiver() == null ? "" : f.getReceiver()) + " " +
-                (f.getTicket() != null && f.getTicket().getTitle() != null ? f.getTicket().getTitle() : "") + " " +
-                (f.getTicket() != null && f.getTicket().getContent() != null ? f.getTicket().getContent() : "")
-        ).toLowerCase(Locale.ROOT);
+        StringBuilder sb = new StringBuilder();
+        sb.append(f.getFileName() == null ? "" : f.getFileName()).append(" ");
+        sb.append(f.getWriter() == null ? "" : f.getWriter()).append(" ");
+        sb.append(f.getReceiver() == null ? "" : f.getReceiver()).append(" ");
+
+        // 티켓 문맥: 제목/본문 + 작성자/수신자 닉네임도 포함(Repository 쿼리 스코프와 일치)
+        if (f.getTicket() != null) {
+            if (f.getTicket().getTitle() != null) sb.append(f.getTicket().getTitle()).append(" ");
+            if (f.getTicket().getContent() != null) sb.append(f.getTicket().getContent()).append(" ");
+            // ✅ 티켓함 '요약'에 포함되는 텍스트(목적/요구사항)도 검색 스코프에 포함
+            if (f.getTicket().getPurpose() != null) sb.append(f.getTicket().getPurpose()).append(" ");
+            if (f.getTicket().getRequirement() != null) sb.append(f.getTicket().getRequirement()).append(" ");
+            if (f.getTicket().getWriter() != null) {
+                if (f.getTicket().getWriter().getEmail() != null) sb.append(f.getTicket().getWriter().getEmail()).append(" ");
+                if (f.getTicket().getWriter().getNickname() != null) sb.append(f.getTicket().getWriter().getNickname()).append(" ");
+            }
+            try {
+                if (f.getTicket().getPersonalList() != null) {
+                    f.getTicket().getPersonalList().forEach(tp -> {
+                        if (tp == null || tp.getReceiver() == null) return;
+                        if (tp.getReceiver().getEmail() != null) sb.append(tp.getReceiver().getEmail()).append(" ");
+                        if (tp.getReceiver().getNickname() != null) sb.append(tp.getReceiver().getNickname()).append(" ");
+                    });
+                }
+            } catch (Exception ignore) {
+                // Lazy/프록시 환경에서 예외가 나더라도 토큰 매칭 전체가 깨지지 않도록 방어
+            }
+        }
+
+        String haystack = sb.toString().toLowerCase(Locale.ROOT);
 
         for (String t : tokens) {
             if (t == null || t.isBlank()) continue;
@@ -734,6 +1490,50 @@ public class AIFileServiceImpl implements AIFileService {
             }
         }
         return true;
+    }
+
+    private boolean matchesAllTokensChat(ChatFile f, List<String> tokens, Map<String, String> emailToNickname) {
+        if (f == null || tokens == null || tokens.isEmpty()) return true;
+        StringBuilder sb = new StringBuilder();
+        sb.append(f.getFileName() == null ? "" : f.getFileName()).append(" ");
+        sb.append(f.getWriter() == null ? "" : f.getWriter()).append(" ");
+        sb.append(f.getReceiver() == null ? "" : f.getReceiver()).append(" ");
+        if (f.getChatRoom() != null && f.getChatRoom().getName() != null) {
+            sb.append(f.getChatRoom().getName()).append(" ");
+        }
+
+        // 업로더 닉네임 포함 (Repository의 AI 검색 스코프와 일치)
+        final String writerEmail = f.getWriter();
+        if (writerEmail != null && !writerEmail.isBlank()) {
+            String nick = emailToNickname.get(writerEmail);
+            if (nick == null) {
+                try {
+                    nick = memberRepository.findById(writerEmail).map(Member::getNickname).orElse(null);
+                } catch (Exception ignore) {
+                    nick = null;
+                }
+                if (nick != null) emailToNickname.put(writerEmail, nick);
+            }
+            if (nick != null) sb.append(nick).append(" ");
+        }
+
+        String haystack = sb.toString().toLowerCase(Locale.ROOT);
+
+        for (String t : tokens) {
+            if (t == null || t.isBlank()) continue;
+            if (!haystack.contains(t.toLowerCase(Locale.ROOT))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean containsHangul(String s) {
+        if (s == null) return false;
+        for (char c : s.toCharArray()) {
+            if (c >= 0xAC00 && c <= 0xD7A3) return true;
+        }
+        return false;
     }
 }
 

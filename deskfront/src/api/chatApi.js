@@ -72,6 +72,37 @@ export const sendMessageRest = async (roomId, { content, ticketId, messageType =
 };
 
 /**
+ * 메시지 전송 + 파일 첨부 (multipart/form-data)
+ * - WS는 multipart를 못 보내므로 파일이 있을 때만 사용
+ */
+export const sendMessageWithFilesRest = async (
+  roomId,
+  { content, ticketId, messageType = "TEXT", aiEnabled = false, files = [] }
+) => {
+  const formData = new FormData();
+
+  const messagePayload = {
+    content,
+    ticketId,
+    messageType,
+    aiEnabled,
+  };
+
+  formData.append("message", new Blob([JSON.stringify(messagePayload)], { type: "application/json" }));
+
+  if (files && files.length > 0) {
+    files.forEach((f) => {
+      formData.append("files", f);
+    });
+  }
+
+  const res = await jwtAxios.post(`${host}/rooms/${roomId}/messages/files`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+/**
  * 읽음 처리
  * @param {number} roomId
  * @param {Object} params - { messageSeq: number }

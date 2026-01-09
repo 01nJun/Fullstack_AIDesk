@@ -1,9 +1,11 @@
 package com.desk.controller;
 
 import com.desk.domain.TicketFile;
+import com.desk.domain.ChatFile;
 import com.desk.dto.AIFileRequestDTO;
 import com.desk.dto.AIFileResponseDTO;
 import com.desk.repository.TicketFileRepository;
+import com.desk.repository.chat.ChatFileRepository;
 import com.desk.service.AIFileService;
 import com.desk.util.CustomFileUtil;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class AIFileController {
 
     private final AIFileService aiFileService;
     private final TicketFileRepository ticketFileRepository;
+    private final ChatFileRepository chatFileRepository;
     private final CustomFileUtil fileUtil;
 
     @PostMapping("/chat")
@@ -37,12 +40,14 @@ public class AIFileController {
 
     @GetMapping("/view/{uuid}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Resource> view(@PathVariable String uuid, Principal principal) {
+    public ResponseEntity<Resource> view(@PathVariable("uuid") String uuid, Principal principal) {
         if (uuid == null || uuid.isBlank() || principal == null) {
             return ResponseEntity.badRequest().build();
         }
         String email = principal.getName();
-        if (!ticketFileRepository.existsAccessibleFileByUuid(uuid, email)) {
+        boolean allowed = ticketFileRepository.existsAccessibleFileByUuid(uuid, email)
+                || chatFileRepository.existsAccessibleChatFileByUuid(uuid, email);
+        if (!allowed) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return fileUtil.getFile(uuid, null);
@@ -50,18 +55,26 @@ public class AIFileController {
 
     @GetMapping("/download/{uuid}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Resource> download(@PathVariable String uuid, Principal principal) {
+    public ResponseEntity<Resource> download(@PathVariable("uuid") String uuid, Principal principal) {
         if (uuid == null || uuid.isBlank() || principal == null) {
             return ResponseEntity.badRequest().build();
         }
         String email = principal.getName();
-        if (!ticketFileRepository.existsAccessibleFileByUuid(uuid, email)) {
+        boolean allowed = ticketFileRepository.existsAccessibleFileByUuid(uuid, email)
+                || chatFileRepository.existsAccessibleChatFileByUuid(uuid, email);
+        if (!allowed) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         Optional<TicketFile> found = ticketFileRepository.findById(uuid);
         if (found.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            // 채팅 파일에서 조회
+            Optional<ChatFile> foundChat = chatFileRepository.findById(uuid);
+            if (foundChat.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            String originalName = foundChat.get().getFileName();
+            return fileUtil.getFile(uuid, originalName);
         }
 
         String originalName = found.get().getFileName();

@@ -35,7 +35,7 @@ public class ChatWebSocketController {
      */
     @MessageMapping("/chat/send/{roomId}")
     public void sendMessage(
-            @DestinationVariable Long roomId,
+            @DestinationVariable("roomId") Long roomId,
             @Payload ChatMessageCreateDTO createDTO,
             Principal principal) {
         
