@@ -3,15 +3,18 @@ package com.desk.service.chat;
 import com.desk.domain.*;
 import com.desk.dto.PageRequestDTO;
 import com.desk.dto.PageResponseDTO;
+import com.desk.dto.TicketFileDTO;
 import com.desk.dto.chat.ChatMessageCreateDTO;
 import com.desk.dto.chat.ChatMessageDTO;
 import com.desk.dto.chat.ChatReadUpdateDTO;
 import com.desk.repository.MemberRepository;
 import com.desk.repository.chat.ChatMessageRepository;
+import com.desk.repository.chat.ChatFileRepository;
 import com.desk.repository.chat.ChatParticipantRepository;
 import com.desk.repository.chat.ChatRoomRepository;
 import com.desk.service.chat.ai.AiChatWordGuard;
 import com.desk.service.chat.ai.AiMessageProcessor;
+import com.desk.util.CustomFileUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,8 +22,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -34,9 +38,11 @@ public class ChatMessageServiceImpl implements ChatMessageService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final ChatParticipantRepository chatParticipantRepository;
+    private final ChatFileRepository chatFileRepository;
     private final MemberRepository memberRepository;
     private final AiMessageProcessor aiMessageProcessor;
     private final AiChatWordGuard aiChatWordGuard;
+    private final CustomFileUtil fileUtil;
 
     /**
      * [TEST MODE]
@@ -56,22 +62,10 @@ public class ChatMessageServiceImpl implements ChatMessageService {
 
         Pageable pageable = pageRequestDTO.getPageable("messageSeq");
         Page<ChatMessage> result = chatMessageRepository.findByChatRoomIdOrderByMessageSeqDesc(roomId, pageable);
-
-        // N+1 방지용 룸/참여자 조회
-        ChatRoom room = chatRoomRepository.findById(roomId).orElse(null);
-        List<ChatParticipant> participants = room != null
-                ? chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE)
-                : Collections.emptyList();
-
-        Map<String, Long> lastReadSeqMap = participants.stream()
-                .collect(Collectors.toMap(
-                        ChatParticipant::getUserId,
-                        ChatParticipant::getLastReadSeq,
-                        (a, b) -> a
-                ));
-
+        
+        // DTO 변환
         List<ChatMessageDTO> dtoList = result.getContent().stream()
-                .map(msg -> toChatMessageDTOOptimized(msg, userId, room, lastReadSeqMap))
+                .map(this::toChatMessageDTO)
                 .collect(Collectors.toList());
 
         return PageResponseDTO.<ChatMessageDTO>withAll()
@@ -134,43 +128,33 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         // AI/TEST 처리 결과
         // ============================================================
         String finalContent = filteredContent;
-        boolean ticketTrigger = false; // 최종 트리거
+        boolean ticketTrigger = false;
 
-        // (A) 하드코딩 키워드 트리거(티켓 미리보기면 제외)
-        boolean keywordTicketTrigger = false;
-        if (!isTicketPreview) {
-            String lower = originalContent == null ? "" : originalContent.toLowerCase();
-            if (lower.contains("티켓") || lower.contains("업무")) {
-                keywordTicketTrigger = true;
-            }
-        }
-
-        if (!isTicketPreview && effectiveAiEnabled) {
-            // TEST MODE: 욕설 감지 시 빠른 치환
+        if (effectiveAiEnabled) {
+            // ===========================
+            // [TEST MODE] 빠른 대본 치환
+            // ===========================
             if (aiChatTestMode && profanityDetected) {
                 String testFiltered = aiChatWordGuard.applyTestFilter(filteredContent);
                 if (testFiltered != null && !testFiltered.isBlank()) {
                     finalContent = testFiltered;
                     log.info("[Chat][TEST] 욕설 감지 → 테스트 대본 치환 적용 | roomId={} | senderId={}", roomId, senderId);
                 } else {
-                    // 욕이 그대로 저장/전파되는 것 방지용 안전치
+                    // 매칭 없으면 안전하게 기본값으로 치환 (욕이 그대로 저장/전파되는 것 방지)
                     finalContent = "ㅎㅎ";
                     log.info("[Chat][TEST] 욕설 감지 → 테스트 대본 미매칭(기본값 적용) | roomId={} | senderId={}", roomId, senderId);
                 }
-                // 테스트 모드에서는 AI 결과 트리거가 없으니 키워드 트리거만 반영
-                ticketTrigger = keywordTicketTrigger;
             } else {
-                // NORMAL: AI 처리
+                // ===========================
+                // [NORMAL] 기존 AI 정제 로직
+                // ===========================
                 AiMessageProcessor.ProcessResult aiResult = aiMessageProcessor.processMessage(
-                        originalContent,
+                        originalContent,  // ✅ 기존 ON 로직 유지: 원문 기반 AI 처리
                         true
                 );
                 finalContent = aiResult.getProcessedContent();
-                ticketTrigger = keywordTicketTrigger || aiResult.isTicketTrigger();
+                ticketTrigger = aiResult.isTicketTrigger();
             }
-        } else {
-            // AI 비활성(또는 티켓 미리보기) 상태: 키워드 트리거만 반영
-            ticketTrigger = keywordTicketTrigger;
         }
 
         // ============================================================
@@ -247,6 +231,211 @@ public class ChatMessageServiceImpl implements ChatMessageService {
         return dto;
     }
 
+    @Override
+    public ChatMessageDTO sendMessageWithFiles(Long roomId, ChatMessageCreateDTO createDTO, List<MultipartFile> files, String senderId) {
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Chat room not found: " + roomId));
+
+        if (!chatParticipantRepository.existsByChatRoomIdAndUserIdAndActive(roomId, senderId)) {
+            throw new IllegalArgumentException("User is not a participant of this room");
+        }
+
+        String originalContent = createDTO.getContent();
+        String filteredContent = originalContent;
+
+        // 티켓 미리보기 메시지(TICKET_PREVIEW)나 ticketId가 있는 메시지는 티켓 트리거 체크 제외
+        boolean isTicketPreview = createDTO.getMessageType() == ChatMessageType.TICKET_PREVIEW
+                || createDTO.getTicketId() != null;
+
+        // ============================================================
+        // (A) 시연용 하드코딩 필터링
+        // ============================================================
+        if (originalContent.contains("아 김도현 진짜 채팅 화면 파일 첨부 아이콘 위치 이거 뭐냐?")
+                && originalContent.contains("방금 확인했는데 시안이랑 완전 다르잖아... 하 이걸 왜 마음대로 바꿔?")) {
+            filteredContent = "채팅 화면 파일 첨부 아이콘 위치가 시안과 다르게 적용된 것 같습니다.\n사전 공유 없이 변경된 이유를 알고 싶어요.";
+        } else if (originalContent.contains("일단 기능부터 돌아가게 한 거고...ㅋㅋ")
+                && originalContent.contains("지금 구조상으로는 그게 최선이야;")) {
+            filteredContent = "기능 안정성을 우선으로 판단해 적용했습니다.\n구조적인 제약이 있어 그렇게 결정했습니다.";
+        } else if (originalContent.contains("아 김도현 또 디자인은 그냥 무시하고 개발 편한 대로 하네")
+                && originalContent.contains("진짜 개답답하다 말을 해주던가")) {
+            filteredContent = "디자인 기준이 충분히 반영되지 않은 것 같아 아쉽습니다.\n다음부터는 변경 전 공유가 필요할 것 같아요.";
+        } else if (originalContent.contains("그럼 디자인 쪽에서 일정 좀 지켜주시든가~~~")
+                && originalContent.contains("구현해달라고 매일 재촉하는데 내가 뭘 어떻게 하라고 ㅋㅋㅋㅋㅋ")) {
+            filteredContent = "일정 이슈로 공유가 늦어진 점은 제 실수입니다.\n다만 당시 상황에서는 빠른 구현이 필요했습니다.";
+        } else if (originalContent.contains("일정은 내 알 바 아니고 디자인 시안은 지켜야지")) {
+            filteredContent = "일정 압박은 이해하지만,\n디자인 의도가 계속 반영되지 않는 느낌을 받았습니다.";
+        } else if (originalContent.contains("아 개열받네 그래 내가 오늘까지 준다 줘")) {
+            filteredContent = "의사소통이 부족했던 점 인정합니다.\n시안 기준으로 다시 조정하겠습니다.\nPC와 모바일 모두 수정 후 오늘 중으로 공유드리겠습니다.";
+        }
+
+        // ============================================================
+        // (B) 금칙어 감지: 원문 기준
+        // ============================================================
+        boolean profanityDetected = aiChatWordGuard.containsProfanity(originalContent);
+
+        boolean userAiEnabled = (createDTO.getAiEnabled() != null && createDTO.getAiEnabled());
+        boolean effectiveAiEnabled = userAiEnabled || profanityDetected;
+
+        if (profanityDetected) {
+            log.warn("[Chat] 금칙어 감지 | roomId={} | senderId={} | 정제 처리 시작", roomId, senderId);
+        }
+
+        // ============================================================
+        // AI/TEST 처리 결과
+        // ============================================================
+        String finalContent = filteredContent;
+        boolean ticketTrigger = false;
+
+        if (effectiveAiEnabled) {
+            // ===========================
+            // [TEST MODE] 빠른 대본 치환
+            // ===========================
+            if (aiChatTestMode && profanityDetected) {
+                String testFiltered = aiChatWordGuard.applyTestFilter(filteredContent);
+                if (testFiltered != null && !testFiltered.isBlank()) {
+                    finalContent = testFiltered;
+                    log.info("[Chat][TEST] 욕설 감지 → 테스트 대본 치환 적용 | roomId={} | senderId={}", roomId, senderId);
+                } else {
+                    finalContent = "ㅎㅎ";
+                    log.info("[Chat][TEST] 욕설 감지 → 테스트 대본 미매칭(기본값 적용) | roomId={} | senderId={}", roomId, senderId);
+                }
+            } else {
+                // ===========================
+                // [NORMAL] 기존 AI 정제 로직
+                // ===========================
+                AiMessageProcessor.ProcessResult aiResult = aiMessageProcessor.processMessage(
+                        originalContent,
+                        true
+                );
+                finalContent = aiResult.getProcessedContent();
+                ticketTrigger = aiResult.isTicketTrigger();
+            }
+        }
+
+        // ============================================================
+        // (A) 티켓 트리거 감지 시: 메시지 저장 건너뜀(상대방에게 전달 안 되게)
+        // ============================================================
+        if (ticketTrigger && !isTicketPreview) {
+            log.info("[Chat] 티켓 트리거 감지 - 메시지 저장 건너뜀 | roomId={} | senderId={}", roomId, senderId);
+
+            String nickname = memberRepository.findById(senderId)
+                    .map(m -> m.getNickname())
+                    .orElse(senderId);
+
+            ChatMessageDTO dto = ChatMessageDTO.builder()
+                    .id(null)
+                    .chatRoomId(roomId)
+                    .messageSeq(null)
+                    .senderId(senderId)
+                    .senderNickname(nickname)
+                    .messageType(createDTO.getMessageType() != null ? createDTO.getMessageType() : ChatMessageType.TEXT)
+                    .content(finalContent)
+                    .ticketId(null)
+                    .createdAt(null)
+                    .ticketTrigger(true)
+                    .profanityDetected(profanityDetected)
+                    .files(new ArrayList<>())
+                    .build();
+
+            return dto;
+        }
+
+        // ============================================================
+        // 저장 로직
+        // ============================================================
+        Long maxSeq = chatMessageRepository.findMaxMessageSeqByChatRoomId(roomId);
+        Long newSeq = (maxSeq != null ? maxSeq : 0L) + 1;
+
+        ChatMessage message = ChatMessage.builder()
+                .chatRoom(room)
+                .messageSeq(newSeq)
+                .senderId(senderId)
+                .messageType(createDTO.getMessageType() != null ? createDTO.getMessageType() : ChatMessageType.TEXT)
+                .content(finalContent)
+                .ticketId(createDTO.getTicketId())
+                .build();
+
+        message = chatMessageRepository.save(message);
+
+        room.updateLastMessage(newSeq, finalContent);
+
+        // ============================================================
+        // 파일 처리
+        // ============================================================
+        List<TicketFileDTO> fileDTOs = new ArrayList<>();
+        if (files != null && !files.isEmpty()) {
+            // DIRECT 방인 경우 상대방 찾기 (receiver 설정용)
+            String receiver = null;
+            if (room.getRoomType() == ChatRoomType.DIRECT) {
+                List<ChatParticipant> participants = chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE);
+                receiver = participants.stream()
+                        .map(ChatParticipant::getUserId)
+                        .filter(id -> !id.equals(senderId))
+                        .findFirst()
+                        .orElse(null);
+            }
+            // GROUP 방인 경우 receiver는 null
+
+            for (int i = 0; i < files.size(); i++) {
+                MultipartFile file = files.get(i);
+                if (file.isEmpty()) continue;
+
+                try {
+                    // 물리 파일 저장
+                    String savedFileName = fileUtil.saveFile(file);
+                    log.info("[Chat] 파일 물리 저장 완료: {}", savedFileName);
+
+                    // ChatFile 엔티티 생성 및 저장
+                    ChatFile chatFile = ChatFile.builder()
+                            .uuid(savedFileName)
+                            .fileName(file.getOriginalFilename())
+                            .fileSize(file.getSize())
+                            .ord(i)
+                            .writer(senderId)
+                            .receiver(receiver)
+                            .chatRoom(room)
+                            .messageSeq(newSeq)
+                            .build();
+
+                    chatFileRepository.save(chatFile);
+                    log.info("[Chat] 파일 DB 기록 완료: {}", i);
+
+                    // DTO 변환
+                    fileDTOs.add(chatFileToTicketFileDTO(chatFile));
+                } catch (Exception e) {
+                    log.error("[Chat] 파일 저장 실패: {}", file.getOriginalFilename(), e);
+                    // 파일 저장 실패해도 메시지는 저장되도록 계속 진행
+                }
+            }
+        }
+
+        ChatParticipant senderParticipant = chatParticipantRepository
+                .findByChatRoomIdAndUserId(roomId, senderId)
+                .orElse(null);
+
+        if (senderParticipant != null) {
+            senderParticipant.markRead(newSeq);
+            log.info("[Chat] 발신자 자동 읽음 처리 | roomId={} | senderId={} | messageSeq={}",
+                    roomId, senderId, newSeq);
+        }
+
+        // unreadCount/isRead 계산용 참여자 맵
+        List<ChatParticipant> participants = chatParticipantRepository.findByChatRoomIdAndStatus(roomId, ChatStatus.ACTIVE);
+        Map<String, Long> lastReadSeqMap = participants.stream()
+                .collect(Collectors.toMap(
+                        ChatParticipant::getUserId,
+                        ChatParticipant::getLastReadSeq,
+                        (a, b) -> a
+                ));
+
+        ChatMessageDTO dto = toChatMessageDTOOptimized(message, senderId, room, lastReadSeqMap);
+        dto.setTicketTrigger(ticketTrigger);
+        dto.setProfanityDetected(profanityDetected);
+        dto.setFiles(fileDTOs);
+
+        return dto;
+    }
+    
     @Override
     public void markAsRead(Long roomId, ChatReadUpdateDTO readDTO, String userId) {
         ChatParticipant participant = chatParticipantRepository
@@ -331,6 +520,18 @@ public class ChatMessageServiceImpl implements ChatMessageService {
             isRead = currentUserLastReadSeq >= messageSeq;
         }
 
+        // 파일 목록 조회
+        List<TicketFileDTO> files = new ArrayList<>();
+        if (message.getMessageSeq() != null) {
+            List<ChatFile> chatFiles = chatFileRepository.findByRoomIdAndMessageSeqIn(
+                    message.getChatRoom().getId(),
+                    List.of(message.getMessageSeq())
+            );
+            files = chatFiles.stream()
+                    .map(this::chatFileToTicketFileDTO)
+                    .collect(Collectors.toList());
+        }
+
         return ChatMessageDTO.builder()
                 .id(message.getId())
                 .chatRoomId(message.getChatRoom().getId())
@@ -345,6 +546,56 @@ public class ChatMessageServiceImpl implements ChatMessageService {
                 .unreadCount(unreadCount)
                 .isRead(isRead)
                 .profanityDetected(false)
+                .files(files)
+                .build();
+    }
+
+    /**
+     * ChatMessage를 ChatMessageDTO로 변환 (getMessages용)
+     * - 파일 목록 포함
+     */
+    private ChatMessageDTO toChatMessageDTO(ChatMessage message) {
+        String nickname = memberRepository.findById(message.getSenderId())
+                .map(m -> m.getNickname())
+                .orElse(message.getSenderId());
+
+        // 파일 목록 조회
+        List<TicketFileDTO> files = new ArrayList<>();
+        if (message.getMessageSeq() != null) {
+            List<ChatFile> chatFiles = chatFileRepository.findByRoomIdAndMessageSeqIn(
+                    message.getChatRoom().getId(),
+                    List.of(message.getMessageSeq())
+            );
+            files = chatFiles.stream()
+                    .map(this::chatFileToTicketFileDTO)
+                    .collect(Collectors.toList());
+        }
+
+        return ChatMessageDTO.builder()
+                .id(message.getId())
+                .chatRoomId(message.getChatRoom().getId())
+                .messageSeq(message.getMessageSeq())
+                .senderId(message.getSenderId())
+                .senderNickname(nickname)
+                .messageType(message.getMessageType())
+                .content(message.getContent())
+                .ticketId(message.getTicketId())
+                .createdAt(message.getCreatedAt())
+                .ticketTrigger(false)
+                .profanityDetected(false)
+                .files(files)
+                .build();
+    }
+
+    private TicketFileDTO chatFileToTicketFileDTO(ChatFile f) {
+        return TicketFileDTO.builder()
+                .uuid(f.getUuid())
+                .fileName(f.getFileName())
+                .fileSize(f.getFileSize())
+                .ord(f.getOrd())
+                .createdAt(f.getCreatedAt())
+                .writer(f.getWriter())
+                .receiver(f.getReceiver())
                 .build();
     }
 }

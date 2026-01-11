@@ -21,6 +21,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -81,6 +82,17 @@ public class CustomSecurityConfig {
             httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource());
         });
 
+        // ✅ 인가 규칙: Preflight(OPTIONS)는 인증 없이 통과시켜야 브라우저가 실제 요청을 보낼 수 있음
+        http.authorizeHttpRequests(auth -> auth
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                // 로그인/회원 관련은 누구나 접근
+                .requestMatchers("/api/member/**").permitAll()
+                // 이미지 <img src>는 Authorization 헤더를 못 싣기 때문에 공개 허용
+                .requestMatchers("/api/files/view/**").permitAll()
+                // 나머지는 JWT 인증 필요
+                .anyRequest().authenticated()
+        );
+
         // 로그인 설정 (JWT 발급 지점)
         http.formLogin(config ->{
             config.loginPage("/api/member/login");
@@ -124,9 +136,12 @@ public class CustomSecurityConfig {
         // 모든 도메인 허용
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         // REST API 전용
-        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"));
+        // ✅ OPTIONS(Preflight) 포함 (브라우저가 Authorization 헤더 사용 시 OPTIONS를 먼저 보냄)
+        configuration.setAllowedMethods(Arrays.asList("OPTIONS", "HEAD", "GET", "POST", "PUT", "PATCH", "DELETE"));
         // JWT 전달을 위한 Authorization 헤더 허용
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+        // 다운로드 시 브라우저가 파일명/헤더를 읽을 수 있도록 노출 (필요 시)
+        configuration.setExposedHeaders(Arrays.asList("Content-Disposition"));
         // 쿠키/인증 정보 허용
         configuration.setAllowCredentials(true);
 

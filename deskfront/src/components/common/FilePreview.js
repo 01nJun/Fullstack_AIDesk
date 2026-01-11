@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 const API_SERVER_HOST = process.env.REACT_APP_API_SERVER_HOST;
 
 const FilePreview = ({ file, isLocal = false }) => {
+    const [hasError, setHasError] = useState(false);
+    
     // 가공된 displayName이 있으면 사용, 없으면 원본 fileName 사용
     const name = isLocal ? file.name : (file.displayName || file.fileName || "");
     const uuid = isLocal ? null : file.uuid;
@@ -17,21 +19,22 @@ const FilePreview = ({ file, isLocal = false }) => {
         ? URL.createObjectURL(file)
         : (uuid ? `${API_SERVER_HOST}/api/files/view/${uuid}` : null);
 
+    // ✅ 이미지 로드 실패 시: state로 관리해서 aspect-square 유지
+    if (hasError) {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-baseSurface">
+                <span className="ui-text-2xs text-baseMuted font-semibold">IMG ERR</span>
+            </div>
+        );
+    }
+
     if (isImage && imageUrl) {
         return (
             <img
                 src={imageUrl}
                 alt={name}
                 className="w-full h-full object-cover block"
-                onError={(e) => {
-                    // 이미지 로드 실패 시 (예: 파일이 깨졌거나 경로가 잘못됨)
-                    e.target.style.display = 'none';
-                    const container = e.target.parentNode;
-                    if (container) {
-                        container.className = 'w-full h-full flex items-center justify-center bg-baseSurface';
-                        container.innerHTML = '<span class="ui-text-2xs text-baseMuted font-semibold">IMG ERR</span>';
-                    }
-                }}
+                onError={() => setHasError(true)}
             />
         );
     }

@@ -22,6 +22,7 @@ configurations {
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' } // Komoran 형태소 분석기용
 }
 
 // 버전 관리용 변수 설정
@@ -85,6 +86,9 @@ dependencies {
 
     // JSON 파싱을 위한 Jackson (이미 있다면 생략 가능)
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // 9. 한국어 형태소 분석기 (Komoran) - 자연어 파싱용
+    implementation 'com.github.shin285:KOMORAN:3.3.9'
 
 //    PDF 의존성 주입
     implementation 'org.apache.pdfbox:pdfbox:2.0.30'

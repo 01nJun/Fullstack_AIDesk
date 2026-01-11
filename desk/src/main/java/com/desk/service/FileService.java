@@ -7,5 +7,5 @@ import com.desk.dto.TicketFilterDTO;
 
 public interface FileService {
     PageResponseDTO<TicketFileDTO> getFileBoxList(String email, String type, TicketFilterDTO filter, PageRequestDTO pageRequestDTO);
-    void deleteFile(String uuid);
+    void deleteFile(String uuid, String requesterEmail);
 }

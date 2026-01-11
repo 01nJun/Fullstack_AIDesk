@@ -49,6 +49,8 @@ public interface TicketFileRepository extends JpaRepository<TicketFile, String> 
                 LOWER(f.fileName) LIKE LOWER(CONCAT('%', :kw, '%')) OR
                 LOWER(t.title) LIKE LOWER(CONCAT('%', :kw, '%')) OR
                 LOWER(t.content) LIKE LOWER(CONCAT('%', :kw, '%')) OR
+                LOWER(COALESCE(t.purpose, '')) LIKE LOWER(CONCAT('%', :kw, '%')) OR
+                LOWER(COALESCE(t.requirement, '')) LIKE LOWER(CONCAT('%', :kw, '%')) OR
                 LOWER(w.email) LIKE LOWER(CONCAT('%', :kw, '%')) OR
                 LOWER(w.nickname) LIKE LOWER(CONCAT('%', :kw, '%')) OR
                 LOWER(r.email) LIKE LOWER(CONCAT('%', :kw, '%')) OR

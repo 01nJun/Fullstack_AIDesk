@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import CommonModal from "../common/CommonModal";
 import useCustomLogin from "../../hooks/useCustomLogin";
-import AIChatWidget from "./AIChatWidget"; // 같은 폴더 내 위치
+import AIAssistantModal from "./AIAssistantModal"; // 통합 AI 비서 모달 (채팅 + 업무티켓)
 import useCustomPin from "../../hooks/useCustomPin";
 
 const BasicMenu = () => {
@@ -50,7 +50,8 @@ const BasicMenu = () => {
 
   // 모바일 메뉴용 클래스 (border 없이)
   const getMobileMenuClass = (path) => {
-    const baseClass = "block px-4 py-3 rounded-ui transition-colors duration-200 ";
+    const baseClass =
+      "block px-4 py-3 rounded-ui transition-colors duration-200 ";
     const isActive =
       location.pathname === path ||
       (path !== "/" && location.pathname.startsWith(path));
@@ -83,13 +84,17 @@ const BasicMenu = () => {
         />
       )}
 
-      {isAIWidgetOpen && <AIChatWidget onClose={closeAIWidget} />}
+      {isAIWidgetOpen && <AIAssistantModal onClose={closeAIWidget} />}
 
       <header className="relative w-full bg-baseBg border-b border-baseBorder shadow-ui sticky top-0 z-50">
         <div className="ui-container h-16 flex items-center justify-between">
           {/* 로고 (왼쪽) */}
           <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
+            <Link
+              to="/"
+              className="flex items-center gap-2"
+              onClick={closeMobileMenu}
+            >
               <div className="w-8 h-8 bg-brandNavy rounded-ui flex items-center justify-center">
                 <span className="text-white font-bold text-sm">TF</span>
               </div>
@@ -113,10 +118,6 @@ const BasicMenu = () => {
             <Link to="/" className={getMenuClass("/")}>
               대시보드
             </Link>
-            <Link to="/chat/" className={getMenuClass("/chat/")}>
-              채팅
-            </Link>
-
             <button
               type="button"
               onClick={() => {
@@ -158,19 +159,43 @@ const BasicMenu = () => {
               aria-label="메뉴 열기"
             >
               {isMobileMenuOpen ? (
-                <svg className="w-6 h-6 text-baseText" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6 text-baseText"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               ) : (
-                <svg className="w-6 h-6 text-baseText" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-6 h-6 text-baseText"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               )}
             </button>
 
             {/* 로그인/로그아웃 버튼 */}
             {!loginState.email ? (
-              <Link to="/member/login" className="ui-btn-primary text-sm px-4 py-2" onClick={closeMobileMenu}>
+              <Link
+                to="/member/login"
+                className="ui-btn-primary text-sm px-4 py-2"
+                onClick={closeMobileMenu}
+              >
                 Login
               </Link>
             ) : (
@@ -208,29 +233,38 @@ const BasicMenu = () => {
         {/* 모바일 드롭다운 메뉴 */}
         <div
           className={`lg:hidden absolute top-16 left-0 right-0 bg-baseBg border-b border-baseBorder shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
-            isMobileMenuOpen
-              ? "max-h-[600px] opacity-100"
-              : "max-h-0 opacity-0"
+            isMobileMenuOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
           }`}
         >
           <nav className="ui-container py-4 space-y-1">
-            <Link
-              to="/chat/"
-              className={getMobileMenuClass("/chat/")}
-              onClick={closeMobileMenu}
-            >
-              채팅
-            </Link>
             <button
               type="button"
-              onClick={() => handleMobileMenuClick(() => {
-                if (loginState.email) {
-                  openAIWidget();
-                } else {
-                  alert("로그인이 필요한 서비스입니다.");
-                  moveToPath("/member/login");
-                }
-              })}
+              onClick={() =>
+                handleMobileMenuClick(() => {
+                  if (loginState.email) {
+                    openAIWidget();
+                  } else {
+                    alert("로그인이 필요한 서비스입니다.");
+                    moveToPath("/member/login");
+                  }
+                })
+              }
+              className={`w-full text-left ${getMobileMenuClass("/")}`}
+            >
+              AI 비서
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleMobileMenuClick(() => {
+                  if (loginState.email) {
+                    openAIWidget();
+                  } else {
+                    alert("로그인이 필요한 서비스입니다.");
+                    moveToPath("/member/login");
+                  }
+                })
+              }
               className={`w-full text-left ${getMobileMenuClass("/")}`}
             >
               AI 비서

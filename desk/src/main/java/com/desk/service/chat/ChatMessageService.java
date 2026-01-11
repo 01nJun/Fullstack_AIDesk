@@ -5,6 +5,9 @@ import com.desk.dto.PageResponseDTO;
 import com.desk.dto.chat.ChatMessageCreateDTO;
 import com.desk.dto.chat.ChatMessageDTO;
 import com.desk.dto.chat.ChatReadUpdateDTO;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * 채팅 메시지 관련 비즈니스 로직 인터페이스
@@ -20,6 +23,11 @@ public interface ChatMessageService {
      * 메시지 전송 (REST API용)
      */
     ChatMessageDTO sendMessage(Long roomId, ChatMessageCreateDTO createDTO, String senderId);
+
+    /**
+     * 메시지 전송 + 파일 첨부 (multipart)
+     */
+    ChatMessageDTO sendMessageWithFiles(Long roomId, ChatMessageCreateDTO createDTO, List<MultipartFile> files, String senderId);
     
     /**
      * 읽음 처리

@@ -9,7 +9,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -40,14 +39,14 @@ public class AdminController {
 
     // 3. 승인
     @PutMapping("/approve/{email}")
-    public Map<String, String> approveMember(@PathVariable String email) {
+    public Map<String, String> approveMember(@PathVariable("email") String email) {
         adminService.approveMember(email);
         return Map.of("result", "SUCCESS");
     }
 
     // 4. 삭제
     @PutMapping("/delete/{email}")
-    public Map<String, String> deleteMember(@PathVariable String email) {
+    public Map<String, String> deleteMember(@PathVariable("email") String email) {
         adminService.deleteMember(email);
         return Map.of("result", "SUCCESS");
     }

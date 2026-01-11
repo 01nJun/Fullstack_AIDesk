@@ -8,7 +8,7 @@ import { getChatRooms } from "../api/chatApi";
 import useCustomPin from "../hooks/useCustomPin";
 import TicketDetailModal from "../components/ticket/TicketDetailModal";
 import { getGradeBadge } from "../util/ticketUtils";
-import AIChatWidget from "../components/menu/AIChatWidget";
+import AIAssistantModal from "../components/menu/AIAssistantModal";
 
 const MainPage = () => {
   const loginState = useSelector((state) => state.loginSlice);
@@ -136,7 +136,7 @@ const MainPage = () => {
   return (
     <BasicLayout>
       {/* 요청서 모달 추가 */}
-      {isAIWidgetOpen && <AIChatWidget onClose={() => setIsAIWidgetOpen(false)} />}
+      {isAIWidgetOpen && <AIAssistantModal onClose={() => setIsAIWidgetOpen(false)} />}
 
       <div className="bg-slate-50 min-h-screen flex flex-col">
         {/* Hero Section - 데스크톱만 표시 */}
@@ -303,9 +303,13 @@ const MainPage = () => {
                   </div>
                 </div>
 
-                {/* 4. Top Left: 채팅 (Chat Icon) */}
-                <div className="glass-card absolute top-[22%] left-[8%] w-16 h-16 rounded-2xl flex flex-col items-center justify-center animate-float-slow z-0 border-[#1f3a68] shadow-[0_0_30px_rgba(31,58,104,0.3)] cursor-pointer" onClick={() => isLoggedIn && setIsAIWidgetOpen(true)}>
-                  <span className="material-symbols-outlined text-blue-200 text-3xl">forum</span>
+                {/* 4. Top Left: AI Assistant - Always Ready (Decorative, Non-Clickable) */}
+                <div className="glass-card absolute top-[22%] left-[8%] w-auto px-5 py-3 rounded-2xl flex items-center gap-3 animate-float-slow z-0 border-[#1f3a68] shadow-[0_0_30px_rgba(31,58,104,0.3)] pointer-events-none">
+                  <span className="material-symbols-outlined text-blue-200 text-2xl">mail</span>
+                  <div className="text-left">
+                    <div className="text-xs font-bold text-white">AI Assistant</div>
+                    <div className="text-[10px] text-blue-200/70">Always Ready</div>
+                  </div>
                 </div>
 
                 {/* 5. Bottom Right: 팀 협업 (Team Status) */}

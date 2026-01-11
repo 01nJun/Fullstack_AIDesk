@@ -1,12 +1,15 @@
 package com.desk.dto.chat;
 
 import com.desk.domain.ChatMessageType;
+import com.desk.dto.TicketFileDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 채팅 메시지 DTO
@@ -28,7 +31,13 @@ public class ChatMessageDTO {
     private LocalDateTime createdAt;
     private Boolean ticketTrigger; // 티켓 생성 문맥 감지 여부 (AI 처리 시)
     private Boolean profanityDetected; // 금칙어 감지 여부 (자동 AI 적용)
-    private Integer unreadCount; // 해당 메시지를 읽지 않은 참여자 수 (1:1 채팅은 0 또는 1, 그룹 채팅은 0 이상)
-    private Boolean isRead; // 현재 사용자가 해당 메시지를 읽었는지 여부 (받은 메시지에만 해당)
+    
+    // 첨부 파일 목록
+    @Builder.Default
+    private List<TicketFileDTO> files = new ArrayList<>();
+    
+    // 읽음 처리 관련 (선택적)
+    private Integer unreadCount;
+    private Boolean isRead;
 }
 
