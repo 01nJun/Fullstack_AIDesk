@@ -142,7 +142,6 @@ AI 채팅, UI/UX
 
 파이썬 채팅
 
-<img src="https://github.com/user-attachments/assets/e345a2f2-792c-448d-a50e-b8a7a8d9d56b" width="512" /><br/>
 
 ### [로그인 플로우 및 주요 코드][첨부예정]
 
@@ -152,7 +151,7 @@ AI 채팅, UI/UX
 
 댓글 대댓글
 
-[첨부예정-예시]<img src="https://github.com/user-attachments/assets/4cdb0dde-bae5-44a3-9141-24014786cf9d" width="512" /><br/>
+[첨부예정-예시]
 
 ---
 
@@ -160,7 +159,7 @@ AI 채팅, UI/UX
 
 불용어
 
-[첨부예정]
+[회의록 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
 
 
 ---
