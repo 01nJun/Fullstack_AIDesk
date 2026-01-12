@@ -159,7 +159,7 @@ AI 채팅, UI/UX
 
 불용어
 
-### [회의록 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
+### [회의록 PDF 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
 
 
 ---
