@@ -183,7 +183,7 @@
 
 ### 회의록 PDF 자동변환
 
-[회의록 PDF 자동변환 시연영상 첨부 예정]
+![Image](https://github.com/user-attachments/assets/224ccd31-5b18-48d7-b326-098d66ee0bee)
 
 ### [회의록 PDF 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
 
