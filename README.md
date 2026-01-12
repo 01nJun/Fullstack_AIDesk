@@ -35,7 +35,7 @@ AI 채팅, UI/UX
 댓글, 대댓글, STT APP
 
 #### 박건영 :
-음성파일로 회의록 PDF 자동작성
+음성파일로 회의록 PDF 자동작성<br>
 불용어 처리
 
 
@@ -155,9 +155,9 @@ AI 채팅, UI/UX
 
 ---
 
-### 불용어
+### 회의록 PDF 자동변환
 
-불용어
+[회의록 PDF 자동변환 시연영상 첨부 예정]
 
 ### [회의록 PDF 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
 
