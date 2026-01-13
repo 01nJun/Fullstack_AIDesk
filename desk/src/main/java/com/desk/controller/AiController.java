@@ -1,12 +1,16 @@
 package com.desk.controller;
 
+import com.desk.dto.AITicketRequestDTO;
+import com.desk.dto.AITicketResponseDTO;
 import com.desk.dto.MeetingMinutesDTO;
+import com.desk.service.AITicketService;
 import com.desk.service.OllamaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,6 +23,7 @@ import java.util.Map;
 public class AiController {
 
     private final OllamaService ollamaService;
+    private final AITicketService aiTicketService;
 
     // 1. 단순 텍스트 요약 요청
     @PostMapping(value = "/summary")
@@ -64,5 +69,16 @@ public class AiController {
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(pdfBytes);
+    }
+    @PostMapping("/ticket/chat")
+    @PreAuthorize("isAuthenticated()") // 로그인한 사용자만 가능
+    public AITicketResponseDTO chat(@RequestBody AITicketRequestDTO request) {
+
+        log.info("[AI Ticket] Chat Request | ConvID: {} | User: {}",
+                request.getConversationId(),
+                request.getSenderDept());
+
+        // 핵심 로직 실행 (라우팅 -> 담당자 -> 인터뷰)
+        return aiTicketService.processRequest(request);
     }
 }
