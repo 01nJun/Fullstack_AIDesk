@@ -36,41 +36,6 @@ public class AiController {
         );
         return ResponseEntity.ok(result);
     }
-
-    // 2. [수정] PDF 회의록 다운로드 요청 (이제 파일도 받음!)
-    @PostMapping("/summarize-report")
-    public ResponseEntity<?> downloadMeetingPdf(
-            @RequestPart(value = "file", required = false) MultipartFile file,
-            @RequestPart(value = "data") MeetingMinutesDTO data
-    ) {
-        // 1. AI 요약 실행 (파일이 있으면 파일 내용도 포함해서 분석)
-        MeetingMinutesDTO meetingData = ollamaService.getMeetingInfoFromAi(
-                file, data.getTitle(), data.getShortSummary(), data.getOverview(), data.getDetails());
-
-        // 2. PDF 바이너리 생성
-        byte[] pdfBytes = ollamaService.generatePdf(meetingData);
-        // 🔐 PDF 검증
-        if (pdfBytes == null || pdfBytes.length < 5 ||
-                !new String(pdfBytes, 0, 5).equals("%PDF-")) {
-
-            return ResponseEntity
-                    .badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body("PDF 생성에 실패했습니다.");
-        }
-
-
-        // 3. 파일 다운로드 헤더 설정
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        String filename = "Meeting_Minutes.pdf";
-        headers.setContentDispositionFormData("attachment", filename);
-        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
-    }
     // ✅ 3. 파란창 요약 데이터 그대로 PDF 생성
     @PostMapping("/summary-pdf")
     public ResponseEntity<?> downloadSummaryPdf(@RequestBody MeetingMinutesDTO summary) {

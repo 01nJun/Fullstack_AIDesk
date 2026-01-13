@@ -1,49 +1,44 @@
 package com.desk.service;
 
 import com.desk.config.OllamaConfig;
-import com.desk.dto.MeetingMinutesDTO;
 import com.desk.domain.Member;
+import com.desk.dto.MeetingMinutesDTO;
 import com.desk.repository.MemberRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.font.PdfFontFactory;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfReader;
-import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
+
+import java.util.*;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.Paragraph;
-import java.io.ByteArrayOutputStream;
-
 import com.itextpdf.io.font.PdfEncodings;
-
-
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.parser.PdfTextExtractor;
+import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.itextpdf.layout.properties.VerticalAlignment;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +48,210 @@ public class OllamaServiceImpl implements OllamaService {
     private final ObjectMapper objectMapper;
     private final OllamaConfig ollamaConfig;
     private final MemberRepository memberRepository; // 담당자
+
+    // 정규화 규칙 (순서 중요: LinkedHashMap) -> 가장 먼저 실행됨
+    private final LinkedHashMap<Pattern, String> normalizeRules = new LinkedHashMap<>();
+    // ✅ 불용어 목록 정의 (회의 중 자주 나오는 쓸데없는 말들)
+    private List<String> stopWords = new ArrayList<>();
+    // 불용어 리스트
+    private final Set<String> stopWordSet = new HashSet<>();
+    private final List<Pattern> stopRegexList = new ArrayList<>();
+
+    // 하드코딩된 필수 패턴
+    private Pattern leadingFillerPattern;  // 문장 시작 말잇기
+    private Pattern trailingEndingPattern; // 문장 끝 어미 압축
+    private static final Pattern TIMESTAMP_PATTERN = Pattern.compile("\\d{1,2}:\\d{2}");
+
+    @PostConstruct
+    public void initStopWords() {
+
+        log.info("정규화 규칙 로드, 불용어 로드, 필수 패턴 컴파일");
+
+        // [1단계] 정규화 규칙 로드 (normalize-rules.txt)
+        loadNormalizeRules();
+
+        // [2단계] 불용어 로드 (stopwords.txt)
+        loadStopWords();
+
+        // [3단계] 필수 패턴 컴파일
+        initEssentialPatterns();
+
+        log.info("Loading stopwords from stopwords.txt...");
+
+        // ClassPathResource는 src/main/resources 폴더를 가리킵니다.
+        ClassPathResource resource = new ClassPathResource("stopwords.txt");
+
+        // try-with-resources 구문을 사용하여 자동으로 스트림을 닫아줍니다.
+        // exists() 체크 없이 바로 getInputStream()을 호출하는 것이 JAR 배포 시 안전합니다.
+        try (InputStream inputStream = resource.getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String word = line.trim();
+                // 빈 줄이 아니면 리스트에 추가
+                if (!word.isEmpty()) {
+                    stopWords.add(word);
+                }
+            }
+            log.info("성공적으로 불용어 {}개를 로드했습니다.", stopWords.size());
+
+        } catch (IOException e) {
+            // 파일이 없거나 읽을 수 없을 때 발생하는 예외 처리
+            log.warn("stopwords.txt 파일을 찾을 수 없거나 읽는 도중 오류가 발생했습니다. 불용어 필터링 없이 진행합니다.");
+            // e.printStackTrace(); // 상세 에러가 보고 싶으면 주석 해제
+        }
+    }
+
+    private void loadNormalizeRules() {
+        normalizeRules.clear();
+        String filename = "normalize-rules.txt"; // resources 루트 경로
+        ClassPathResource resource = new ClassPathResource(filename);
+
+        try (InputStream is = resource.getInputStream();
+             BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                String s = line.trim();
+                // 주석(#)이나 빈 줄 건너뛰기
+                if (s.isEmpty() || s.startsWith("#")) continue;
+
+                // "패턴 => 변경값" 형식 파싱
+                int sep = s.indexOf("=>");
+                if (sep < 0) continue;
+
+                String regex = s.substring(0, sep).trim();
+                String repl = s.substring(sep + 2).trim();
+
+                if (!regex.isEmpty()) {
+                    // 대소문자 구분 없이 매칭 (UNICODE_CASE)
+                    normalizeRules.put(Pattern.compile(regex, Pattern.UNICODE_CASE), repl);
+                }
+            }
+            log.info("[초기화] {} 로드 완료: 규칙 {}개 적용 예정", filename, normalizeRules.size());
+
+        } catch (IOException e) {
+            log.warn("{} 파일을 찾을 수 없습니다. (정규화 단계 건너뜀)", filename);
+        }
+    }
+    private void loadStopWords() {
+        stopWordSet.clear();
+        stopRegexList.clear();
+        String filename = "stopwords.txt"; // resources 루트 경로
+        ClassPathResource resource = new ClassPathResource(filename);
+
+        try (InputStream inputStream = resource.getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String raw = line.trim();
+                if (raw.isEmpty() || raw.startsWith("#")) continue;
+
+                if (raw.startsWith("re:")) {
+                    stopRegexList.add(Pattern.compile(raw.substring(3).trim()));
+                } else {
+                    stopWordSet.add(raw);
+                }
+            }
+            log.info("[초기화] {} 로드 완료: 단어 {}개 / 정규식 {}개", filename, stopWordSet.size(), stopRegexList.size());
+
+        } catch (IOException e) {
+            log.warn("{} 파일을 찾을 수 없습니다. (기본 불용어 처리만 수행)", filename);
+        }
+    }
+    private void initEssentialPatterns() {
+        leadingFillerPattern = Pattern.compile(
+                "^(?:아+|어+|음+|그+|저+|이제|일단|그러니까|그래서|근데|아무튼|어쨌든|하여튼|사실|약간|좀|뭐랄까|혹시)\\s*",
+                Pattern.UNICODE_CASE
+        );
+        trailingEndingPattern = Pattern.compile(
+                "(?:\\s*(?:거든요|잖아요|인데요|네요|죠|요|합니다|됩니다|했어요|할게요))\\s*(?=[.?!]|$)",
+                Pattern.UNICODE_CASE
+        );
+    }
+
+    // ==========================================================
+    // 3. 텍스트 처리 파이프라인 (정규화 -> 불용어 제거)
+    // ==========================================================
+    private String processTextPipeline(String text) {
+        if (text == null || text.isBlank()) return "";
+
+        String processing = text;
+
+        // [STEP 1] 정규화 규칙 적용 (가장 먼저 실행!)
+        // normalize-rules.txt에 정의된 규칙대로 텍스트를 먼저 변환합니다.
+        // 예: "그렇죠" -> "." (불필요한 서술어를 기호로 압축)
+        if (!normalizeRules.isEmpty()) {
+            for (Map.Entry<Pattern, String> entry : normalizeRules.entrySet()) {
+                processing = entry.getKey().matcher(processing).replaceAll(entry.getValue());
+            }
+        }
+
+        // [STEP 2] 불용어 제거 및 라인 최적화
+        // 정규화된 텍스트를 바탕으로 나머지 잡음을 제거합니다.
+        return removeStopWordsAndOptimize(processing);
+    }
+
+    private String removeStopWordsAndOptimize(String text) {
+        String[] lines = text.replace("\r\n", "\n").split("\n");
+        StringBuilder sb = new StringBuilder(text.length());
+
+        List<String> sortedWords = new ArrayList<>(stopWordSet);
+        sortedWords.sort((a, b) -> Integer.compare(b.length(), a.length()));
+
+        for (String line : lines) {
+            String s = line.trim();
+            if (s.isEmpty()) continue;
+
+            // 타임스탬프 제거
+            s = TIMESTAMP_PATTERN.matcher(s).replaceAll(" ");
+
+            // 문장 시작 말잇기 제거
+            while (true) {
+                String next = leadingFillerPattern.matcher(s).replaceFirst("");
+                if (next.equals(s)) break;
+                s = next.trim();
+            }
+
+            // 불용어 파일 정규식 제거
+            boolean dropLine = false;
+            for (Pattern p : stopRegexList) {
+                if (p.matcher(s).find() && p.pattern().startsWith("^") && p.pattern().endsWith("$")) {
+                    dropLine = true;
+                    break;
+                }
+                s = p.matcher(s).replaceAll(" ");
+            }
+            if (dropLine) continue;
+
+            // 불용어 단어 제거
+            for (String w : sortedWords) {
+                if (w.isBlank()) continue;
+                String escaped = Pattern.quote(w);
+                s = s.replaceAll("(?u)(^|\\s)" + escaped + "(?=\\s|[,.!?]|$)", " ");
+            }
+
+            // 문장 끝 어미 압축
+            s = trailingEndingPattern.matcher(s).replaceAll("");
+
+            // 공백 정리
+            s = s.replaceAll("\\s{2,}", " ").trim();
+
+            // 짧은 무의미한 라인 삭제
+            if (s.length() <= 5 && s.matches("(?u)^(네|예|응|맞아요|그렇죠|알겠|좋|확인|진행)$")) {
+                continue;
+            }
+
+            if (!s.isEmpty()) {
+                sb.append(s).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+
     // [수정] 파일과 텍스트를 받아서 AI에게 요청
     @Override
     public MeetingMinutesDTO getMeetingInfoFromAi(MultipartFile file, String title, String content, String purpose, String requirement) {
@@ -77,12 +276,22 @@ public class OllamaServiceImpl implements OllamaService {
             }
         }
 
-        String finalContent = extractedText.toString();
+        String rawContent = extractedText.toString();
 
-        // [중요] 가상의 회의록 생성 금지: 내용이 아예 없으면 에러 발생시킴
-        if (finalContent.trim().isEmpty()) {
-            throw new RuntimeException("분석할 내용이 없습니다. 내용을 입력하거나 파일을 첨부해주세요.");
+        if (rawContent.trim().isEmpty()) {
+            throw new RuntimeException("분석할 내용이 없습니다.");
         }
+
+        //파이프라인 호출 (정규화 -> 불용어)
+        String cleanedText = processTextPipeline(rawContent);
+
+        log.info("[원본 텍스트] (길이: {}) → [불용어 제거 후 텍스트] (길이: {})", rawContent.length(), cleanedText.length());
+        log.info("==================================================");
+        log.info("📄 [원본 텍스트] (길이: {}): \n{}", rawContent.length(), rawContent);
+        log.info("--------------------------------------------------");
+        log.info("🧹 [불용어 제거 후 텍스트] (길이: {}): \n{}", cleanedText.length(), cleanedText);
+        log.info("==================================================");
+
 
         String url = ollamaConfig.getBaseUrl() + "/api/generate";
 
@@ -92,6 +301,7 @@ public class OllamaServiceImpl implements OllamaService {
         String prompt = String.format(
                 "당신은 전문 회의 기록관이자 프로젝트 매니저입니다. 입력된 자료를 분석하여 업무 티켓을 생성할 수 있도록 정리하세요.\n" +
                         "없는 내용은 '내용 없음'으로, 날짜가 없으면 비워두세요.\n\n" +
+                        "입력된 텍스트가 구어체(말하기)라면, '음', '어', '그' 같은 불필요한 감탄사를 무시하고 핵심 내용 위주로 요약하세요.\n\n" +
                         "### 작성 지침 ###\n" +
                         "1. **title**: 업무 티켓의 제목으로 적합한 한 줄 (예: 'OOO 프로젝트 기획 회의 결과')\n" +
                         "2. **overview**: (목적) 이 업무를 왜 해야 하는지 배경과 목적 기술\n" +
@@ -111,8 +321,11 @@ public class OllamaServiceImpl implements OllamaService {
                         "}\n\n" +
                         "### 입력 데이터 ###\n" +
                         "제목: %s\n목적: %s\n요구사항: %s\n본문 및 파일내용:\n%s",
-                title, purpose, requirement, finalContent
+                title, purpose, requirement,
+                cleanedText
         );
+
+        // ... (이
         return callOllamaApi(url, prompt); // (중복 코드 줄이기 위해 아래 메서드로 분리함)
     }
 
@@ -257,9 +470,32 @@ public class OllamaServiceImpl implements OllamaService {
             table.addCell(createValueCell(deadline, 1, 1));
 
             // [3행] 참석자 (큰 박스, 4칸 합치기)
-            String attendees = (summary.getAttendees() != null) ? summary.getAttendees().toString() : "";
-            table.addCell(createBigCell("참석자:\n" + attendees, 60)); // 높이 60
+//            String attendees = (summary.getAttendees() != null) ? summary.getAttendees().toString() : "";
+//            table.addCell(createBigCell("참석자:\n" + attendees, 60)); // 높이 60
+            StringBuilder attendeesNames = new StringBuilder();
 
+            if (summary.getAttendees() != null) {
+                for (int i = 0; i < summary.getAttendees().size(); i++) {
+                    String email = summary.getAttendees().get(i);
+
+                    // DB에서 이메일(ID)로 멤버 조회 -> 닉네임 가져오기
+                    // (memberRepository는 위쪽에서 주입받고 있어야 합니다)
+                    String displayName = memberRepository.findById(email)
+                            .map(com.desk.domain.Member::getNickname) // 찾으면 닉네임
+                            .orElse(email); // 못 찾으면 그냥 이메일 표시 (외부인 등)
+
+                    attendeesNames.append(displayName);
+
+                    // 마지막 사람이 아니면 쉼표 추가
+                    if (i < summary.getAttendees().size() - 1) {
+                        attendeesNames.append(", ");
+                    }
+                }
+            }
+
+            // PDF 표에는 변환된 한글 이름들(attendeesNames)을 넣음
+            table.addCell(createBigCell("참석자:\n" + attendeesNames.toString(), 60));
+            //
             // [4행] 회의 개요 및 목적 (큰 박스)
             String overview = (summary.getOverview() != null) ? summary.getOverview() : "";
             table.addCell(createBigCell("회의 개요 및 목적:\n" + overview, 80)); // 높이 80
