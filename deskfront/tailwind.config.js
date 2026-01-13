@@ -11,6 +11,7 @@ module.exports = {
       colors: {
         // 전역 브랜드 토큰
         brandNavy: "#1f3a68",
+        brandNavyHover: "#162a4c",
         brandOrange: "#ff8a2a",
         baseBg: "#fafafc",
         baseSurface: "#f2f2f2",

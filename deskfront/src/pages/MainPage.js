@@ -227,7 +227,7 @@ const MainPage = () => {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start pt-4">
                 <button
                   onClick={() => isLoggedIn ? setIsAIWidgetOpen(true) : navigate("/member/login")}
-                  className="group px-8 py-3.5 rounded-md bg-[#1f3a68] hover:bg-[#2c4c82] border border-[#ff8a2a]/50 text-white font-semibold shadow-[0_0_20px_rgba(31,58,104,0.4)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                  className="group px-8 py-3.5 rounded-md bg-[#1f3a68] hover:bg-brandNavyHover border border-[#ff8a2a]/50 text-white font-semibold shadow-[0_0_20px_rgba(31,58,104,0.4)] transition-all hover:opacity-95 flex items-center justify-center gap-2"
                 >
                   <span>{isLoggedIn ? "새 업무 요청서 만들기" : "로그인 하러 가기"}</span>
                   <span className="material-symbols-outlined text-sm text-[#ff8a2a] group-hover:translate-x-1 transition-transform">arrow_forward</span>

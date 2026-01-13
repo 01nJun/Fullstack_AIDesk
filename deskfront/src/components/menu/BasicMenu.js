@@ -130,9 +130,8 @@ const BasicMenu = () => {
               }}
               className="ui-nav-link"
             >
-              AI 비서
+              채팅
             </button>
-
             <Link to="/tickets/" className={getMenuClass("/tickets/")}>
               업무 현황
             </Link>
@@ -251,23 +250,7 @@ const BasicMenu = () => {
               }
               className={`w-full text-left ${getMobileMenuClass("/")}`}
             >
-              AI 비서
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                handleMobileMenuClick(() => {
-                  if (loginState.email) {
-                    openAIWidget();
-                  } else {
-                    alert("로그인이 필요한 서비스입니다.");
-                    moveToPath("/member/login");
-                  }
-                })
-              }
-              className={`w-full text-left ${getMobileMenuClass("/")}`}
-            >
-              AI 비서
+              채팅
             </button>
             <Link
               to="/tickets/"

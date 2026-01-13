@@ -1075,16 +1075,16 @@ const AIAssistantModal = ({ onClose }) => {
         <div className="ai-widget-header">
           <h2>
             <span className="text-2xl mr-2">💬</span>
-            AI 비서
+            채팅
           </h2>
           <div className="flex items-center gap-3">
             {/* AI 업무모드 전환 버튼 */}
             <button
               onClick={() => setShowAIWorkMode(true)}
-              className="px-4 py-2 rounded-ui text-sm font-semibold bg-gradient-to-r from-brandNavy to-blue-600 text-white hover:from-[#162a4c] hover:to-blue-700 shadow-lg transition-all transform hover:scale-105"
+              className="ui-btn-primary"
               title="AI 업무모드로 전환"
             >
-              🎫 업무요청서
+              AI 비서
             </button>
             <button className="close-btn" onClick={onClose}>
               &times;

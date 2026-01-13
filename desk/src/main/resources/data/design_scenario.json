@@ -4,9 +4,9 @@
       "stage": "DEPT",
       "trigger": "디자인",
       "identifiedTargetDept": "DESIGN",
-      "aiMessage": "좋아요. **[DESIGN]** 부서 업무로 확인됐어요.\n\n담당자 지정이 필요합니다.\n- 담당자 닉네임을 입력 (예: 황시우)\n- 또는 '없음' 입력 시 디자인팀 전체 전송",
+      "aiMessage": "좋아요. **[DESIGN]** 부서 업무로 확인됐어요.\n\n담당자 지정이 필요합니다.\n- 담당자를 입력 \n- 또는 '없음' 입력 시 디자인팀 전체 전송",
       "nextStage": "ASSIGNEE",
-      "setLastPrompt": "담당자 닉네임을 입력해 주세요. (없으면 '없음')"
+      "setLastPrompt": "담당자 이름 입력해 주세요. (없으면 '없음')"
     },
 
     {
@@ -17,58 +17,6 @@
       "aiMessage": "네, 담당자 **황시우**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
       "ticketUpdate": {
         "receivers": ["design01@desk.com"],
-        "completionRate": 10
-      },
-      "nextStage": "TASK",
-      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
-    },
-    {
-      "stage": "ASSIGNEE",
-      "dept": "DESIGN",
-      "trigger": "안은지",
-      "assigneeName": "안은지",
-      "aiMessage": "네, 담당자 **안은지**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
-      "ticketUpdate": {
-        "receivers": ["design02@desk.com"],
-        "completionRate": 10
-      },
-      "nextStage": "TASK",
-      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
-    },
-    {
-      "stage": "ASSIGNEE",
-      "dept": "DESIGN",
-      "trigger": "송현준",
-      "assigneeName": "송현준",
-      "aiMessage": "네, 담당자 **송현준**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
-      "ticketUpdate": {
-        "receivers": ["design03@desk.com"],
-        "completionRate": 10
-      },
-      "nextStage": "TASK",
-      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
-    },
-    {
-      "stage": "ASSIGNEE",
-      "dept": "DESIGN",
-      "trigger": "전가온",
-      "assigneeName": "전가온",
-      "aiMessage": "네, 담당자 **전가온**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
-      "ticketUpdate": {
-        "receivers": ["design04@desk.com"],
-        "completionRate": 10
-      },
-      "nextStage": "TASK",
-      "setLastPrompt": "디자인 업무 종류를 입력해 주세요. (예: 배너디자인)"
-    },
-    {
-      "stage": "ASSIGNEE",
-      "dept": "DESIGN",
-      "trigger": "홍성민",
-      "assigneeName": "홍성민",
-      "aiMessage": "네, 담당자 **홍성민**님으로 지정했습니다.\n\n이제 요청하실 **디자인 업무 종류**를 입력해 주세요.",
-      "ticketUpdate": {
-        "receivers": ["design05@desk.com"],
         "completionRate": 10
       },
       "nextStage": "TASK",
@@ -88,36 +36,8 @@
     {
       "stage": "TASK",
       "dept": "DESIGN",
-      "trigger": "배너",
-      "aiMessage": "좋아요. **배너 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(문구/톤앤매너/사이즈/참고 링크 등)을 입력해 주세요.",
-      "ticketUpdate": {
-        "title": "배너 디자인 제작 요청",
-        "purpose": "프로모션/캠페인 배너 제작",
-        "grade": "MIDDLE",
-        "completionRate": 25
-      },
-      "nextStage": "REQUIREMENT",
-      "setLastPrompt": "요청사항을 입력해 주세요. (예: 문구, 사이즈, 참고 링크)"
-    },
-    {
-      "stage": "TASK",
-      "dept": "DESIGN",
-      "trigger": "상세페이지",
-      "aiMessage": "좋아요. **상세페이지 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(구성/이미지/문구/참고 링크 등)을 입력해 주세요.",
-      "ticketUpdate": {
-        "title": "상세페이지 디자인 제작 요청",
-        "purpose": "상품/서비스 상세페이지 제작",
-        "grade": "HIGH",
-        "completionRate": 25
-      },
-      "nextStage": "REQUIREMENT",
-      "setLastPrompt": "요청사항을 입력해 주세요. (예: 구성, 이미지, 문구, 참고 링크)"
-    },
-    {
-      "stage": "TASK",
-      "dept": "DESIGN",
-      "trigger": "포스터",
-      "aiMessage": "좋아요. **포스터 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(행사 정보/문구/사이즈/출력 여부 등)을 입력해 주세요.",
+      "trigger": "신제품포스터",
+      "aiMessage": "좋아요. **신제품 포스터 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항을 입력해 주세요.(ex: 행사 정보/문구/사이즈 등)",
       "ticketUpdate": {
         "title": "포스터 디자인 제작 요청",
         "purpose": "행사/프로모션 포스터 제작",
@@ -127,107 +47,34 @@
       "nextStage": "REQUIREMENT",
       "setLastPrompt": "요청사항을 입력해 주세요. (예: 행사 정보, 문구, 사이즈)"
     },
-    {
-      "stage": "TASK",
-      "dept": "DESIGN",
-      "trigger": "로고",
-      "aiMessage": "좋아요. **로고 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(브랜드 키워드/컬러/참고 로고 등)을 입력해 주세요.",
-      "ticketUpdate": {
-        "title": "로고 디자인 제작 요청",
-        "purpose": "브랜드 로고 신규/리뉴얼",
-        "grade": "HIGH",
-        "completionRate": 25
-      },
-      "nextStage": "REQUIREMENT",
-      "setLastPrompt": "요청사항을 입력해 주세요. (예: 브랜드 키워드, 컬러, 참고 로고)"
-    },
-    {
-      "stage": "TASK",
-      "dept": "DESIGN",
-      "trigger": "SNS콘텐츠",
-      "aiMessage": "좋아요. **SNS 콘텐츠 디자인** 작업을 진행하겠습니다.\n\n반영해야 할 요청사항(채널/카피/톤앤매너/참고 링크 등)을 입력해 주세요.",
-      "ticketUpdate": {
-        "title": "SNS 콘텐츠 디자인 요청",
-        "purpose": "SNS 콘텐츠 카드/이미지 제작",
-        "grade": "MIDDLE",
-        "completionRate": 25
-      },
-      "nextStage": "REQUIREMENT",
-      "setLastPrompt": "요청사항을 입력해 주세요. (예: 채널, 카피, 톤앤매너, 참고 링크)"
-    },
 
     {
       "stage": "REQUIREMENT",
       "dept": "DESIGN",
-      "trigger": "중앙배치",
-      "aiMessage": "요청사항 확인했습니다.\n1. 메인 이미지 중앙 배치\n2. 계절감을 살린 톤앤매너 적용\n3. 참고자료 스타일 반영\n\n위 내용을 정리하여 {ASSIGNEE}님에게 전달하겠습니다.\n마감기한은 언제까지인가요? (예: 1월20일)",
+      "trigger": "그 이번에",
+      "aiMessage": "말씀하신 내용을 바탕으로 업무 티켓을 구성했습니다.\n\n📌 **[업무 티켓 개요]**\n- **제목:** 신제품 런칭 행사용 A1 포스터 디자인\n- **목적:** 신제품 홍보 및 행사장 거치용 인쇄물 제작\n- **담당:** {ASSIGNEE}님 (디자인팀)\n\n📝 **[상세 요구사항 정리]**\n1. **컨셉:** 힙하고 자유분방한 무드 (전형적인 기업 느낌 지양)\n2. **레이아웃:** 텍스트 최소화 / 제품 이미지 크게 강조\n3. **제작 사양:** A1 사이즈 / 인쇄용 고해상도 파일\n4. **톤앤매너:** 배경(IVORY, Warm White) + 포인트(Brand Blue)\n5. **핵심 문구:** 'NEW PRODUCT LAUNCH' (상단/Bold)\n6. **참고:** 첨부된 레퍼런스 이미지 무드 반영\n\n위 내용으로 진행하겠습니다.\n**마감기한과 중요도**를 함께 알려주세요. (예: 다음주 금요일, 보통)",
       "ticketUpdate": {
-        "requirement": "1. 메인 이미지 중앙 배치\n2. 계절감을 살린 톤앤매너 적용\n3. 참고자료 스타일 반영",
-        "completionRate": 70
+        "title": "신제품 런칭 행사용 A1 포스터 디자인 요청",
+        "purpose": "신제품 출시 홍보 및 행사장 거치용 인쇄물 제작",
+
+        "requirement": "[디자인 컨셉]\n- 힙/자유분방한 무드, 제품 이미지 중심 배치\n- 기업 홍보물의 딱딱한 느낌 지양\n\n[제작 사양]\n- 규격: A1 사이즈 (행사장용)\n- 화질: 인쇄용 고해상도\n- 컬러: 배경(아이보리/웜톤) + 포인트(브랜드 블루)\n\n[문구/기타]\n- 헤드카피: 'NEW PRODUCT LAUNCH' (영문/상단 볼드)\n- 첨부 레퍼런스 스타일 참고",
+        "completionRate": 75
       },
       "nextStage": "DEADLINE",
-      "setLastPrompt": "마감기한을 입력해 주세요. (예: 1월20일)"
-    },
-    {
-      "stage": "REQUIREMENT",
-      "dept": "DESIGN",
-      "trigger": "심플하게",
-      "aiMessage": "요청사항 확인했습니다.\n- 전체적으로 심플/미니멀 톤\n- 가독성 우선\n\n정리하여 {ASSIGNEE}님에게 전달하겠습니다.\n마감기한은 언제까지인가요? (예: 1월20일)",
-      "ticketUpdate": {
-        "requirement": "- 심플/미니멀 톤\n- 가독성 우선",
-        "completionRate": 70
-      },
-      "nextStage": "DEADLINE",
-      "setLastPrompt": "마감기한을 입력해 주세요. (예: 1월20일)"
-    },
-    {
-      "stage": "REQUIREMENT",
-      "dept": "DESIGN",
-      "trigger": "참고자료반영",
-      "aiMessage": "요청사항 확인했습니다.\n- 첨부 참고자료 스타일 반영\n- 색상은 브랜드 컬러 유지\n\n정리하여 {ASSIGNEE}님에게 전달하겠습니다.\n마감기한은 언제까지인가요? (예: 1월20일)",
-      "ticketUpdate": {
-        "requirement": "- 첨부 참고자료 스타일 반영\n- 브랜드 컬러 유지",
-        "completionRate": 70
-      },
-      "nextStage": "DEADLINE",
-      "setLastPrompt": "마감기한을 입력해 주세요. (예: 1월20일)"
+      "setLastPrompt": "마감기한과 중요도를 입력해 주세요."
     },
 
     {
       "stage": "DEADLINE",
       "dept": "DESIGN",
-      "trigger": "1월20일",
-      "aiMessage": "알겠습니다. 마감기한은 **1월 20일**로 요청하겠습니다.\n\n중요도는 어떻게 되나요? (기본: 보통, 급함: 긴급)",
+      "trigger": "다음주 금요일",
+      "aiMessage": "알겠습니다. 마감기한은 **다음주 금요일**로 설정하겠습니다.\n\n중요도는 어떻게 되나요? (보통 / 긴급)",
       "ticketUpdate": {
-        "deadline": "2026-01-20",
+        "deadline": "2026-01-23",
         "completionRate": 85
       },
       "nextStage": "PRIORITY",
-      "setLastPrompt": "중요도를 입력해 주세요. (기본: 보통, 급함: 긴급)"
-    },
-    {
-      "stage": "DEADLINE",
-      "dept": "DESIGN",
-      "trigger": "1월25일",
-      "aiMessage": "알겠습니다. 마감기한은 **1월 25일**로 요청하겠습니다.\n\n중요도는 어떻게 되나요? (기본: 보통, 급함: 긴급)",
-      "ticketUpdate": {
-        "deadline": "2026-01-25",
-        "completionRate": 85
-      },
-      "nextStage": "PRIORITY",
-      "setLastPrompt": "중요도를 입력해 주세요. (기본: 보통, 급함: 긴급)"
-    },
-    {
-      "stage": "DEADLINE",
-      "dept": "DESIGN",
-      "trigger": "2월1일",
-      "aiMessage": "알겠습니다. 마감기한은 **2월 1일**로 요청하겠습니다.\n\n중요도는 어떻게 되나요? (기본: 보통, 급함: 긴급)",
-      "ticketUpdate": {
-        "deadline": "2026-02-01",
-        "completionRate": 85
-      },
-      "nextStage": "PRIORITY",
-      "setLastPrompt": "중요도를 입력해 주세요. (기본: 보통, 급함: 긴급)"
+      "setLastPrompt": "중요도를 입력해 주세요. (보통 / 긴급)"
     },
     {
       "stage": "PRIORITY",
@@ -253,11 +100,75 @@
         "completionRate": 100
       }
     },
+
+    {
+      "stage": "DEPT",
+      "trigger": "개발",
+      "identifiedTargetDept": "DEVELOPMENT",
+      "aiMessage": "좋아요. **[DEVELOPMENT]** 부서 업무로 확인됐어요.\n\n담당자 지정이 필요합니다.\n- 담당자를 입력 \n- 또는 '없음' 입력 시 개발팀 전체 전송",
+      "nextStage": "ASSIGNEE",
+      "setLastPrompt": "담당자 이름 입력해 주세요. (없으면 '없음')"
+    },
+    {
+      "stage": "ASSIGNEE",
+      "dept": "DEVELOPMENT",
+      "trigger": "없음",
+      "assigneeName": "개발팀",
+      "aiMessage": "네, 특정 담당자가 지정되지 않아 **개발팀 전체**에게 전송될 예정입니다.\n\n이제 요청하실 **개발 업무 종류**를 입력해 주세요.",
+      "ticketUpdate": {
+        "receivers": ["TEAM_DEVELOPMENT"],
+        "completionRate": 10
+      },
+      "nextStage": "TASK",
+      "setLastPrompt": "개발 업무 종류를 입력해 주세요. (예: 버그수정, 기능개발)"
+    },
+    {
+      "stage": "TASK",
+      "dept": "DEVELOPMENT",
+      "trigger": "오류수정",
+      "aiMessage": "좋아요. **오류 수정 및 점검** 작업을 진행하겠습니다.\n\n발견된 문제점이나 요청사항을 상세히 입력해 주세요.",
+      "ticketUpdate": {
+        "title": "개발 오류 수정 요청",
+        "purpose": "서비스 안정화 및 버그 픽스",
+        "grade": "HIGH",
+        "completionRate": 25
+      },
+      "nextStage": "REQUIREMENT",
+      "setLastPrompt": "상세 내용을 입력해 주세요. (ex: 오류 현상, 재현 방법)"
+    },
+    {
+      "stage": "REQUIREMENT",
+      "dept": "DEVELOPMENT",
+      "trigger": "안녕하세요,",
+      "userMessageExample": "안녕하세요, 기획팀 유지아 입니다.\n\n다름이 아니라 이번 주말부터 시작되는 대형 프로모션 앞두고 기획팀에서 최종 앱 점검을 돌리고 있는데 심각한 문제가 발견됐습니다. 마침 지금 고객센터(CS) 쪽으로도 '아이폰에서 결제가 안 된다'는 불만이 갑자기 접수되고 있어서 상황이 좀 급박하네요.\n\n증상을 보니까 안드로이드에서는 잘 되는데, iOS 환경에서만 상품 상세페이지에서 '구매하기' 버튼을 누르면 화면이 안 넘어가고 먹통이 됩니다. 버튼 눌리는 모션은 있는데 다음 화면으로 진입을 못 해요.\n\n이번 주 금요일 오후 2시에 전체 회원 대상으로 할인 알림톡(마케팅 문자)이 대량 발송될 예정입니다. 그때 유입이 확 몰릴 텐데, 결제가 안 되면 이번 프로모션 기대매출이랑 광고비 전부 날리는 상황이라... 문자 발송 전까지는 무조건 해결 되어야 합니다 ㅠㅠ.\n\n아, 그리고 보시는 김에 하나만 더요. 결제 로딩 돌 때 나오는 뱅글뱅글 도는 아이콘이 정중앙이 아니라 미세하게 왼쪽으로 쏠려 있어서 보기가 좀 안 좋더라고요. 급한 불 끄시면서 이것도 같이 중앙으로 좀 맞춰주시면 감사하겠습니다.\n\n오류 재현 영상이랑 CS 접수된 기종 정보 첨부합니다.",
+      "aiMessage": "프로모션과 대량 마케팅 발송을 앞두고 매우 긴급한 사안이네요.\n기획팀의 다급한 상황을 개발팀이 기술적으로 바로 파악하고 우선순위를 잡을 수 있도록 티켓을 정리했습니다.\n\n📌 **[업무 티켓 개요]**\n- **제목:** [긴급/iOS] 상세페이지 구매 버튼 진입 불가 현상 수정 및 UI 보정\n- **목적:** 대규모 트래픽 유입(마케팅 발송) 전 결제 프로세스 정상화\n- **담당:** 개발팀 전체 (공용 티켓)\n\n🛠 **[상세 요구사항 정리]**\n1. **Critical Bug (기능 장애):** iOS 환경 상세페이지에서 '구매하기' 버튼 터치 시 다음 단계 진입 불가 (UI Freezing)\n   - *Android 정상 동작, iOS만 발생*\n2. **UI Improvement (단순 개선):** 결제 로딩 인디케이터(Spinner) 중앙 정렬(Center Align) 보정\n3. **Risk & Schedule:** 금요일 14:00 대량 알림톡 발송 예정. **트래픽 급증 전 배포 필수**.\n\n위 내용으로 티켓 발행하겠습니다.\n정확한 **마감기한**은 언제로 설정할까요?",
+      "ticketUpdate": {
+        "title": "[긴급/iOS] 상세페이지 구매 버튼 진입 불가 현상 수정 및 UI 보정",
+        "purpose": "대규모 트래픽 유입(마케팅 발송) 전 결제 프로세스 정상화",
+        "receivers": ["TEAM_DEVELOPMENT"],
+        "requirement": "[Critical Issue]\n- 대상: iOS 앱 (상품 상세페이지)\n- 현상: '구매하기' 버튼 클릭 시 인터랙션은 있으나 화면 전환 안 됨\n- 영향: 현재 CS 접수 증가 중, 마케팅 발송 시 매출 타격 예상\n\n[UI Request]\n- 대상: 로딩 스피너 (Loading Spinner)\n- 요청: 화면 정중앙(Center)으로 정렬 위치 조정\n\n[Schedule Constraint]\n- Deadline: 금요일 14:00 (마케팅 알림톡 발송)\n- 첨부: 오류 재현 영상, CS 접수 기종 리스트",
+        "completionRate": 75
+      },
+      "nextStage": "DEADLINE",
+      "setLastPrompt": "마감기한을 입력해 주세요. (예: 금요일 12:00)"
+    },
+    {
+      "stage": "DEADLINE",
+      "dept": "DEVELOPMENT",
+      "trigger": "금요일 12:00",
+      "aiMessage": "알겠습니다. 배포 마감기한은 **금요일 12:00**로 설정하겠습니다.\n\n이슈의 중요도는 어떻게 되나요? (보통 / 긴급)",
+      "ticketUpdate": {
+        "deadline": "2026-01-16 12:00",
+        "completionRate": 85
+      },
+      "nextStage": "PRIORITY",
+      "setLastPrompt": "중요도를 입력해 주세요. (보통 / 긴급)"
+    },
     {
       "stage": "PRIORITY",
-      "dept": "DESIGN",
-      "trigger": "급함",
-      "aiMessage": "중요도는 **긴급**으로 설정하겠습니다.\n\n✅ 티켓이 완성되었습니다. 우측의 **[업무 티켓 전송]** 버튼을 눌러주세요.",
+      "dept": "DEVELOPMENT",
+      "trigger": "긴급",
+      "aiMessage": "중요도는 **긴급(URGENT)**으로 설정하여 최우선 처리하겠습니다.\n\n✅ 티켓이 완성되었습니다. 우측의 **[업무 티켓 전송]** 버튼을 눌러주세요.",
       "isCompleted": true,
       "nextAction": "suggest_submit",
       "ticketUpdate": {
