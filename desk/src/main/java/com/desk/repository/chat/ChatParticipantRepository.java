@@ -32,6 +32,9 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
      * 채팅방의 모든 참여자 조회 (상태 무관)
      */
     List<ChatParticipant> findByChatRoomId(Long chatRoomId);
+
+    // 관련된 모든 참여자 데이터를 한 번의 쿼리로 조회
+    List<ChatParticipant> findByChatRoomIdIn(List<Long> roomIds);
 }
 
 

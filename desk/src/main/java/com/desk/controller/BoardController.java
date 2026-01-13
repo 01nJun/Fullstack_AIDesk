@@ -35,7 +35,7 @@ public class BoardController {
     }
 
     //  등록 - (일반 로그인 사용자 권한 필요)
-    // 만약 등록도 관리자만 하게 하려면 @PreAuthorize("hasRole('ROLE_ADMIN')")를 추가하세요.
+    // 만약 등록도 관리자만 하게 하려면 @PreAuthorize("hasRole('ADMIN')")를 추가하세요.
     @PostMapping("/")
     public Map<String, Long> register(@RequestBody BoardDTO boardDTO) {
         log.info("--- 게시글 등록 시작: " + boardDTO);

@@ -21,6 +21,7 @@ public class ChatParticipantDTO {
     private Long chatRoomId;
     private String userId;
     private String nickname; // Member 정보에서 가져옴
+    private String department; // Member 정보에서 가져옴
     private ChatStatus status;
     private Long lastReadSeq;
     private LocalDateTime joinedAt;

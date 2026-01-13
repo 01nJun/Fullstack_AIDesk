@@ -35,7 +35,7 @@ const AIChatWidget = ({ onClose, chatRoomId, currentUserId }) => {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "안녕하세요. 어떤 업무를 도와드릴까요?\n(ex: 파일조회, 업무티켓)",
+      content: "안녕하세요. 어떤 업무를 도와드릴까요?\n(ex: 파일조회, 업무요청서)",
     },
   ]);
 
@@ -431,7 +431,7 @@ try {
             {
               role: "assistant",
               content:
-                "좋아요. **업무티켓** 작성을 도와드릴게요.\n\n요청하실 업무 내용을 말씀해 주세요.",
+                "좋아요. **업무요청서** 작성을 도와드릴게요.\n\n요청하실 업무 내용을 말씀해 주세요.",
             },
           ]);
           return;
@@ -443,7 +443,7 @@ try {
           {
             role: "assistant",
             content:
-              "파일조회/업무티켓 중 어떤 기능을 원하시나요?\n\n- 파일조회: '파일'을 포함해서 입력\n- 업무티켓: '업무' 또는 '티켓'을 포함해서 입력",
+              "파일조회/업무요청서 중 어떤 기능을 원하시나요?\n\n- 파일조회: '파일'을 포함해서 입력\n- 업무요청서: '업무' 또는 '요청서'를 포함해서 입력",
           },
         ]);
         return;
@@ -533,7 +533,7 @@ try {
         try {
           // WebSocket을 통해 실시간 전송 시도
           const wsSuccess = chatWsClient.send(chatRoomId, {
-            content: `티켓이 생성되었습니다: ${currentTicket.title}`,
+            content: `요청서가 생성되었습니다: ${currentTicket.title}`,
             messageType: "TICKET_PREVIEW",
             ticketId: ticketResponse.tno,
           });
@@ -541,7 +541,7 @@ try {
           // WebSocket 실패 시 REST API로 fallback
           if (!wsSuccess) {
             await sendMessageRest(chatRoomId, {
-              content: `티켓이 생성되었습니다: ${currentTicket.title}`,
+              content: `요청서가 생성되었습니다: ${currentTicket.title}`,
               messageType: "TICKET_PREVIEW",
               ticketId: ticketResponse.tno,
             });
@@ -549,7 +549,7 @@ try {
         } catch (messageError) {
           console.error("채팅 메시지 전송 실패:", messageError);
           // 티켓은 저장되었지만 메시지 전송 실패 - 사용자에게 알림
-          alert("티켓은 저장되었지만 채팅 메시지 전송에 실패했습니다.");
+          alert("요청서는 저장되었지만 채팅 메시지 전송에 실패했습니다.");
         }
       }
 
@@ -560,7 +560,7 @@ try {
       }, 2000);
     } catch (error) {
       console.error("전송 중 에러 발생:", error);
-      alert("티켓 전송에 실패했습니다. 로그를 확인하세요.");
+      alert("요청서 전송에 실패했습니다. 로그를 확인하세요.");
       setIsSubmittingTicket(false);
       setIsLoading(false);
     }
@@ -898,7 +898,7 @@ try {
             </div>
 
             {submitSuccess ? (
-                    <div className="success-box">✅ 티켓 전송 완료</div>
+                    <div className="success-box">✅ 요청서 전송 완료</div>
                   ) : (
                     (isCompleted || isFormValid()) && (
                       <button
@@ -906,7 +906,7 @@ try {
                         onClick={handleSubmitTicket}
                         disabled={isLoading}
                       >
-                        {isLoading ? "전송 중..." : "🚀 업무 티켓 전송"}
+                        {isLoading ? "전송 중..." : "🚀 업무 요청서 전송"}
                       </button>
                     )
                   )}
@@ -922,10 +922,10 @@ try {
         message={
           isSttLoading
             ? "음성 파일을 분석하고 있습니다"
-            : isLoading
-            ? "회의록을 작성하고 있습니다"
             : isSubmittingTicket
-            ? "처리 중입니다"
+            ? "업무 요청서 전송중 입니다"
+            : isLoading
+            ? "요청서를 작성하고 있습니다"
             : "처리 중입니다"
         }
       />

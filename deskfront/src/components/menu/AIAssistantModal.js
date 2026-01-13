@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { getChatRooms, createOrGetDirectRoom, createGroupRoom, getMessages, markRead, leaveRoom, inviteUsers, sendMessageRest, sendMessageWithFilesRest } from "../../api/chatApi";
-import { searchMembers, getMemberInfo } from "../../api/memberApi";
+import { searchMembers } from "../../api/memberApi";
 import chatWsClient from "../../api/chatWs";
 import FilePreview from "../common/FilePreview";
 import { downloadFile } from "../../api/fileApi";
@@ -89,9 +89,6 @@ const AIAssistantModal = ({ onClose }) => {
   const pendingScrollRef = useRef({ mode: null, seq: null }); // mode: "bottom" | "seq"
   const initialScrollDoneRef = useRef(false);
 
-  // 멤버 메타(부서 등) 캐시: email -> { department, nickname, ... }
-  const [memberMeta, setMemberMeta] = useState({});
-
   // 연락처 검색에서 단톡 생성용 선택 상태
   const [selectedContacts, setSelectedContacts] = useState([]); // {email,nickname,department}
   const [groupName, setGroupName] = useState("");
@@ -146,17 +143,6 @@ const AIAssistantModal = ({ onClose }) => {
     }
   };
 
-  const ensureMemberMeta = useCallback(async (email) => {
-    if (!email) return;
-    if (memberMeta[email]) return;
-    try {
-      const info = await getMemberInfo(email);
-      setMemberMeta((prev) => (prev[email] ? prev : { ...prev, [email]: info }));
-    } catch (e) {
-      // ignore
-    }
-  }, [memberMeta]);
-
   // ==================== 파일 프리뷰 라벨 (A안: 첫 파일 기준) ====================
   const getExt = (fileName) => {
     const n = String(fileName || "").trim();
@@ -198,7 +184,7 @@ const AIAssistantModal = ({ onClose }) => {
       const label = filePreviewLabel(fn);
       return label ? label : fn;
     }
-    if (msg.isTicketPreview) return "🎫 티켓";
+    if (msg.isTicketPreview) return "🎫 요청서";
     return "";
   };
 
@@ -285,6 +271,7 @@ const AIAssistantModal = ({ onClose }) => {
             participantInfo: room.participants?.map((p) => ({
               email: p.userId,
               nickname: p.nickname || p.userId,
+              department: p.department || null,
             })) || [],
             lastMessage: (room.lastMsgAt || room.lastMsgContent)
               ? {
@@ -303,17 +290,6 @@ const AIAssistantModal = ({ onClose }) => {
         // ✅ 모달 최초 진입 시: lastMsgContent가 비어있는 방들의 프리뷰를 "최신 메시지 1개"로 채우기
         // (채팅방을 한번 들어갔다가 나오면 bumpRoomPreview로 채워졌던 문제를, 최초 로드에서도 해결)
         hydrateMissingRoomPreviews(transformed);
-
-        // DIRECT 방 위주로 부서 프리패치(필요 최소)
-        const directOtherEmails = transformed
-          .filter((r) => !r.isGroup && r.user2Id)
-          .map((r) => r.user2Id)
-          .filter(Boolean);
-        const uniq = Array.from(new Set(directOtherEmails));
-        uniq.slice(0, 50).forEach((email) => {
-          // fire & forget
-          ensureMemberMeta(email);
-        });
       }
     } catch (err) {
       console.error("채팅방 목록 로드 실패:", err);
@@ -367,12 +343,6 @@ const AIAssistantModal = ({ onClose }) => {
     setMsgLoadingMore(false);
     pendingScrollRef.current = { mode: null, seq: null };
     initialScrollDoneRef.current = false;
-
-    // 1:1 상대 부서 표시를 위해 메타 확보
-    if (!room.isGroup) {
-      const otherEmail = room.participantInfo?.find((p) => p.email !== currentUserId)?.email || room.user2Id;
-      if (otherEmail) ensureMemberMeta(otherEmail);
-    }
 
     try {
       const size = 50;
@@ -944,8 +914,9 @@ const AIAssistantModal = ({ onClose }) => {
   };
 
   const getDirectDeptLabel = (room) => {
-    const otherEmail = getDirectOtherEmail(room);
-    const dept = otherEmail ? memberMeta[otherEmail]?.department : null;
+    if (!room || room.isGroup) return "";
+    const other = room.participantInfo?.find((p) => p.email !== currentUserId);
+    const dept = other?.department || null;
     return dept ? `${getDepartmentLabel(dept)}` : "";
   };
 
@@ -1072,7 +1043,7 @@ const AIAssistantModal = ({ onClose }) => {
                           <div className="text-xs text-baseMuted truncate">{p.email}</div>
                         </div>
                         <div className="text-xs text-baseMuted">
-                          {memberMeta[p.email]?.department ? getDepartmentLabel(memberMeta[p.email].department) : ""}
+                          {p.department ? getDepartmentLabel(p.department) : ""}
                         </div>
                       </div>
                     </div>
@@ -1113,7 +1084,7 @@ const AIAssistantModal = ({ onClose }) => {
               className="px-4 py-2 rounded-ui text-sm font-semibold bg-gradient-to-r from-brandNavy to-blue-600 text-white hover:from-[#162a4c] hover:to-blue-700 shadow-lg transition-all transform hover:scale-105"
               title="AI 업무모드로 전환"
             >
-              🎫 업무티켓
+              🎫 업무요청서
             </button>
             <button className="close-btn" onClick={onClose}>
               &times;
@@ -1240,7 +1211,7 @@ const AIAssistantModal = ({ onClose }) => {
                               }}
                               className="cursor-pointer hover:opacity-80"
                             >
-                              <div className="font-semibold mb-1 text-sm">🎫 티켓 미리보기</div>
+                              <div className="font-semibold mb-1 text-sm">🎫 요청서 미리보기</div>
                               <div className="text-xs opacity-80">클릭하여 확인</div>
                             </div>
                           ) : (

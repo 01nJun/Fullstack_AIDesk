@@ -832,10 +832,10 @@ const ChatRoom = ({ chatRoomId, currentUserId, otherUserId, chatRoomInfo }) => {
                               className="cursor-pointer hover:opacity-80 transition-opacity"
                             >
                               <div className={`font-semibold mb-1 text-sm ${msg.senderId === currentUserId ? "text-white" : "text-baseText"}`}>
-                                🎫 티켓 미리보기
+                                🎫 요청서 미리보기
                               </div>
                               <div className={`text-xs ${msg.senderId === currentUserId ? "opacity-90" : "text-baseMuted"}`}>
-                                클릭하여 티켓 정보 확인
+                                클릭하여 요청서 정보 확인
                               </div>
                             </div>
                           ) : (

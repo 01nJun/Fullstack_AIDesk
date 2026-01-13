@@ -31,13 +31,13 @@ export const useTicketActions = (
   const handleDelete = async () => {
     if (!ticket || !currentEmail) return;
 
-    if (!window.confirm("정말 이 티켓을 삭제하시겠습니까?")) {
+    if (!window.confirm("정말 이 요청서를 삭제하시겠습니까?")) {
       return;
     }
 
     try {
       await deleteTicket(ticket.tno, currentEmail);
-      alert("티켓이 삭제되었습니다.");
+      alert("요청서가 삭제되었습니다.");
       onDelete?.(); // 상위 컴포넌트에 삭제 완료 알림
       onClose(); // 모달 닫기
     } catch (err) {

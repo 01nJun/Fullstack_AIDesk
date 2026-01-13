@@ -59,6 +59,7 @@ const ChatListComponent = ({ currentUserId: propCurrentUserId }) => {
           participantInfo: room.participants?.map((p) => ({
             email: p.userId,
             nickname: p.nickname || p.userId,
+            department: p.department || null,
           })) || [],
           lastMessage: room.lastMsgContent
             ? {
