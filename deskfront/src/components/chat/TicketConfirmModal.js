@@ -70,7 +70,7 @@ const TicketConfirmModal = ({ isOpen, onConfirm, onCancel }) => {
           <div className="bg-brandNavy px-6 py-4 rounded-tl-ui">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-white">
-                🎫 티켓 생성 확인
+                🎫 요청서 생성 확인
               </h3>
               <button
                 onClick={onCancel}
@@ -84,9 +84,9 @@ const TicketConfirmModal = ({ isOpen, onConfirm, onCancel }) => {
           {/* 본문 */}
           <div className="p-6">
             <p className="text-baseText font-medium text-sm leading-relaxed mb-6">
-              AI가 티켓 생성 문맥을 감지했습니다.
+              AI가 요청서 생성 문맥을 감지했습니다.
               <br />
-              <span className="text-brandNavy font-semibold">티켓 작성 모달을 열까요?</span>
+              <span className="text-brandNavy font-semibold">요청서 작성 모달을 열까요?</span>
             </p>
 
             {/* 버튼 영역 */}

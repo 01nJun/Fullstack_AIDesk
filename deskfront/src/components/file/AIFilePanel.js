@@ -52,7 +52,7 @@ const AIFilePanel = ({ results = [] }) => {
                 {f.fileName}
               </div>
               <div style={{ fontSize: 12, color: "#6b7280" }}>
-                {f.ticketTitle ? `티켓: ${f.ticketTitle}` : ""}
+                {f.ticketTitle ? `요청서: ${f.ticketTitle}` : ""}
               </div>
               <div style={{ fontSize: 12, color: "#6b7280" }}>
                 {f.writerEmail ? `작성자: ${f.writerEmail}` : ""}

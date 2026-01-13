@@ -50,6 +50,7 @@ const ChatPage = () => {
           participantInfo: room.participants?.map((p) => ({
             email: p.userId,
             nickname: p.nickname || p.userId,
+            department: p.department || null,
           })) || [],
           // 1:1 채팅용
           user1Id: currentUserId,
