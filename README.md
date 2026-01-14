@@ -1,60 +1,78 @@
+---
 
-# READ.MD 초벌입니다...
-----
+# 나의 AI 업무 비서
 
-## 팀원 
+### AI 활용한 RPA 자동화 업무 페이지 
 
-### 각 팀원은 기능별로 백엔드와 프론트엔드 하이브리드로 개발
+---
 
-|                    (팀장) [김민식](https://github.com/minsik321)                    |                     [한정연](https://github.com/DOT-SOY)                     |                      [박태오](https://github.com/teomichaelpark-glitch)                     |                      [오인준](https://github.com/01nJun)                     |                      [박건영](https://github.com/keonyeong4550/one-of-team-project-20251217-20260116)                     |
-|:-------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------:|:-------------------------------------------------------------------------------:|
-| [<img src="https://avatars.githubusercontent.com/minsik321" width="160" />](https://github.com/minsik321) | [<img src="https://avatars.githubusercontent.com/DOT-SOY" width="160" />](https://github.com/DOT-SOY) | [<img src="https://avatars.githubusercontent.com/teomichaelpark-glitch" width="160" />](https://github.com/teomichaelpark-glitch) | [<img src="https://avatars.githubusercontent.com/01nJun" width="160" />](https://github.com/01nJun) | [<img src="https://avatars.githubusercontent.com/keonyeong4550" width="160" />](https://github.com/keonyeong4550) |
+# 프로젝트 소개
+### [프로젝트 소개 추가 예정]
 
-#### 김민식 :
- - 회원 가입
- - 로그인, 로그아웃
- - 소셜 로그인 & 회원가입
- - 얼굴등록 및 로그인 (임베딩)
- - 관리자 페이지
- - 메인 페이지
- - 티켓 목록, 티켓 단건 READ
- - 파일함
- - 중요업무(장바구니)
+---
 
-
-
-#### 한정연 : 
- - AI 채팅
- - UI/UX
-
-
-#### 박태오 :
- - 자연어로 티켓 구성
-
-
-#### 오인준 :
- - 댓글, 대댓글
- - STT APP
-
-#### 박건영 :
- - 음성파일로 회의록 PDF 자동작성
- - 불용어 처리
+# 개발 기간
+### 25.12.19(금) ~ 26.01.16(금)
 
 
 ---
 
-## 🛠️ 주요 기능
-  1. AI 채팅
-  2. 음성 파일로 회의록 PDF 자동 작성
-  3. Kakao Social Login
-  4. 댓글, 대댓글
-  5. 
-  6. 
-  7. 
-  8. 
-  9. 
+## 팀원
 
-###  📚사용 스택
+
+
+|                               (팀장) [김민식](https://github.com/minsik321)                               |                                 [한정연](https://github.com/DOT-SOY)                                  |                                        [박태오](https://github.com/teomichaelpark-glitch)                                         |                                 [오인준](https://github.com/01nJun)                                 |                 [박건영](https://github.com/keonyeong4550/one-of-team-project-20251217-20260116)                  |
+| :-------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------: |
+| [<img src="https://avatars.githubusercontent.com/minsik321" width="160" />](https://github.com/minsik321) | [<img src="https://avatars.githubusercontent.com/DOT-SOY" width="160" />](https://github.com/DOT-SOY) | [<img src="https://avatars.githubusercontent.com/teomichaelpark-glitch" width="160" />](https://github.com/teomichaelpark-glitch) | [<img src="https://avatars.githubusercontent.com/01nJun" width="160" />](https://github.com/01nJun) | [<img src="https://avatars.githubusercontent.com/keonyeong4550" width="160" />](https://github.com/keonyeong4550) |
+
+#### 김민식 :
+
+- 회원 가입
+- 로그인, 로그아웃
+- 소셜 로그인 & 회원가입
+- 얼굴등록 및 로그인 (임베딩)
+- 관리자 페이지
+- 메인 페이지
+- 티켓 목록, 티켓 단건 READ
+- 파일함
+- 중요업무(장바구니)
+
+#### 한정연 :
+
+- AI 업무 채팅(AI 비서)
+- UI/UX 및 화면설계
+  
+
+#### 박태오 :
+
+- AI 채팅을 활용한 업무 RPA 업무 자동화
+
+#### 오인준 :
+
+- 댓글, 대댓글, 수정, 삭제 (CRUD)
+- STT APP (음성 to 텍스트 변환)
+
+#### 박건영 :
+
+- 음성파일로 회의록 PDF 자동작성
+- 불용어 처리
+
+---
+
+# 🛠️ 주요 기능
+
+1. AI 채팅
+2. 음성 파일로 회의록 PDF 자동 작성
+3. Kakao Social Login
+4. 댓글, 대댓글
+5.
+6.
+7.
+8.
+9.
+
+### 📚사용 스택
+
 <div>
 <img src="https://img.shields.io/badge/google%20gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white">
 <img src="https://img.shields.io/badge/ollama-%23000000.svg?style=for-the-badge&logo=ollama&logoColor=white">
@@ -94,8 +112,7 @@
 <br/><br/> 
 </div>
 
-
-💻  OS : windows
+💻 OS : windows
 
 🖥️ Front-end : React
 
@@ -105,87 +122,80 @@
 
 📡 Server : AWS
 
-----
+---
 
 # 기능 소개
 
 ## 시연영상 및 팀 프로젝트 PDF
 
-
 ## 🎥 [유튜브 시연영상-첨부예정](첨부예정)
 
-## 📋 [PDF 보기-첨부예정](https://nbviewer.org/github/paesir-i-am/Wanderlust/blob/main/Wanderlust_%E1%84%89%E1%85%AE%E1%84%8C%E1%85%A5%E1%86%BC.pdf)
+## 📋 [PDF 보기-첨부예정](ㅇㅇ)
 
+## ERD 구조
+
+<img width="1389" height="964" alt="Image" src="https://github.com/user-attachments/assets/6d476b6d-aed0-48b7-ac3d-1c6014dc3a30" />
 
 ## 계층구조
 
 [첨부예정]
 
-
 ## 구현 기능
 
-### 로그인 및 회원가입
+### 반응형
+![Image](https://github.com/user-attachments/assets/6e8811fa-6965-4fb5-9da9-aa9102d9ab15)
 
-
-
-[첨부예정]
-
-### [플로우차트 및 주요 코드 확인][첨부예정]
-
-### AI 채팅, UI/UX
-
-
-### 자연어로 티켓 구성
-[첨부예정]
-
-### 댓글, 대댓글, STT APP
-[첨부예정]
-
-### 음성파일로 회의록 PDF 자동작성
-[첨부예정]
-
-### [플로우 및 주요 코드][첨부예정]
 
 ---
 
-### 로그인
-
-로그인
+## 로그인 & 소셜로그인 & 보안
 
 [첨부예정]
 
-### 채팅
+### [플로우차트 및 주요 개발 상세 내역서 확인](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/LogIn·SNS·Security.md)
 
-채팅
+## Chat·AI & UI/UX
+### UI/UX
+![Image](https://github.com/user-attachments/assets/ce802dad-5f0e-4d38-a2e6-fd6b5ec56afe)
 
-[첨부예정]
+### Chat·AI
 
-### [이미지 검색 주요 코드][첨부예정]
+[영상첨부예정]
 
----
-
-### 파이썬 채팅
-
-파이썬 채팅
-
-
-### [로그인 플로우 및 주요 코드][첨부예정]
-
-----
-
-### 댓글 대댓글
-
-댓글 대댓글
-
-[첨부예정-예시]
+### [플로우 차트 및 Chat·AI·BackEnd 주요 기능 설명, 성능 비교](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/Chat·AI·Backend.md)
 
 ---
 
-### 회의록 PDF 자동변환
+## AI·RAG·FileSearch
 
-![Image](https://github.com/user-attachments/assets/224ccd31-5b18-48d7-b326-098d66ee0bee)
+[영상첨부예정]
 
-### [회의록 PDF 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
+### [플로우 차트 및 AI·RAG·FileSearch 주요 상세 내역서 확인 ](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/AI·RAG·FileSearch.md)
+
+---
+
+## 댓글, 대댓글, 수정 및 삭제 (CRUD) 및 STT(음성 to 텍스트)
+
+[영상첨부예정]
+
+### [플로우 차트 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/reply·STT.md)
+
+
+---
+
+## 회의록 PDF 자동변환
+
+![Image](https://github.com/user-attachments/assets/eca48042-9d4b-4ea1-898d-24375c3a02d5)
+
+### [회의록 PDF 자동 작성 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDeskblob/main/readMe/meetingPDF.md)
+
+## 불용어 처리
+<img width="763" height="458" alt="Image" src="https://github.com/user-attachments/assets/6162b47b-074b-480a-b957-4fa0a67c0090" />
+
+### [불용어 처리 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/noWords.md)
+
+↓ 실제 붙일 코드
+### [불용어 처리 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/noWords.md)
 
 
 ---
