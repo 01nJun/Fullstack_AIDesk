@@ -1374,7 +1374,7 @@ const AIAssistantModal = ({ onClose }) => {
                     : "text-baseMuted hover:text-baseText"
                 }`}
               >
-                연락처 검색
+                대화 상대 검색
               </button>
             </div>
 

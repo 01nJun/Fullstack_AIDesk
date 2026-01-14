@@ -5,7 +5,6 @@ import ticketRouter from "./ticketRouter";
 import adminRouter from "./adminRouter";
 import fileRouter from "./fileRouter";
 import boardRouter from "./boardRouter";
-import chatRouter from "./chatRouter";
 import BoardIndex from "../pages/board/IndexPage";
 import LoadingModal from "../components/common/LoadingModal";
 
@@ -16,7 +15,6 @@ const Main = lazy(() => import("../pages/MainPage"));
 const TicketIndex = lazy(() => import("../pages/ticket/IndexPage"));
 const AdminIndex = lazy(() => import("../pages/admin/IndexPage"));
 const FileIndex = lazy(() => import("../pages/file/IndexPage"));
-const ChatIndex = lazy(() => import("../pages/chat/IndexPage"));
 
 const root = createBrowserRouter([
     {
@@ -57,15 +55,6 @@ const root = createBrowserRouter([
             </Suspense>
         ),
         children: fileRouter(),
-    },
-    {
-        path: "chat",
-        element: (
-            <Suspense fallback={Loading}>
-                <ChatIndex />
-            </Suspense>
-        ),
-        children: chatRouter(),
     },
     {
         path: "admin",

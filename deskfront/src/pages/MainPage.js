@@ -9,6 +9,7 @@ import useCustomPin from "../hooks/useCustomPin";
 import TicketDetailModal from "../components/ticket/TicketDetailModal";
 import { getGradeBadge } from "../util/ticketUtils";
 import AIAssistantModal from "../components/menu/AIAssistantModal";
+import AIChatWidget from "../components/menu/AIChatWidget";
 
 const MainPage = () => {
   const loginState = useSelector((state) => state.loginSlice);
@@ -22,7 +23,8 @@ const MainPage = () => {
 
   const [selectedTno, setSelectedTno] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAIWidgetOpen, setIsAIWidgetOpen] = useState(false); // 요청서 모달 상태 추가
+  const [isAIWidgetOpen, setIsAIWidgetOpen] = useState(false); // AI 업무 비서 (AIChatWidget) 모달 상태
+  const [isAIChatModalOpen, setIsAIChatModalOpen] = useState(false); // 채팅 모달 (AIAssistantModal) 상태
 
   const isLoggedIn = !!loginState.email;
   const email = loginState.email;
@@ -135,8 +137,10 @@ const MainPage = () => {
 
   return (
     <BasicLayout>
-      {/* 요청서 모달 추가 */}
-      {isAIWidgetOpen && <AIAssistantModal onClose={() => setIsAIWidgetOpen(false)} />}
+      {/* AI 업무 비서 모달 (AIChatWidget) */}
+      {isAIWidgetOpen && <AIChatWidget onClose={() => setIsAIWidgetOpen(false)} chatRoomId={null} currentUserId={email} />}
+      {/* 채팅 모달 (AIAssistantModal) */}
+      {isAIChatModalOpen && <AIAssistantModal onClose={() => setIsAIChatModalOpen(false)} />}
 
       <div className="bg-slate-50 min-h-screen flex flex-col">
         {/* Hero Section - 데스크톱만 표시 */}
@@ -229,7 +233,7 @@ const MainPage = () => {
                   onClick={() => isLoggedIn ? setIsAIWidgetOpen(true) : navigate("/member/login")}
                   className="group px-8 py-3.5 rounded-md bg-[#1f3a68] hover:bg-brandNavyHover border border-[#ff8a2a]/50 text-white font-semibold shadow-[0_0_20px_rgba(31,58,104,0.4)] transition-all hover:opacity-95 flex items-center justify-center gap-2"
                 >
-                  <span>{isLoggedIn ? "새 업무 요청서 만들기" : "로그인 하러 가기"}</span>
+                  <span>{isLoggedIn ? "AI 업무 비서" : "로그인 하러 가기"}</span>
                   <span className="material-symbols-outlined text-sm text-[#ff8a2a] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </button>
               </div>
@@ -361,7 +365,7 @@ const MainPage = () => {
               count={unreadChatCount}
               color="text-brandNavy"
               icon="chat"
-              onClick={() => isLoggedIn ? navigate("/chat") : navigate("/member/login")}
+              onClick={() => isLoggedIn ? setIsAIChatModalOpen(true) : navigate("/member/login")}
               hasBadge={unreadChatCount > 0}
             />
           </section>
