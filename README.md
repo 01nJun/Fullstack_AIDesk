@@ -138,7 +138,7 @@
 
 ## 계층구조
 
-[첨부예정]
+<img width="4585" height="2368" alt="Image" src="https://github.com/user-attachments/assets/33966a9e-9a88-49fa-b5da-0da7e751115e" />
 
 ## 구현 기능
 
