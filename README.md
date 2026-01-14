@@ -191,7 +191,7 @@
 ## 불용어 처리
 <img width="763" height="458" alt="Image" src="https://github.com/user-attachments/assets/6162b47b-074b-480a-b957-4fa0a67c0090" />
 
-### [회의록 PDF 자동 작성 & 불용어 처리 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDeskblob/main/readMe/meetingPDF.md)
+### [회의록 PDF 자동 작성 & 불용어 처리 플로우 및 주요코드](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/meetingPDF.md)
 
 
 
