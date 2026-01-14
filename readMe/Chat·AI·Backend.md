@@ -49,14 +49,14 @@
 ### CHAT 1:1 대화 & 그룹대화
 ![Image](https://github.com/user-attachments/assets/e9e9493c-8a58-4b9f-a580-6a52070056d6)
 
+### 티켓 단건 READ
+![Image](https://github.com/user-attachments/assets/5318c07a-4723-424e-ad56-da50ac366185)
+
 ### 웹소켓 연결 및 티켓 발송
 ![Image](https://github.com/user-attachments/assets/25c450f5-c71d-4ce8-bc68-d05190817180)
 
 ### 웹소켓 연결 파이프라인
 ![Image](https://github.com/user-attachments/assets/3018471c-7e9f-4892-ab5a-6f51e51a5f46)
-
-### 티켓 단건 READ
-![Image](https://github.com/user-attachments/assets/5318c07a-4723-424e-ad56-da50ac366185)
 
 
 # 👥 구현 기능 & 역할
