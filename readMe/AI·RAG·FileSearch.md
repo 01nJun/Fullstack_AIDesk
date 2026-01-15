@@ -75,8 +75,7 @@
 
 
 # 플로우 차트
-![Image](https://github.com/user-attachments/assets/c40cf959-e03d-4b16-a38f-3feb201a6f47)
-
+![Image](https://github.com/user-attachments/assets/e7bf5c6d-4e5c-435d-8d4e-7c274ef4bd8b)
 
 ## 🛠 트러블 슈팅 (AI · RAG Search Flow)
 

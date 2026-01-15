@@ -251,32 +251,33 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 ## 구현 기능
 
 ### 반응형
-![Image](https://github.com/user-attachments/assets/6e8811fa-6965-4fb5-9da9-aa9102d9ab15)
+
+![Image](https://github.com/user-attachments/assets/536abb1c-45e5-4cc7-929a-ebf7c953193f)
 
 
-## 로그인 & 소셜로그인 & 보안
+### 로그인 & 소셜로그인 & 보안
 
-![Image](https://github.com/user-attachments/assets/779a122a-3981-42c1-aa31-044e98ce431c)
+![Image](https://github.com/user-attachments/assets/024b4399-8606-41d8-9191-e7f8661c861e)
 
-## 얼굴 인식 로그인(임베딩)
+### 얼굴 인식 로그인(임베딩)
 
-![Image](https://github.com/user-attachments/assets/f4861a7c-4e3d-4561-83b7-82376a423483)
+![Image](https://github.com/user-attachments/assets/22777123-9c4b-4afb-abf7-840c17e79fea)
 
 ### [플로우차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/LogIn·SNS·Security.md)
 
-## Chat·AI
+
 
 ### Chat·AI
 
-![Image](https://github.com/user-attachments/assets/c4414587-5ef5-4969-b8cb-10562cee5683)
+![Image](https://github.com/user-attachments/assets/561cf088-8487-43bc-9bc3-71adc7528ae4)
 
 ### [플로우 차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/Chat·AI·Backend.md)
 
 ---
 
-## AI·RAG·FileSearch
+### AI·RAG·FileSearch
 
-![Image](https://github.com/user-attachments/assets/a8dcab06-69d8-4c81-8570-d932cea8e089)
+![Image](https://github.com/user-attachments/assets/68306e79-1fce-4c53-a139-2eb74b4820f5)
 
 ### [플로우 차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/AI·RAG·FileSearch.md)
 
