@@ -256,7 +256,7 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 
 ## 로그인 & 소셜로그인 & 보안
 
-# [영상첨부예정]
+![Image](https://github.com/user-attachments/assets/67619c4d-26ce-40f2-97eb-aa88f86ee708)
 
 ### [플로우차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/LogIn·SNS·Security.md)
 
@@ -266,7 +266,7 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 
 ### Chat·AI
 
-# [영상첨부예정]
+![Image](https://github.com/user-attachments/assets/ed3ce134-7cf9-4f44-b052-f59445278993)
 
 ### [플로우 차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/Chat·AI·Backend.md)
 
@@ -274,7 +274,7 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 
 ## AI·RAG·FileSearch
 
-# [영상첨부예정]
+![Image](https://github.com/user-attachments/assets/cfcad528-97c9-466a-a13a-1cf490492d4d)
 
 ### [플로우 차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/AI·RAG·FileSearch.md)
 
@@ -282,7 +282,7 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 
 ## 댓글, 대댓글, 수정 및 삭제 (CRUD) 및 STT(음성 to 텍스트)
 
-# [영상첨부예정]
+![Image](https://github.com/user-attachments/assets/de1be14f-5702-40cb-bf77-f36abdcda548)
 
 ### [플로우 차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/reply·STT.md)
 
