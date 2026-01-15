@@ -266,7 +266,7 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 
 ## Chat·AI
 
-![Image](https://github.com/user-attachments/assets/561cf088-8487-43bc-9bc3-71adc7528ae4)
+![Image](https://github.com/user-attachments/assets/b47646bc-d3ce-4a71-816c-ee2633445cc7)
 
 ### [플로우 차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/Chat·AI·Backend.md)
 
