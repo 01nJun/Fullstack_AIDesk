@@ -251,16 +251,16 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 ## 구현 기능
 
 ### 반응형
-![Image](https://github.com/user-attachments/assets/536abb1c-45e5-4cc7-929a-ebf7c953193f)
+![Image](https://github.com/user-attachments/assets/d3c5daf2-54ba-4726-9b58-85943d2b44b1)
 
 
 ## 로그인 & 소셜로그인 & 보안
 
-![Image](https://github.com/user-attachments/assets/024b4399-8606-41d8-9191-e7f8661c861e)
+![Image](https://github.com/user-attachments/assets/8e8fc266-5de4-46aa-8e06-85aac73362bd)
 
 ## 얼굴 인식 로그인(임베딩)
 
-![Image](https://github.com/user-attachments/assets/22777123-9c4b-4afb-abf7-840c17e79fea)
+![Image](https://github.com/user-attachments/assets/6acc6508-b79d-402f-8205-a4df925c2cf8)
 
 ### [플로우차트 및 트러블 슈팅 내역서](https://github.com/01nJun/Fullstack_AIDesk/blob/main/readMe/LogIn·SNS·Security.md)
 
