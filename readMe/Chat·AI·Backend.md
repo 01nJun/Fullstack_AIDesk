@@ -122,16 +122,16 @@
 # 플로우 차트
 
 ### CHAT & 채팅 멤버 찾기
-![Image](https://github.com/user-attachments/assets/c2a836bb-a8c4-4963-9460-eb04bff7f2f3)
+![Image](https://github.com/user-attachments/assets/9ddc015e-a01f-4416-b614-7f3d0afba936)
 
 ### CHAT 1:1 대화 생성
-![Image](https://github.com/user-attachments/assets/4c0d1644-62fc-455b-982b-50091ad435a0)
+![Image](https://github.com/user-attachments/assets/5e2c5afa-abca-4960-81cf-005cc1b33f05)
 
 ### CHAT 그룹 대화 생성
-![Image](https://github.com/user-attachments/assets/97b99dca-00ac-4f17-80fa-85700b89f086)
+![Image](https://github.com/user-attachments/assets/4fd29435-1e6b-4698-a1ad-3335a8973a58)
 
 ### CHAT 1:1 대화 & 그룹대화
-![Image](https://github.com/user-attachments/assets/e9e9493c-8a58-4b9f-a580-6a52070056d6)
+![Image](https://github.com/user-attachments/assets/333a0f88-53a3-4103-8388-2a235b26fc88)
 
 ### 티켓 목록
 ![Image](https://github.com/user-attachments/assets/9a6275a8-f951-46a4-9c6c-507ba0c8659c)
@@ -140,10 +140,10 @@
 ![Image](https://github.com/user-attachments/assets/5318c07a-4723-424e-ad56-da50ac366185)
 
 ### 웹소켓 연결 및 티켓 발송
-![Image](https://github.com/user-attachments/assets/25c450f5-c71d-4ce8-bc68-d05190817180)
+![Image](https://github.com/user-attachments/assets/5b3295b8-8ada-4d1f-afdf-d04d161e950f)
 
 ### 웹소켓 연결 파이프라인
-![Image](https://github.com/user-attachments/assets/3018471c-7e9f-4892-ab5a-6f51e51a5f46)
+![Image](https://github.com/user-attachments/assets/e9e1d44c-55be-4716-bfb4-948f81bf4931)
 
 ---
 
