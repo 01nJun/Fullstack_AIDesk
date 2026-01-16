@@ -178,9 +178,9 @@ AI가 핵심 정보를 추출해 업무 요청 초안을 자동으로 생성하�
 ---
 
 
-## 🎥 [유튜브 시연영상 링크 바로보기]()
+## 🎥 [유튜브 시연영상 링크 바로보기](https://youtu.be/uoVxX85k9ic?si=EHYDReIqxaj5YRtR)
 
-## 📋 [PDF 보기 링크 바로 보기]()
+## 📋 [PDF 보기 링크 바로 보기](https://nbviewer.org/github/01nJun/Fullstack_AIDesk/blob/main/2조_김민식,한정연,박태오,박건영,오인준.pdf)
 
 # ERD 구조
 
